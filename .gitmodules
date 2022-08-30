@@ -4,3 +4,6 @@
 [submodule "Modules/juce_murka"]
 	path = Modules/juce_murka
 	url = git@github.com:Kiberchaika/juce_murka.git
+[submodule "Modules/foleys_video_engine"]
+	path = Modules/foleys_video_engine
+	url = git@github.com:Mach1Studios/foleys_video_engine.git
