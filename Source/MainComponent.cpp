@@ -1,0 +1,363 @@
+/*
+  ==============================================================================
+
+    This file was auto-generated!
+
+  ==============================================================================
+*/
+
+#include "MainComponent.h"
+
+//==============================================================================
+MainComponent::MainComponent()
+{
+	// Make sure you set the size of the component after
+    // you add any child components.
+	juce::OpenGLAppComponent::setSize(800, 600);
+
+	// specify the number of input and output channels that we want to open
+	setAudioChannels(0, 2);
+}
+
+MainComponent::~MainComponent()
+{
+	shutdownAudio();
+}
+
+//==============================================================================
+void MainComponent::initialise() 
+{
+	murka::JuceMurkaBaseComponent::initialise();
+
+	imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
+}
+ 
+
+void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleRate)
+{
+	// This function will be called when the audio device is started, or when
+	// its settings (i.e. sample rate, block size, etc) are changed.
+	sampleRate = newSampleRate;
+	blockSize = samplesPerBlockExpected;
+
+	if (clip.get() != nullptr)
+		clip->prepareToPlay(blockSize, sampleRate);
+
+	transportSource.prepareToPlay(blockSize, sampleRate);
+
+	readBuffer.setSize(2, blockSize);
+
+	/*
+	// test - open video and start playing
+	juce::File file("C:\\Users\\k4\\Desktop\\test.mp4");
+	openFile(file);
+
+	clip->setNextReadPosition(0);
+	transportSource.start();
+	*/
+}
+
+void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
+{
+    int numInputChannels;
+    if (clip){
+        numInputChannels = clip->getNumChannels();
+    } else {
+        numInputChannels = 0;
+    }
+
+	juce::AudioSourceChannelInfo info(&readBuffer,
+		bufferToFill.startSample,
+		bufferToFill.numSamples);
+	// the AudioTransportSource takes care of start, stop and resample
+	transportSource.getNextAudioBlock(info);
+
+	if (numInputChannels > 0)
+	{
+		for (int i = 0; i < bufferToFill.buffer->getNumChannels(); ++i) {
+
+			bufferToFill.buffer->copyFrom(i, bufferToFill.startSample,
+				readBuffer.getReadPointer(i % numInputChannels),
+				bufferToFill.numSamples);
+			if (bufferToFill.buffer->getNumChannels() == 2 &&
+				readBuffer.getNumChannels() > 2) {
+				// add center to left and right
+				bufferToFill.buffer->addFrom(i, bufferToFill.startSample,
+					readBuffer.getReadPointer(2),
+					bufferToFill.numSamples, 0.7f);
+			}
+		}
+	}
+	else
+	{
+		bufferToFill.clearActiveBufferRegion();
+	}
+}
+
+void MainComponent::releaseResources()
+{
+	transportSource.releaseResources();
+	if (clip.get() != nullptr)
+		clip->releaseResources();
+}
+
+void MainComponent::timecodeChanged(int64_t, double seconds)
+{
+}
+
+//==============================================================================
+
+bool MainComponent::isInterestedInFileDrag(const juce::StringArray&)
+{
+	return true;
+}
+
+void MainComponent::filesDropped(const juce::StringArray& files, int, int)
+{
+	openFile(files[0]);
+
+	if (clip.get() != nullptr) {
+		clip->setNextReadPosition(0);
+		transportSource.start();
+	}
+
+	juce::Process::makeForegroundProcess();
+}
+
+void MainComponent::openFile(juce::File name)
+{
+	if (clip.get() != nullptr)
+		clip->removeTimecodeListener(this);
+
+	auto newClip = videoEngine.createClipFromFile(juce::URL(name));
+
+	if (newClip.get() == nullptr)
+		return;
+
+	newClip->prepareToPlay(blockSize, sampleRate);
+
+	clip = newClip;
+
+	readBuffer.setSize(clip.get()->getNumChannels(), blockSize);
+
+	clip->addTimecodeListener(this);
+	transportSource.setSource(clip.get(), 0, nullptr);
+}
+
+void MainComponent::shutdown()
+{ 
+	clip = nullptr;
+
+	murka::JuceMurkaBaseComponent::shutdown();
+}
+
+void MainComponent::render()
+{
+	// update video frame
+	if (clip.get() != nullptr) {
+		foleys::VideoFrame& frame = clip->getFrame(clip->getCurrentTimeInSeconds());
+		if (frame.image.getWidth() > 0 && frame.image.getHeight() > 0) {
+			if (imgVideo.getWidth() != frame.image.getWidth() || imgVideo.getHeight() != frame.image.getHeight()) {
+				imgVideo.allocate(frame.image.getWidth(), frame.image.getHeight());
+			}
+			juce::Image::BitmapData srcData(frame.image, juce::Image::BitmapData::readOnly);
+			imgVideo.loadData(srcData.data, GL_BGRA);
+		}
+	}
+
+	m.startFrame();
+	m.setScreenScale((float)openGLContext.getRenderingScale());
+
+	m.clear(20);
+	m.setColor(255);
+	m.setFontFromRawData("Proxima Nova Reg.ttf", BinaryData::ProximaNovaReg_ttf, BinaryData::ProximaNovaReg_ttfSize, 10);
+
+	m.begin();
+
+	auto& videoPlayerWidget = m.draw<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
+
+	if (clip.get() != nullptr) {
+		videoPlayerWidget.imgVideo = &imgVideo;
+
+		float playheadPosition = transportSource.getCurrentPosition() / transportSource.getLengthInSeconds();
+
+		videoPlayerWidget.playheadPosition = playheadPosition;
+		videoPlayerWidget.commit();
+
+		if (videoPlayerWidget.playheadPosition != playheadPosition) {
+			transportSource.setPosition(videoPlayerWidget.playheadPosition * transportSource.getLengthInSeconds());
+		}
+	}
+
+	if (clip.get() == nullptr) {
+		std::string message = "Drop a video here [Press Q for Hotkeys & Info]";
+		float width = m.getCurrentFont()->getStringBoundingBox(message, 0, 0).width;
+		m.draw<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).commit();
+	}
+
+	if (m.eventState.isKeyHeld('q')) {
+		m.getCurrentFont()->drawString("Fov : " + std::to_string(videoPlayerWidget.fov), 10, 10);
+		/*
+		m.getCurrentFont()->drawString("Position from OSC : " + std::to_string(videoPlayerWidget.oscPosition) + " ; actual: " + std::to_string(videoPlayerWidget.player.getPosition() * videoPlayerWidget.player.getDuration()), 10, 30);
+		if (useOsc) {
+			m.getCurrentFont()->drawString("Difference in ms : " + std::to_string(videoPlayerWidget.diff), 10, 50);
+		}
+		if (serial.isInitialized()) {
+			m.getCurrentFont()->drawString("Serial bytes available: " + std::to_string(serial.available()), 10, 70);
+		}
+		*/
+		m.getCurrentFont()->drawString("Playing: " + std::string(clip.get() != nullptr ? "yes" : "no"), 10, 90);
+		m.getCurrentFont()->drawString("Frame: " + std::to_string(transportSource.getCurrentPosition()), 10, 110);
+
+		m.getCurrentFont()->drawString("Hotkeys:", 10, 130);
+		m.getCurrentFont()->drawString("[w] - FOV+", 10, 150);
+		m.getCurrentFont()->drawString("[s] - FOV-", 10, 170);
+		m.getCurrentFont()->drawString("[z] - Equirectangular / 2D", 10, 190);
+		m.getCurrentFont()->drawString("[g] - Overlay 2D Reference", 10, 210);
+		m.getCurrentFont()->drawString("[o] - Overlay Reference", 10, 230);
+		m.getCurrentFont()->drawString("[d] - Crop stereoscopic", 10, 250);
+        m.getCurrentFont()->drawString("[j][k][l] - Invert Y, P, R axis", 10, 270);
+        m.getCurrentFont()->drawString("[m][,][.] - Offset Y, P, R by 180 degrees", 10, 290);
+        m.getCurrentFont()->drawString("[;] - Deactivate Roll", 10, 310);
+        m.getCurrentFont()->drawString("Arrow Keys - Orientation Resets", 10, 330);
+        m.getCurrentFont()->drawString("[u] - Toggle Use of Magnometer when applicable", 10, 350);
+        m.getCurrentFont()->drawString("[i] - Disable updates from Metamotion Device", 10, 370);
+
+		m.getCurrentFont()->drawString("OverlayCoords:", 10, 430);
+		m.getCurrentFont()->drawString("Y: " + std::to_string(videoPlayerWidget.rotation.x), 10, 450);
+		m.getCurrentFont()->drawString("P: " + std::to_string(videoPlayerWidget.rotation.y), 10, 470);
+		m.getCurrentFont()->drawString("R: " + std::to_string(videoPlayerWidget.rotation.z), 10, 490);
+	}
+
+	if (m.eventState.isKeyPressed('z')) {
+		videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
+	}
+
+	if (m.eventState.isKeyPressed('w')) {
+		videoPlayerWidget.fov += 10;
+	}
+
+	if (m.eventState.isKeyPressed('s')) {
+		videoPlayerWidget.fov -= 10;
+	}
+
+	if (m.eventState.isKeyPressed(' ')) {
+		if (transportSource.isPlaying()) {
+			transportSource.stop();
+		}
+		else {
+			transportSource.start();
+		}
+	}
+
+    // draw m1 logo
+	//m.drawImage(imgVideo, 0, 0, imgVideo.getWidth(), imgVideo.getHeight());
+	m.drawImage(imgLogo, m.getWindowWidth() - imgLogo.getWidth()*0.3 - 10, m.getWindowHeight() - imgLogo.getHeight()*0.3 - 10, imgLogo.getWidth() * 0.3, imgLogo.getHeight() * 0.3);
+    
+    std::vector<M1OrientationClientWindowDeviceSlot> slots;
+    
+    slots.push_back({"bt", "bluetooth device 1", 0 == DEBUG_orientationDeviceSelected, 0, [&](int idx)
+        {
+            DEBUG_orientationDeviceSelected = 0;
+        }
+    });
+    slots.push_back({"bt", "bluetooth device 2", 1 == DEBUG_orientationDeviceSelected, 1, [&](int idx)
+        {
+           DEBUG_orientationDeviceSelected = 1;
+        }
+    });
+    slots.push_back({"bt", "bluetooth device 3", 2 == DEBUG_orientationDeviceSelected, 2, [&](int idx)
+        {
+            DEBUG_orientationDeviceSelected = 2;
+        }
+    });
+    slots.push_back({"bt", "bluetooth device 4", 3 == DEBUG_orientationDeviceSelected, 3, [&](int idx)
+        {
+            DEBUG_orientationDeviceSelected = 3;
+        }
+    });
+    slots.push_back({"wifi", "osc device 1", 4 == DEBUG_orientationDeviceSelected, 4, [&](int idx)
+        {
+            DEBUG_orientationDeviceSelected = 4;
+        }
+    });
+    slots.push_back({"wifi", "osc device 2", 5 == DEBUG_orientationDeviceSelected, 5, [&](int idx)
+        {
+            DEBUG_orientationDeviceSelected = 5;
+        }
+    });
+    slots.push_back({"wifi", "osc device 3", 6 == DEBUG_orientationDeviceSelected, 6, [&](int idx)
+        {
+            DEBUG_orientationDeviceSelected = 6;
+        }
+    });
+    slots.push_back({"wifi", "osc device 4", 7 == DEBUG_orientationDeviceSelected, 7, [&](int idx)
+        {
+            DEBUG_orientationDeviceSelected = 7;
+        }
+    });
+
+    //TODO: set size with getWidth()
+    auto& orientationControlButton = m.draw<M1OrientationWindowToggleButton>({800 - 40 - 5, 5, 40, 40}).onClick([&](M1OrientationWindowToggleButton& b){
+        showOrientationControlMenu = !showOrientationControlMenu;
+    })
+        .withInteractiveOrientationGimmick(DEBUG_orientationDeviceSelected >= 0, m.getElapsedTime() * 100)
+        .commit();
+    
+    if (orientationControlButton.hovered && (DEBUG_orientationDeviceSelected >= 0)) {
+        m.setFont("Proxima Nova Reg.ttf", 12);
+        std::string deviceReportString = "Tracking device:" + slots[DEBUG_orientationDeviceSelected].deviceName;
+        auto font = m.getCurrentFont();
+        auto bbox = font->getStringBoundingBox(deviceReportString, 0, 0);
+        m.setColor(40, 40, 40, 200);
+        m.drawRectangle(678 + 40 - bbox.width - 5, 45, bbox.width + 10, 30);
+        m.setColor(230, 230, 230);
+        m.draw<M1Label>({678 + 40 - bbox.width - 5, 48, bbox.width + 10, 30}).text(deviceReportString).commit();
+    }
+
+    if (showOrientationControlMenu) {
+        bool showOrientationSettingsPanelInsideWindow = (DEBUG_orientationDeviceSelected >= 0);
+        orientationControlWindow = m.draw<M1OrientationClientWindow>({500, 45, 218, 300 + 100 * showOrientationSettingsPanelInsideWindow}).withDeviceList(slots)
+            .withSettingsPanelEnabled(showOrientationSettingsPanelInsideWindow)
+            .onClickOutside([&]() {
+                if (!orientationControlButton.hovered) { // Only switch showing the orientation control if we didn't click on the button
+                    showOrientationControlMenu = !showOrientationControlMenu;
+                    if (showOrientationControlMenu && !showedOrientationControlBefore) {
+                        orientationControlWindow.startRefreshing();
+                    }
+                }
+            })
+            .onDisconnectClicked([&](){
+                std::cout << "Now disconnect from the device";
+                DEBUG_orientationDeviceSelected = -1;
+            })
+            .onYPRSwitchesClicked([&](int whichone){
+                if (whichone == 0) DEBUG_trackYaw = !DEBUG_trackYaw;
+                if (whichone == 1) DEBUG_trackPitch = !DEBUG_trackPitch;
+                if (whichone == 2) DEBUG_trackRoll = !DEBUG_trackRoll;
+            })
+            .withYPRTrackingSettings(DEBUG_trackYaw,
+                                     DEBUG_trackPitch,
+                                     DEBUG_trackRoll, std::pair<int, int>(0, 180),
+                                     std::pair<int, int>(0, 180),
+                                     std::pair<int, int>(0, 180));
+        
+        orientationControlWindow.commit();
+    }
+    
+	m.end();
+} 
+
+//==============================================================================
+void MainComponent::paint (juce::Graphics& g)
+{
+    // You can add your component specific drawing code here!
+    // This will draw over the top of the openGL background.
+}
+
+void MainComponent::resized()
+{
+    // This is called when the MainComponent is resized.
+    // If you add any child components, this is where you should
+    // update their positions.
+}
