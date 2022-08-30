@@ -197,15 +197,6 @@ void MainComponent::render()
 
 	if (m.eventState.isKeyHeld('q')) {
 		m.getCurrentFont()->drawString("Fov : " + std::to_string(videoPlayerWidget.fov), 10, 10);
-		/*
-		m.getCurrentFont()->drawString("Position from OSC : " + std::to_string(videoPlayerWidget.oscPosition) + " ; actual: " + std::to_string(videoPlayerWidget.player.getPosition() * videoPlayerWidget.player.getDuration()), 10, 30);
-		if (useOsc) {
-			m.getCurrentFont()->drawString("Difference in ms : " + std::to_string(videoPlayerWidget.diff), 10, 50);
-		}
-		if (serial.isInitialized()) {
-			m.getCurrentFont()->drawString("Serial bytes available: " + std::to_string(serial.available()), 10, 70);
-		}
-		*/
 		m.getCurrentFont()->drawString("Playing: " + std::string(clip.get() != nullptr ? "yes" : "no"), 10, 90);
 		m.getCurrentFont()->drawString("Frame: " + std::to_string(transportSource.getCurrentPosition()), 10, 110);
 
@@ -216,17 +207,12 @@ void MainComponent::render()
 		m.getCurrentFont()->drawString("[g] - Overlay 2D Reference", 10, 210);
 		m.getCurrentFont()->drawString("[o] - Overlay Reference", 10, 230);
 		m.getCurrentFont()->drawString("[d] - Crop stereoscopic", 10, 250);
-        m.getCurrentFont()->drawString("[j][k][l] - Invert Y, P, R axis", 10, 270);
-        m.getCurrentFont()->drawString("[m][,][.] - Offset Y, P, R by 180 degrees", 10, 290);
-        m.getCurrentFont()->drawString("[;] - Deactivate Roll", 10, 310);
-        m.getCurrentFont()->drawString("Arrow Keys - Orientation Resets", 10, 330);
-        m.getCurrentFont()->drawString("[u] - Toggle Use of Magnometer when applicable", 10, 350);
-        m.getCurrentFont()->drawString("[i] - Disable updates from Metamotion Device", 10, 370);
+        m.getCurrentFont()->drawString("[Arrow Keys] - Orientation Resets", 10, 270);
 
-		m.getCurrentFont()->drawString("OverlayCoords:", 10, 430);
-		m.getCurrentFont()->drawString("Y: " + std::to_string(videoPlayerWidget.rotation.x), 10, 450);
-		m.getCurrentFont()->drawString("P: " + std::to_string(videoPlayerWidget.rotation.y), 10, 470);
-		m.getCurrentFont()->drawString("R: " + std::to_string(videoPlayerWidget.rotation.z), 10, 490);
+		m.getCurrentFont()->drawString("OverlayCoords:", 10, 330);
+		m.getCurrentFont()->drawString("Y: " + std::to_string(videoPlayerWidget.rotation.x), 10, 350);
+		m.getCurrentFont()->drawString("P: " + std::to_string(videoPlayerWidget.rotation.y), 10, 370);
+		m.getCurrentFont()->drawString("R: " + std::to_string(videoPlayerWidget.rotation.z), 10, 390);
 	}
 
 	if (m.eventState.isKeyPressed('z')) {
