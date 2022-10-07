@@ -1,11 +1,3 @@
-/*
-  ==============================================================================
-
-    This file was auto-generated!
-
-  ==============================================================================
-*/
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
@@ -16,6 +8,7 @@
 #include "m1_orientation_client/UI/M1Label.h"
 #include "m1_orientation_client/UI/M1OrientationWindowToggleButton.h"
 #include "m1_orientation_client/UI/M1OrientationClientWindow.h"
+#include <Mach1Decode.h>
 
 //==============================================================================
 /*
@@ -38,8 +31,12 @@ class MainComponent   : public murka::JuceMurkaBaseComponent,
     int                         blockSize = 0;
     int                         ffwdSpeed = 2;
 
-    juce::AudioBuffer<float>    readBuffer;
-
+    Mach1Decode m1Decode;
+    std::vector<float> spatialMixerCoeffs;
+    std::vector<juce::LinearSmoothedValue<float>> smoothedChannelCoeffs;
+    juce::AudioBuffer<float> tempBuffer;
+    int detectedNumInputChannels;
+    
 public:
     //==============================================================================
     MainComponent();

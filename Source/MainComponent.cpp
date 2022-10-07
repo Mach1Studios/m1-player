@@ -1,11 +1,3 @@
-/*
-  ==============================================================================
-
-    This file was auto-generated!
-
-  ==============================================================================
-*/
-
 #include "MainComponent.h"
 
 //==============================================================================
@@ -45,51 +37,103 @@ void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleR
 
 	transportSource.prepareToPlay(blockSize, sampleRate);
 
-	readBuffer.setSize(2, blockSize);
-
-	/*
-	// test - open video and start playing
-	juce::File file("C:\\Users\\k4\\Desktop\\test.mp4");
-	openFile(file);
-
-	clip->setNextReadPosition(0);
-	transportSource.start();
-	*/
+    // Setup for Mach1Decode
+    smoothedChannelCoeffs.resize(m1Decode.getFormatCoeffCount());
+    spatialMixerCoeffs.resize(m1Decode.getFormatCoeffCount());
+    for (int input_channel = 0; input_channel < m1Decode.getFormatChannelCount(); input_channel++) {
+        smoothedChannelCoeffs[input_channel * 2].reset(sampleRate, (double)0.01);
+        smoothedChannelCoeffs[input_channel * 2 + 1].reset(sampleRate, (double)0.01);
+    }
 }
 
 void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    int numInputChannels;
     if (clip){
-        numInputChannels = clip->getNumChannels();
+        detectedNumInputChannels = clip->getNumChannels();
     } else {
-        numInputChannels = 0;
+        detectedNumInputChannels = 0;
     }
 
-	juce::AudioSourceChannelInfo info(&readBuffer,
+    tempBuffer.setSize(detectedNumInputChannels * 2, bufferToFill.buffer->getNumSamples());
+    tempBuffer.clear();
+    
+	juce::AudioSourceChannelInfo info(&tempBuffer,
 		bufferToFill.startSample,
 		bufferToFill.numSamples);
+    
 	// the AudioTransportSource takes care of start, stop and resample
 	transportSource.getNextAudioBlock(info);
 
-	if (numInputChannels > 0)
-	{
-		for (int i = 0; i < bufferToFill.buffer->getNumChannels(); ++i) {
+    /// Detect input audio channels
+	if (detectedNumInputChannels > 0) {
+        /// Mono or Stereo
+        // TODO: mute or block audio playback by default
+        // TODO: add button for playing stereo/mono audio in videoplayer?
+        
+        // clear channels
+        for (auto channel = 0; channel < detectedNumInputChannels; ++channel)
+            bufferToFill.buffer->clear(channel, 0, bufferToFill.buffer->getNumSamples());
+        
+        /// Multichannel
 
-			bufferToFill.buffer->copyFrom(i, bufferToFill.startSample,
-				readBuffer.getReadPointer(i % numInputChannels),
-				bufferToFill.numSamples);
-			if (bufferToFill.buffer->getNumChannels() == 2 &&
-				readBuffer.getNumChannels() > 2) {
-				// add center to left and right
-				bufferToFill.buffer->addFrom(i, bufferToFill.startSample,
-					readBuffer.getReadPointer(2),
-					bufferToFill.numSamples, 0.7f);
-			}
-		}
-	}
-	else
-	{
+        // if you've got more output channels than input clears extra outputs
+        for (auto channel = detectedNumInputChannels; channel < 2; ++channel)
+            bufferToFill.buffer->clear(channel, 0, bufferToFill.buffer->getNumSamples());
+        
+        // Mach1Decode processing loop
+        Mach1Point3D currentOrientation;
+        // retrieve normalized values
+        currentOrientation.x = -90.0;
+        currentOrientation.y = 0;
+        currentOrientation.z = 0;
+//        (parameters.getParameter(paramYawEnable)->getValue()) ? currentOrientation.x = parameters.getParameter(paramYaw)->getValue() : currentOrientation.x = 0.0f;
+//        (parameters.getParameter(paramPitchEnable)->getValue()) ? currentOrientation.y = parameters.getParameter(paramPitch)->getValue() : currentOrientation.y = 0.0f;
+//        (parameters.getParameter(paramRollEnable)->getValue()) ? currentOrientation.z = parameters.getParameter(paramRoll)->getValue() : currentOrientation.z = 0.0f;
+        m1Decode.setRotation(currentOrientation);
+        m1Decode.beginBuffer();
+        spatialMixerCoeffs = m1Decode.decodeCoeffs();
+        m1Decode.endBuffer();
+        
+        // Update spatial mixer coeffs from Mach1Decode for a smoothed value
+        for (int channel = 0; channel < detectedNumInputChannels; ++channel) {
+            smoothedChannelCoeffs[channel * 2    ].setTargetValue(spatialMixerCoeffs[channel * 2    ]);
+            smoothedChannelCoeffs[channel * 2 + 1].setTargetValue(spatialMixerCoeffs[channel * 2 + 1]);
+        }
+        
+        float* outBufferL = bufferToFill.buffer->getWritePointer(0);
+        float* outBufferR = bufferToFill.buffer->getWritePointer(1);
+        std::vector<float> spatialCoeffsBufferL, spatialCoeffsBufferR;
+
+        if (detectedNumInputChannels == m1Decode.getFormatChannelCount()){ // dumb safety check, TODO: do better i/o error handling
+            
+            for (auto channel = 0; channel < detectedNumInputChannels; ++channel){
+                tempBuffer.copyFrom(channel * 2    , 0, *bufferToFill.buffer, channel, 0, bufferToFill.buffer->getNumSamples());
+                tempBuffer.copyFrom(channel * 2 + 1, 0, *bufferToFill.buffer, channel, 0, bufferToFill.buffer->getNumSamples());
+            }
+            
+            for (int sample = 0; sample < bufferToFill.buffer->getNumSamples(); sample++) {
+                for (int channel = 0; channel < bufferToFill.buffer->getNumChannels(); channel++) {
+                    bufferToFill.buffer->getWritePointer(channel)[sample] = 0;
+                }
+            }
+            
+            for (int sample = 0; sample < bufferToFill.buffer->getNumSamples(); sample++) {
+                for (int channel = 0; channel < detectedNumInputChannels; channel++) {
+                    outBufferL[sample] += tempBuffer.getReadPointer(channel * 2    )[sample] * smoothedChannelCoeffs[channel * 2    ].getNextValue();
+                    outBufferR[sample] += tempBuffer.getReadPointer(channel * 2 + 1)[sample] * smoothedChannelCoeffs[channel * 2 + 1].getNextValue();
+                }
+            }
+        } else {
+            // Invalid Decode I/O; clear buffers
+            for (int channel = detectedNumInputChannels; channel < 2; ++channel)
+                bufferToFill.buffer->clear(channel, 0, bufferToFill.buffer->getNumSamples());
+        }
+        
+        // clear remaining input channels
+        for (auto channel = 2; channel < detectedNumInputChannels; ++channel)
+            bufferToFill.buffer->clear(channel, 0, bufferToFill.buffer->getNumSamples());
+        
+	} else {
 		bufferToFill.clearActiveBufferRegion();
 	}
 }
@@ -120,7 +164,6 @@ void MainComponent::filesDropped(const juce::StringArray& files, int, int)
 		clip->setNextReadPosition(0);
 		transportSource.start();
 	}
-
 	juce::Process::makeForegroundProcess();
 }
 
@@ -134,13 +177,51 @@ void MainComponent::openFile(juce::File name)
 	if (newClip.get() == nullptr)
 		return;
 
-	newClip->prepareToPlay(blockSize, sampleRate);
-
-	clip = newClip;
-
-	readBuffer.setSize(clip.get()->getNumChannels(), blockSize);
-
-	clip->addTimecodeListener(this);
+    newClip->prepareToPlay(blockSize, sampleRate);
+    clip = newClip;
+    
+    /// Video Setup
+    if (newClip->hasVideo()) {
+//        newClip->get
+//        newClip->getFrameDurationInSeconds()
+    }
+    
+    /// Audio Setup
+    if (newClip->hasAudio()) {
+        detectedNumInputChannels = clip.get()->getNumChannels();
+        //tempBuffer.setSize(detectedNumInputChannels, blockSize);
+        
+        // Setup for Mach1Decode API
+        m1Decode.setPlatformType(Mach1PlatformDefault);
+        m1Decode.setFilterSpeed(0.99);
+        
+        if (detectedNumInputChannels == 4){
+            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoHorizon_4);
+        } else if (detectedNumInputChannels == 8){
+            bool useIsotropic = true; // TODO: implement this switch
+            if (useIsotropic) {
+                m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_8);
+            } else {
+                m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatialAlt_8);
+            }
+        } else if (detectedNumInputChannels == 12){
+            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_12);
+        } else if (detectedNumInputChannels == 14){
+            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
+        } else if (detectedNumInputChannels == 16){
+            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_16);
+        } else if (detectedNumInputChannels == 32){
+            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_32);
+        } else if (detectedNumInputChannels == 36){
+            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_36);
+        } else if (detectedNumInputChannels == 48){
+            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_48);
+        } else if (detectedNumInputChannels == 60){
+            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_60);
+        }
+    }
+	
+    clip->addTimecodeListener(this);
 	transportSource.setSource(clip.get(), 0, nullptr);
 }
 
@@ -230,8 +311,7 @@ void MainComponent::render()
 	if (m.eventState.isKeyPressed(' ')) {
 		if (transportSource.isPlaying()) {
 			transportSource.stop();
-		}
-		else {
+		} else {
 			transportSource.start();
 		}
 	}
