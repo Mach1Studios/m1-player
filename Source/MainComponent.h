@@ -8,7 +8,7 @@
 #include "m1_orientation_client/UI/M1Label.h"
 #include "m1_orientation_client/UI/M1OrientationWindowToggleButton.h"
 #include "m1_orientation_client/UI/M1OrientationClientWindow.h"
-#include <Mach1Decode.h>
+#include "../../../m1-sdk/mach1spatial-libs/xcode/include/Mach1Decode.h"
 
 //==============================================================================
 /*
@@ -34,7 +34,7 @@ class MainComponent   : public murka::JuceMurkaBaseComponent,
     Mach1Decode m1Decode;
     std::vector<float> spatialMixerCoeffs;
     std::vector<juce::LinearSmoothedValue<float>> smoothedChannelCoeffs;
-    juce::AudioBuffer<float> tempBuffer;
+    juce::AudioBuffer<float> readBuffer;
     int detectedNumInputChannels;
     
 public:
