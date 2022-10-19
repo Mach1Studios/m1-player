@@ -28,7 +28,7 @@ void MainComponent::initialise()
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleRate)
 {
 	// This function will be called when the audio device is started, or when
-	// its settings (i.e. sample rate, block size, etc) are changed.
+	// its settings (i.e. sample rate, ablock size, etc) are changed.
 	sampleRate = newSampleRate;
 	blockSize = samplesPerBlockExpected;
 
@@ -50,92 +50,98 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
 {
     if (clip){
         detectedNumInputChannels = clip->getNumChannels();
+        
+        readBuffer.setSize(detectedNumInputChannels, bufferToFill.numSamples);
+        readBuffer.clear();
+        
+        juce::AudioBuffer<float> tempBuffer;
+
+        tempBuffer.setSize(detectedNumInputChannels * 2, bufferToFill.numSamples);
+        tempBuffer.clear();
+        
+        juce::AudioSourceChannelInfo info(&readBuffer,
+            bufferToFill.startSample,
+            bufferToFill.numSamples);
+        
+        // the AudioTransportSource takes care of start, stop and resample
+        transportSource.getNextAudioBlock(info);
+
+        /// Detect input audio channels
+        if (detectedNumInputChannels > 0) {
+            /// Mono or Stereo
+            // TODO: mute or block audio playback by default
+            // TODO: add button for playing stereo/mono audio in videoplayer?
+            
+            // clear channels
+//            for (auto channel = 0; channel < detectedNumInputChannels; ++channel)
+//                info.buffer->clear(channel, 0, bufferToFill.numSamples);
+            
+            /// Multichannel
+
+            // if you've got more output channels than input clears extra outputs
+            for (auto channel = detectedNumInputChannels; channel < 2; ++channel)
+                readBuffer.clear(channel, 0, bufferToFill.numSamples);
+            
+            // Mach1Decode processing loop
+            Mach1Point3D currentOrientation;
+            // retrieve normalized values
+            currentOrientation.x = -90.0;
+            currentOrientation.y = 0;
+            currentOrientation.z = 0;
+    //        (parameters.getParameter(paramYawEnable)->getValue()) ? currentOrientation.x = parameters.getParameter(paramYaw)->getValue() : currentOrientation.x = 0.0f;
+    //        (parameters.getParameter(paramPitchEnable)->getValue()) ? currentOrientation.y = parameters.getParameter(paramPitch)->getValue() : currentOrientation.y = 0.0f;
+    //        (parameters.getParameter(paramRollEnable)->getValue()) ? currentOrientation.z = parameters.getParameter(paramRoll)->getValue() : currentOrientation.z = 0.0f;
+            m1Decode.setRotation(currentOrientation);
+            m1Decode.beginBuffer();
+            spatialMixerCoeffs = m1Decode.decodeCoeffs();
+            m1Decode.endBuffer();
+            
+            // Update spatial mixer coeffs from Mach1Decode for a smoothed value
+            for (int channel = 0; channel < detectedNumInputChannels; ++channel) {
+                smoothedChannelCoeffs[channel * 2    ].setTargetValue(spatialMixerCoeffs[channel * 2    ]);
+                smoothedChannelCoeffs[channel * 2 + 1].setTargetValue(spatialMixerCoeffs[channel * 2 + 1]);
+            }
+            
+            float* outBufferL = bufferToFill.buffer->getWritePointer(0);
+            float* outBufferR = bufferToFill.buffer->getWritePointer(1);
+            std::vector<float> spatialCoeffsBufferL, spatialCoeffsBufferR;
+
+            if (detectedNumInputChannels == m1Decode.getFormatChannelCount()){ // dumb safety check, TODO: do better i/o error handling
+                                
+                // copy from readBuffer for doubled channels
+                for (auto channel = 0; channel < detectedNumInputChannels; ++channel){
+                    tempBuffer.copyFrom(channel * 2    , 0, readBuffer, channel, 0, bufferToFill.numSamples);
+                    tempBuffer.copyFrom(channel * 2 + 1, 0, readBuffer, channel, 0, bufferToFill.numSamples);
+                }
+                
+//                for (int sample = 0; sample < info.numSamples; sample++) {
+//                    for (int channel = 0; channel < info.buffer->getNumChannels(); channel++) {
+//                        info.buffer->getWritePointer(channel)[sample] = 0;
+//                    }
+//                }
+                
+                for (int sample = 0; sample < info.numSamples; sample++) {
+                    for (int channel = 0; channel < detectedNumInputChannels; channel++) {
+                        outBufferL[sample] += tempBuffer.getReadPointer(channel * 2    )[sample] * smoothedChannelCoeffs[channel * 2    ].getNextValue();
+                        outBufferR[sample] += tempBuffer.getReadPointer(channel * 2 + 1)[sample] * smoothedChannelCoeffs[channel * 2 + 1].getNextValue();
+                    }
+                }
+            } else {
+                // Invalid Decode I/O; clear buffers
+                for (int channel = detectedNumInputChannels; channel < 2; ++channel)
+                    bufferToFill.buffer->clear(channel, 0, bufferToFill.numSamples);
+            }
+            
+            // clear remaining input channels
+            for (auto channel = 2; channel < detectedNumInputChannels; ++channel)
+                readBuffer.clear(channel, 0, bufferToFill.numSamples);
+            
+        } else {
+            bufferToFill.clearActiveBufferRegion();
+        }
     } else {
         detectedNumInputChannels = 0;
     }
-
-    tempBuffer.setSize(detectedNumInputChannels * 2, bufferToFill.buffer->getNumSamples());
-    tempBuffer.clear();
-    
-	juce::AudioSourceChannelInfo info(&tempBuffer,
-		bufferToFill.startSample,
-		bufferToFill.numSamples);
-    
-	// the AudioTransportSource takes care of start, stop and resample
-	transportSource.getNextAudioBlock(info);
-
-    /// Detect input audio channels
-	if (detectedNumInputChannels > 0) {
-        /// Mono or Stereo
-        // TODO: mute or block audio playback by default
-        // TODO: add button for playing stereo/mono audio in videoplayer?
-        
-        // clear channels
-        for (auto channel = 0; channel < detectedNumInputChannels; ++channel)
-            bufferToFill.buffer->clear(channel, 0, bufferToFill.buffer->getNumSamples());
-        
-        /// Multichannel
-
-        // if you've got more output channels than input clears extra outputs
-        for (auto channel = detectedNumInputChannels; channel < 2; ++channel)
-            bufferToFill.buffer->clear(channel, 0, bufferToFill.buffer->getNumSamples());
-        
-        // Mach1Decode processing loop
-        Mach1Point3D currentOrientation;
-        // retrieve normalized values
-        currentOrientation.x = -90.0;
-        currentOrientation.y = 0;
-        currentOrientation.z = 0;
-//        (parameters.getParameter(paramYawEnable)->getValue()) ? currentOrientation.x = parameters.getParameter(paramYaw)->getValue() : currentOrientation.x = 0.0f;
-//        (parameters.getParameter(paramPitchEnable)->getValue()) ? currentOrientation.y = parameters.getParameter(paramPitch)->getValue() : currentOrientation.y = 0.0f;
-//        (parameters.getParameter(paramRollEnable)->getValue()) ? currentOrientation.z = parameters.getParameter(paramRoll)->getValue() : currentOrientation.z = 0.0f;
-        m1Decode.setRotation(currentOrientation);
-        m1Decode.beginBuffer();
-        spatialMixerCoeffs = m1Decode.decodeCoeffs();
-        m1Decode.endBuffer();
-        
-        // Update spatial mixer coeffs from Mach1Decode for a smoothed value
-        for (int channel = 0; channel < detectedNumInputChannels; ++channel) {
-            smoothedChannelCoeffs[channel * 2    ].setTargetValue(spatialMixerCoeffs[channel * 2    ]);
-            smoothedChannelCoeffs[channel * 2 + 1].setTargetValue(spatialMixerCoeffs[channel * 2 + 1]);
-        }
-        
-        float* outBufferL = bufferToFill.buffer->getWritePointer(0);
-        float* outBufferR = bufferToFill.buffer->getWritePointer(1);
-        std::vector<float> spatialCoeffsBufferL, spatialCoeffsBufferR;
-
-        if (detectedNumInputChannels == m1Decode.getFormatChannelCount()){ // dumb safety check, TODO: do better i/o error handling
-            
-            for (auto channel = 0; channel < detectedNumInputChannels; ++channel){
-                tempBuffer.copyFrom(channel * 2    , 0, *bufferToFill.buffer, channel, 0, bufferToFill.buffer->getNumSamples());
-                tempBuffer.copyFrom(channel * 2 + 1, 0, *bufferToFill.buffer, channel, 0, bufferToFill.buffer->getNumSamples());
-            }
-            
-            for (int sample = 0; sample < bufferToFill.buffer->getNumSamples(); sample++) {
-                for (int channel = 0; channel < bufferToFill.buffer->getNumChannels(); channel++) {
-                    bufferToFill.buffer->getWritePointer(channel)[sample] = 0;
-                }
-            }
-            
-            for (int sample = 0; sample < bufferToFill.buffer->getNumSamples(); sample++) {
-                for (int channel = 0; channel < detectedNumInputChannels; channel++) {
-                    outBufferL[sample] += tempBuffer.getReadPointer(channel * 2    )[sample] * smoothedChannelCoeffs[channel * 2    ].getNextValue();
-                    outBufferR[sample] += tempBuffer.getReadPointer(channel * 2 + 1)[sample] * smoothedChannelCoeffs[channel * 2 + 1].getNextValue();
-                }
-            }
-        } else {
-            // Invalid Decode I/O; clear buffers
-            for (int channel = detectedNumInputChannels; channel < 2; ++channel)
-                bufferToFill.buffer->clear(channel, 0, bufferToFill.buffer->getNumSamples());
-        }
-        
-        // clear remaining input channels
-        for (auto channel = 2; channel < detectedNumInputChannels; ++channel)
-            bufferToFill.buffer->clear(channel, 0, bufferToFill.buffer->getNumSamples());
-        
-	} else {
-		bufferToFill.clearActiveBufferRegion();
-	}
 }
 
 void MainComponent::releaseResources()

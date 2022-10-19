@@ -32,7 +32,8 @@
  ==============================================================================
 */
 
-#include "../JuceLibraryCode/JuceHeader.h"
+#include <JuceHeader.h>
+#include "../../../m1-sdk/mach1spatial-libs/xcode/include/Mach1Decode.h"
 
 juce::Component* createMainContentComponent();
 
