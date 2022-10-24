@@ -46,11 +46,13 @@
         <CONFIGURATION name="Debug" isDebug="1" optimisation="1" osxCompatibility="10.9 SDK"
                        cppLanguageStandard="c++11" cppLibType="libc++" customXcodeFlags=""
                        enablePluginBinaryCopyStep="0" recommendedWarnings="LLVM" macOSDeploymentTarget="10.9"
-                       headerPath="Modules/m1-sdk/mach1spatial-libs/xcode/include" libraryPath="Modules/m1-sdk/mach1spatial-libs/xcode/lib/"/>
+                       headerPath="../../Modules/m1-sdk/mach1spatial-libs/xcode/include"
+                       libraryPath="../../Modules/m1-sdk/mach1spatial-libs/xcode/lib/"/>
         <CONFIGURATION name="Release" isDebug="0" optimisation="3" osxCompatibility="10.9 SDK"
                        cppLanguageStandard="c++11" cppLibType="libc++" customXcodeFlags=""
                        enablePluginBinaryCopyStep="1" recommendedWarnings="LLVM" macOSDeploymentTarget="10.9"
-                       headerPath="Modules/m1-sdk/mach1spatial-libs/xcode/include" libraryPath="Modules/m1-sdk/mach1spatial-libs/xcode/lib/"/>
+                       headerPath="../../Modules/m1-sdk/mach1spatial-libs/xcode/include"
+                       libraryPath="../../Modules/m1-sdk/mach1spatial-libs/xcode/lib/"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_core"/>
@@ -74,11 +76,11 @@
     <VS2019 targetFolder="Builds/VisualStudio2019" smallIcon="" bigIcon=""
             externalLibraries="Mach1DecodeCAPI.lib" extraDefs="&#10;MURKA_JUCE JUCE_OPENGL3">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" headerPath="Modules/m1-sdk/mach1spatial-libs/windows-x86_64/include/"
-                       libraryPath="Modules\m1-sdk\mach1spatial-libs\vs-15-2017-x86_64\lib\Static\MD\Debug\"
+        <CONFIGURATION isDebug="1" name="Debug" headerPath="..\..\Modules\m1-sdk\mach1spatial-libs\windows-x86_64\include"
+                       libraryPath="..\..\Modules\m1-sdk\mach1spatial-libs\vs-15-2017-x86_64\lib\Static\MD\Debug\"
                        defines="M1_STATIC"/>
-        <CONFIGURATION isDebug="0" name="Release" libraryPath="Modules\m1-sdk\mach1spatial-libs\vs-15-2017-x86_64\lib\Static\MD\Debug\"
-                       headerPath="Modules/m1-sdk/mach1spatial-libs/windows-x86_64/include/"
+        <CONFIGURATION isDebug="0" name="Release" libraryPath="..\..\Modules\m1-sdk\mach1spatial-libs\vs-15-2017-x86_64\lib\Static\MD\Debug\"
+                       headerPath="..\..\Modules\m1-sdk\mach1spatial-libs\windows-x86_64\include"
                        defines="M1_STATIC"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
