@@ -4,11 +4,13 @@
 
 #include "juce_murka/Murka/MurkaBasicWidgets.h"
 #include "juce_murka/JuceMurkaBaseComponent.h"
+
 #include "UI/VideoPlayerWidget.h"
+#include "../Modules/m1-sdk/mach1spatial-libs/xcode/include/Mach1Decode.h"
+
 #include "m1_orientation_client/UI/M1Label.h"
 #include "m1_orientation_client/UI/M1OrientationWindowToggleButton.h"
 #include "m1_orientation_client/UI/M1OrientationClientWindow.h"
-#include "../../../m1-sdk/mach1spatial-libs/xcode/include/Mach1Decode.h"
 
 //==============================================================================
 /*

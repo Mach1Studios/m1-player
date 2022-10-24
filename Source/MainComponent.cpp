@@ -208,14 +208,13 @@ void MainComponent::openFile(juce::File name)
             if (useIsotropic) {
                 m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_8);
             } else {
-                m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatialAlt_8);
             }
         } else if (detectedNumInputChannels == 12){
             m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_12);
         } else if (detectedNumInputChannels == 14){
             m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
-        } else if (detectedNumInputChannels == 16){
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_16);
+        } else if (detectedNumInputChannels == 18){
+            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_18);
         } else if (detectedNumInputChannels == 32){
             m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_32);
         } else if (detectedNumInputChannels == 36){
