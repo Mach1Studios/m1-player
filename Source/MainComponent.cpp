@@ -83,11 +83,6 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
                 readBuffer.clear(channel, 0, bufferToFill.numSamples);
             
             // Mach1Decode processing loop
-            Mach1Point3D currentOrientation;
-            // retrieve normalized values
-            currentOrientation.x = -90.0;
-            currentOrientation.y = 0;
-            currentOrientation.z = 0;
     //        (parameters.getParameter(paramYawEnable)->getValue()) ? currentOrientation.x = parameters.getParameter(paramYaw)->getValue() : currentOrientation.x = 0.0f;
     //        (parameters.getParameter(paramPitchEnable)->getValue()) ? currentOrientation.y = parameters.getParameter(paramPitch)->getValue() : currentOrientation.y = 0.0f;
     //        (parameters.getParameter(paramRollEnable)->getValue()) ? currentOrientation.z = parameters.getParameter(paramRoll)->getValue() : currentOrientation.z = 0.0f;
@@ -261,6 +256,10 @@ void MainComponent::render()
 	m.begin();
 
 	auto& videoPlayerWidget = m.draw<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
+
+    currentOrientation.x = videoPlayerWidget.rotation.x;
+    currentOrientation.y = videoPlayerWidget.rotation.y;
+    currentOrientation.z = videoPlayerWidget.rotation.z;
 
 	if (clip.get() != nullptr) {
 		videoPlayerWidget.imgVideo = &imgVideo;

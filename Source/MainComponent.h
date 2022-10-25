@@ -39,6 +39,8 @@ class MainComponent   : public murka::JuceMurkaBaseComponent,
     juce::AudioBuffer<float> readBuffer;
     int detectedNumInputChannels;
     
+    Mach1Point3D currentOrientation;
+
 public:
     //==============================================================================
     MainComponent();
