@@ -251,7 +251,7 @@ void MainComponent::render()
 
 	m.clear(20);
 	m.setColor(255);
-	m.setFontFromRawData("Proxima Nova Reg.ttf", BinaryData::ProximaNovaReg_ttf, BinaryData::ProximaNovaReg_ttfSize, 10);
+	m.setFontFromRawData("ProximaNovaReg.ttf", BinaryData::ProximaNovaReg_ttf, BinaryData::ProximaNovaReg_ttfSize, 10);
 
 	m.begin();
 
@@ -375,7 +375,7 @@ void MainComponent::render()
         .commit();
     
     if (orientationControlButton.hovered && (DEBUG_orientationDeviceSelected >= 0)) {
-        m.setFont("Proxima Nova Reg.ttf", 12);
+        m.setFont("ProximaNovaReg.ttf", 12);
         std::string deviceReportString = "Tracking device:" + slots[DEBUG_orientationDeviceSelected].deviceName;
         auto font = m.getCurrentFont();
         auto bbox = font->getStringBoundingBox(deviceReportString, 0, 0);
