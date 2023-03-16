@@ -50,8 +50,14 @@ juce_add_gui_app(${PLUGIN_NAME}
                 IS_SYNTH FALSE
                 COPY_PLUGIN_AFTER_BUILD TRUE)
 
+# add required flags
+juce_generate_juce_header(${PLUGIN_NAME})
+
 target_compile_definitions(${PLUGIN_NAME}
     PUBLIC 
+    JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:${PLUGIN_NAME},JUCE_PROJECT_NAME>"
+    JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:${PLUGIN_NAME},JUCE_VERSION>"
+    JUCE_WEB_BROWSER=0
     JUCE_VST3_CAN_REPLACE_VST2=0
     JUCE_DISPLAY_SPLASH_SCREEN=0)
 
@@ -64,54 +70,12 @@ set_target_properties(${project_targets} PROPERTIES CXX_EXTENSIONS OFF)
 
 # add the sources
 add_subdirectory(Source)
-set_target_properties("${PLUGIN_NAME}" PROPERTIES FOLDER "")
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/Source PREFIX "" FILES ${SourceFiles})
-
 add_subdirectory(Resources)
 
 # Required for Linux happiness:
 # See https://forum.juce.com/t/loading-pytorch-model-using-binarydata/39997/2
 set_target_properties(Resources PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
-
-# This cleans up the folder organization on Xcode.
-# It tucks the Plugin varieties into a "Targets" folder and generate an Xcode Scheme manually
-# Xcode scheme generation is turned off globally to limit noise from other targets
-# The non-hacky way of doing this is via the global PREDEFINED_TARGETS_FOLDER property
-# However that doesn't seem to be working in Xcode
-# Not all plugin types (au, vst) available on each build type (win, macos, linux)
-
-foreach(target ${FORMATS} "All")
-    if(TARGET ${PLUGIN_NAME}_${target})
-        if (${target} STREQUAL "VST" OR ${target} STREQUAL "VST3")
-                set_target_properties(${PLUGIN_NAME}_${target} PROPERTIES
-                # Tuck the actual plugin targets into a folder where they won't bother us
-                FOLDER "Targets"
-                
-                # MacOS only: Sets the default executable that Xcode will open on build
-                # For this exact path to to work, manually build the AudioPluginHost.xcodeproj in the JUCE subdir
-                #XCODE_SCHEME_EXECUTABLE ${PROJECT_SOURCE_DIR}/JUCE/extras/AudioPluginHost/Builds/MacOSX/build/Debug/AudioPluginHost.app
-                XCODE_SCHEME_EXECUTABLE /Applications/REAPER.app
-
-                # Let us build the target in Xcode
-                XCODE_GENERATE_SCHEME ON)
-        else()
-            set_target_properties(${PLUGIN_NAME}_${target} PROPERTIES
-                # Tuck the actual plugin targets into a folder where they won't bother us
-                FOLDER "Targets"
-                
-                # MacOS only: Sets the default executable that Xcode will open on build
-                # For this exact path to to work, manually build the AudioPluginHost.xcodeproj in the JUCE subdir
-                #XCODE_SCHEME_EXECUTABLE ${PROJECT_SOURCE_DIR}/JUCE/extras/AudioPluginHost/Builds/MacOSX/build/Debug/AudioPluginHost.app
-
-                # Let us build the target in Xcode
-                XCODE_GENERATE_SCHEME ON)
-        endif()
-    endif()
-endforeach()
 set_target_properties(Resources PROPERTIES FOLDER "Targets")
-
-# add required flags
-juce_generate_juce_header(${PLUGIN_NAME})
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE juce::juce_audio_basics juce::juce_audio_devices juce::juce_audio_formats juce::juce_audio_plugin_client juce::juce_audio_processors juce::juce_audio_utils juce::juce_core juce::juce_data_structures juce::juce_events juce::juce_graphics juce::juce_gui_basics juce::juce_gui_extra juce::juce_opengl juce::juce_osc juce_murka m1_orientation_client foleys_video_engine)
 target_link_libraries(${PLUGIN_NAME} PRIVATE Resources PUBLIC juce::juce_recommended_warning_flags juce::juce_recommended_config_flags juce::juce_recommended_lto_flags)
@@ -131,24 +95,20 @@ target_sources(${PLUGIN_NAME} PRIVATE ${MACH1SPATIAL_LIBS_PATH}/xcode/include/Ma
 # IDEs:  Move the "shared code" source group (main target) out of the "Targets" folder
 #        to the top level.
 set_target_properties("${PLUGIN_NAME}" PROPERTIES FOLDER "")
-
 # IDEs:  Organise source file grouping.
 get_target_property(project_sources "${PLUGIN_NAME}" SOURCES)
-
 #   If JuceHeader.h is generated, remove it from the source file list and handle it individually.
 get_target_property(juce_library_code "${PLUGIN_NAME}" JUCE_GENERATED_SOURCES_DIRECTORY)
 set(juce_header "${juce_library_code}/JuceHeader.h")
 list(REMOVE_ITEM project_sources "${juce_header}")
-# remove m1-sdk cpp files too
-list(REMOVE_ITEM project_sources "${MACH1SPATIAL_LIBS_PATH}/xcode/include/Mach1Decode.cpp")
-list(REMOVE_ITEM project_sources "${MACH1SPATIAL_LIBS_PATH}/xcode/include/Mach1Transcode.cpp")
 
 #   Place JuceHeader.h and the associated CMake Rule file into a "JUCE Library Code" folder.
 source_group("JUCE Library Code" FILES "${juce_header}")
 source_group("JUCE Library Code/CMake Rules" FILES "${juce_header}.rule")
 
 #   Generate source groups that follow the organisation of source file directories.
-source_group(TREE "${PROJECT_SOURCE_DIR}/Source" FILES ${project_sources})
+source_group("" FILES ${project_sources})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "" FILES SOURCES)
 
 #   Place Binary Data related source files into the root of their target folder.
 if(TARGET Resources)
