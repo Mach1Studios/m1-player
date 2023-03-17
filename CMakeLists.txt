@@ -26,6 +26,7 @@ option(JUCE_ENABLE_MODULE_SOURCE_GROUPS "Show all module sources in IDE projects
 add_subdirectory(JUCE)
 # add custom modules
 add_subdirectory(Modules)
+add_subdirectory(Modules/foleys_video_engine) # used to fetch and compile dependencies
 
 # These are used to re-apply brackets for the JucePlugin_PreferredChannelConfigurations
 set(LBRACKET_LITERAL "{")
