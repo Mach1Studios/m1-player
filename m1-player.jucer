@@ -33,10 +33,8 @@
       <FILE id="xHp9OR" name="tech_support_icon.png" compile="0" resource="1"
             file="Resources/tech_support_icon.png"/>
       <FILE id="teqqa0" name="wi-fi_icon.png" compile="0" resource="1" file="Resources/wi-fi_icon.png"/>
-      <FILE id="kRUuqv" name="ProximaNova-Reg.ttf" compile="0" resource="1"
-            file="Resources/ProximaNova-Reg.ttf"/>
-      <FILE id="QyWqm5" name="SoinSansPro-Roman.ttf" compile="0" resource="1"
-            file="Resources/SoinSansPro-Roman.ttf"/>
+      <FILE id="GQ43mC" name="AileronSemiBold.ttf" compile="0" resource="1"
+            file="Resources/AileronSemiBold.ttf"/>
     </GROUP>
   </MAINGROUP>
   <EXPORTFORMATS>

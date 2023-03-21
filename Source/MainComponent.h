@@ -1,10 +1,11 @@
 #pragma once
 
-#include "../JuceLibraryCode/JuceHeader.h"
+#include <JuceHeader.h>
 
 #include "juce_murka/Murka/MurkaBasicWidgets.h"
 #include "juce_murka/JuceMurkaBaseComponent.h"
 
+#include "Config.h"
 #include "UI/VideoPlayerWidget.h"
 #include "../Modules/m1-sdk/mach1spatial-libs/xcode/include/Mach1Decode.h"
 
