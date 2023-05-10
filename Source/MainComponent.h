@@ -7,7 +7,7 @@
 
 #include "Config.h"
 #include "UI/VideoPlayerWidget.h"
-#include "../Modules/m1-sdk/mach1spatial-libs/xcode/include/Mach1Decode.h"
+#include "Mach1Decode.h"
 
 #include "m1_orientation_client/UI/M1Label.h"
 #include "m1_orientation_client/UI/M1OrientationWindowToggleButton.h"
@@ -41,6 +41,7 @@ class MainComponent   : public murka::JuceMurkaBaseComponent,
     int detectedNumInputChannels;
     
     Mach1Point3D currentOrientation;
+    double currentPlayerWidgetFov = 90;
 
 public:
     //==============================================================================
