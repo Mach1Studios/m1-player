@@ -15,8 +15,6 @@ class VideoPlayerSurface : public View<VideoPlayerSurface> {
 public:
     void internalDraw(Murka& m) {
 
-        bool inside = m.currentContext.isHovered() * !areChildrenHovered(m.currentContext);
-
         if (!inited) {
             inited = true;
 
@@ -30,7 +28,7 @@ public:
             camera.setPosition(MurkaPoint3D(0, 0, 0));
             camera.lookAt(MurkaPoint3D(0, 0, 10));
 
-            if (inside && m.eventState.mouseDragged[0]) {
+            if (inside() && m.eventState.mouseDragged[0]) {
                 MurkaPoint3D r = camera.getRotation();
                 r.x += 0.25 * m.eventState.mouseDelta.y;
                 r.y += 0.25 * -m.eventState.mouseDelta.x;
@@ -50,7 +48,7 @@ public:
 
         }
         else {
-            m.drawImage(*imgVideo, 0, 0, m.currentContext.getSize().x, m.currentContext.getSize().y);
+            m.drawImage(*imgVideo, 0, 0, getSize().x, getSize().y);
         }
     };
 
@@ -65,16 +63,14 @@ class VideoPlayerPlayhead : public View<VideoPlayerPlayhead> {
 public:
     void internalDraw(Murka& m) {
 
-        bool inside = m.currentContext.isHovered() * !areChildrenHovered(m.currentContext);
-
-        float w = m.currentContext.getSize().x - 20;
-        float h = m.currentContext.getSize().y / 2;
+        float w = getSize().x - 20;
+        float h = getSize().y / 2;
 
         m.drawLine(10, h, 10 + w, h);
         m.drawCircle(10 + playheadPosition * w, h, 10);
 
-        if (inside && m.eventState.mouseDown[0]) {
-            playheadPosition = (m.currentContext.mousePosition.x - 10) / w;
+        if (inside() && m.eventState.mouseDown[0]) {
+            playheadPosition = (mousePosition().x - 10) / w;
         }
         else {
         }
@@ -88,21 +84,18 @@ class VideoPlayerWidget : public View<VideoPlayerWidget> {
 
 public:
     void internalDraw(Murka& m) {
-        bool inside = m.currentContext.isHovered() * !areChildrenHovered(m.currentContext);
-
-         
 
         float playheadHeight = 50;
 
-        auto& videoPlayerSurface = m.draw<VideoPlayerSurface>({ 0, 0, m.currentContext.getSize().x, m.currentContext.getSize().y - playheadHeight });
+        auto& videoPlayerSurface = m.prepare<VideoPlayerSurface>({ 0, 0, getSize().x, getSize().y - playheadHeight });
         videoPlayerSurface.imgVideo = imgVideo;
         videoPlayerSurface.drawFlat = drawFlat;
         videoPlayerSurface.camera.setFov(fov);
-        videoPlayerSurface.commit();
+        videoPlayerSurface.draw();
 
-        auto& videoPlayerPlayhead = m.draw<VideoPlayerPlayhead>({ 0, m.currentContext.getSize().y - playheadHeight, m.currentContext.getSize().x, playheadHeight });
+        auto& videoPlayerPlayhead = m.prepare<VideoPlayerPlayhead>({ 0, getSize().y - playheadHeight, getSize().x, playheadHeight });
         videoPlayerPlayhead.playheadPosition = playheadPosition;
-        videoPlayerPlayhead.commit();
+        videoPlayerPlayhead.draw();
 
         playheadPosition = videoPlayerPlayhead.playheadPosition;
         rotation = videoPlayerSurface.camera.getRotation();

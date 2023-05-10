@@ -208,8 +208,6 @@ void MainComponent::openFile(juce::File name)
             m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_12);
         } else if (detectedNumInputChannels == 14){
             m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
-        } else if (detectedNumInputChannels == 18){
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_18);
         } else if (detectedNumInputChannels == 32){
             m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_32);
         } else if (detectedNumInputChannels == 36){
@@ -255,33 +253,46 @@ void MainComponent::render()
 
 	m.begin();
 
-	auto& videoPlayerWidget = m.draw<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
-
-    currentOrientation.x = videoPlayerWidget.rotation.x;
-    currentOrientation.y = videoPlayerWidget.rotation.y;
-    currentOrientation.z = videoPlayerWidget.rotation.z;
-
 	if (clip.get() != nullptr) {
+        auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
+
+        currentOrientation.x = videoPlayerWidget.rotation.x;
+        currentOrientation.y = videoPlayerWidget.rotation.y;
+        currentOrientation.z = videoPlayerWidget.rotation.z;
+        currentPlayerWidgetFov = videoPlayerWidget.fov;
+
 		videoPlayerWidget.imgVideo = &imgVideo;
 
 		float playheadPosition = transportSource.getCurrentPosition() / transportSource.getLengthInSeconds();
 
 		videoPlayerWidget.playheadPosition = playheadPosition;
-		videoPlayerWidget.commit();
+		videoPlayerWidget.draw();
 
 		if (videoPlayerWidget.playheadPosition != playheadPosition) {
 			transportSource.setPosition(videoPlayerWidget.playheadPosition * transportSource.getLengthInSeconds());
 		}
+        
+        if (m.eventState.isKeyPressed('z')) {
+            videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
+        }
+
+        if (m.eventState.isKeyPressed('w')) {
+            videoPlayerWidget.fov += 10;
+        }
+
+        if (m.eventState.isKeyPressed('s')) {
+            videoPlayerWidget.fov -= 10;
+        }
 	}
 
 	if (clip.get() == nullptr) {
 		std::string message = "Drop a video here [Press Q for Hotkeys & Info]";
 		float width = m.getCurrentFont()->getStringBoundingBox(message, 0, 0).width;
-		m.draw<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).commit();
+		m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).draw();
 	}
 
 	if (m.eventState.isKeyHeld('q')) {
-		m.getCurrentFont()->drawString("Fov : " + std::to_string(videoPlayerWidget.fov), 10, 10);
+		m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);
 		m.getCurrentFont()->drawString("Playing: " + std::string(clip.get() != nullptr ? "yes" : "no"), 10, 90);
 		m.getCurrentFont()->drawString("Frame: " + std::to_string(transportSource.getCurrentPosition()), 10, 110);
 
@@ -295,22 +306,11 @@ void MainComponent::render()
         m.getCurrentFont()->drawString("[Arrow Keys] - Orientation Resets", 10, 270);
 
 		m.getCurrentFont()->drawString("OverlayCoords:", 10, 330);
-		m.getCurrentFont()->drawString("Y: " + std::to_string(videoPlayerWidget.rotation.x), 10, 350);
-		m.getCurrentFont()->drawString("P: " + std::to_string(videoPlayerWidget.rotation.y), 10, 370);
-		m.getCurrentFont()->drawString("R: " + std::to_string(videoPlayerWidget.rotation.z), 10, 390);
+		m.getCurrentFont()->drawString("Y: " + std::to_string(currentOrientation.x), 10, 350);
+		m.getCurrentFont()->drawString("P: " + std::to_string(currentOrientation.y), 10, 370);
+		m.getCurrentFont()->drawString("R: " + std::to_string(currentOrientation.z), 10, 390);
 	}
 
-	if (m.eventState.isKeyPressed('z')) {
-		videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
-	}
-
-	if (m.eventState.isKeyPressed('w')) {
-		videoPlayerWidget.fov += 10;
-	}
-
-	if (m.eventState.isKeyPressed('s')) {
-		videoPlayerWidget.fov -= 10;
-	}
 
 	if (m.eventState.isKeyPressed(' ')) {
 		if (transportSource.isPlaying()) {
@@ -368,11 +368,11 @@ void MainComponent::render()
     });
 
     //TODO: set size with getWidth()
-    auto& orientationControlButton = m.draw<M1OrientationWindowToggleButton>({800 - 40 - 5, 5, 40, 40}).onClick([&](M1OrientationWindowToggleButton& b){
+    auto& orientationControlButton = m.prepare<M1OrientationWindowToggleButton>({800 - 40 - 5, 5, 40, 40}).onClick([&](M1OrientationWindowToggleButton& b){
         showOrientationControlMenu = !showOrientationControlMenu;
     })
         .withInteractiveOrientationGimmick(DEBUG_orientationDeviceSelected >= 0, m.getElapsedTime() * 100)
-        .commit();
+        .draw();
     
     if (orientationControlButton.hovered && (DEBUG_orientationDeviceSelected >= 0)) {
         m.setFont("ProximaNovaReg.ttf", 12);
@@ -382,12 +382,12 @@ void MainComponent::render()
         m.setColor(40, 40, 40, 200);
         m.drawRectangle(678 + 40 - bbox.width - 5, 45, bbox.width + 10, 30);
         m.setColor(230, 230, 230);
-        m.draw<M1Label>({678 + 40 - bbox.width - 5, 48, bbox.width + 10, 30}).text(deviceReportString).commit();
+        m.prepare<M1Label>({678 + 40 - bbox.width - 5, 48, bbox.width + 10, 30}).text(deviceReportString).draw();
     }
 
     if (showOrientationControlMenu) {
         bool showOrientationSettingsPanelInsideWindow = (DEBUG_orientationDeviceSelected >= 0);
-        orientationControlWindow = m.draw<M1OrientationClientWindow>({500, 45, 218, 300 + 100 * showOrientationSettingsPanelInsideWindow}).withDeviceList(slots)
+        orientationControlWindow = m.prepare<M1OrientationClientWindow>({500, 45, 218, 300 + 100 * showOrientationSettingsPanelInsideWindow}).withDeviceList(slots)
             .withSettingsPanelEnabled(showOrientationSettingsPanelInsideWindow)
             .onClickOutside([&]() {
                 if (!orientationControlButton.hovered) { // Only switch showing the orientation control if we didn't click on the button
@@ -412,7 +412,7 @@ void MainComponent::render()
                                      std::pair<int, int>(0, 180),
                                      std::pair<int, int>(0, 180));
         
-        orientationControlWindow.commit();
+        orientationControlWindow.draw();
     }
     
 	m.end();
