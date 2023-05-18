@@ -22,6 +22,8 @@ void MainComponent::initialise()
 	murka::JuceMurkaBaseComponent::initialise();
 
 	imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
+
+	videoEngine.getFormatManager().registerFormat(std::make_unique<foleys::FFmpegFormat>());
 }
  
 
