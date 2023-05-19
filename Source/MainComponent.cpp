@@ -24,8 +24,17 @@ void MainComponent::initialise()
 	imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
 
 	videoEngine.getFormatManager().registerFormat(std::make_unique<foleys::FFmpegFormat>());
+
+	m1OrientationOSCClient.init(6345);
+	m1OrientationOSCClient.setStatusCallback(std::bind(&MainComponent::setStatus, this, std::placeholders::_1, std::placeholders::_2));
+} 
+
+void MainComponent::setStatus(bool success, std::string message)
+{
+	//this->status = message;
+	std::cout << success << " , " << message << std::endl;
 }
- 
+
 
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleRate)
 {
@@ -328,46 +337,20 @@ void MainComponent::render()
     
     std::vector<M1OrientationClientWindowDeviceSlot> slots;
     
-    slots.push_back({"bt", "bluetooth device 1", 0 == DEBUG_orientationDeviceSelected, 0, [&](int idx)
-        {
-            DEBUG_orientationDeviceSelected = 0;
-        }
-    });
-    slots.push_back({"bt", "bluetooth device 2", 1 == DEBUG_orientationDeviceSelected, 1, [&](int idx)
-        {
-           DEBUG_orientationDeviceSelected = 1;
-        }
-    });
-    slots.push_back({"bt", "bluetooth device 3", 2 == DEBUG_orientationDeviceSelected, 2, [&](int idx)
-        {
-            DEBUG_orientationDeviceSelected = 2;
-        }
-    });
-    slots.push_back({"bt", "bluetooth device 4", 3 == DEBUG_orientationDeviceSelected, 3, [&](int idx)
-        {
-            DEBUG_orientationDeviceSelected = 3;
-        }
-    });
-    slots.push_back({"wifi", "osc device 1", 4 == DEBUG_orientationDeviceSelected, 4, [&](int idx)
-        {
-            DEBUG_orientationDeviceSelected = 4;
-        }
-    });
-    slots.push_back({"wifi", "osc device 2", 5 == DEBUG_orientationDeviceSelected, 5, [&](int idx)
-        {
-            DEBUG_orientationDeviceSelected = 5;
-        }
-    });
-    slots.push_back({"wifi", "osc device 3", 6 == DEBUG_orientationDeviceSelected, 6, [&](int idx)
-        {
-            DEBUG_orientationDeviceSelected = 6;
-        }
-    });
-    slots.push_back({"wifi", "osc device 4", 7 == DEBUG_orientationDeviceSelected, 7, [&](int idx)
-        {
-            DEBUG_orientationDeviceSelected = 7;
-        }
-    });
+	std::vector<M1OrientationDeviceInfo> devices = m1OrientationOSCClient.getDevices();
+	for (int i = 0; i < devices.size(); i++) {
+		std::string icon = "";
+		if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeBLE) icon = "bt";
+		else icon = "wifi";
+
+		slots.push_back({ icon, devices[i].getDeviceName(), i == DEBUG_orientationDeviceSelected, 0, [&](int idx)
+			{
+				DEBUG_orientationDeviceSelected = 0;
+			}
+		});
+	}
+
+
 
     //TODO: set size with getWidth()
     auto& orientationControlButton = m.prepare<M1OrientationWindowToggleButton>({800 - 40 - 5, 5, 40, 40}).onClick([&](M1OrientationWindowToggleButton& b){
