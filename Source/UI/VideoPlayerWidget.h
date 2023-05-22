@@ -25,13 +25,14 @@ public:
         }
 
         if (drawFlat == false) {
+            
             camera.setPosition(MurkaPoint3D(0, 0, 0));
             camera.lookAt(MurkaPoint3D(0, 0, 10));
 
-            if (inside() && m.eventState.mouseDragged[0]) {
+            if (inside() && mouseDragged(0)) {
                 MurkaPoint3D r = camera.getRotation();
-                r.x += 0.25 * m.eventState.mouseDelta.y;
-                r.y += 0.25 * -m.eventState.mouseDelta.x;
+                r.x += 0.25 * mouseDelta().y;
+                r.y += 0.25 * -mouseDelta().x;
                 camera.setRotation(r);
             }
 
