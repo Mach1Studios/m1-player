@@ -69,17 +69,18 @@ public:
     bool isInterestedInFileDrag(const juce::StringArray&) override;
     void filesDropped(const juce::StringArray& files, int, int) override;
 
+	void setStatus(bool success, std::string message); 
+
 private:
     //==============================================================================
     // Your private member variables go here...
     MurImage imgVideo;
     MurImage imgLogo;
     
+	M1OrientationOSCClient m1OrientationOSCClient;
     M1OrientationClientWindow orientationControlWindow;
     bool showOrientationControlMenu = false;
     bool showedOrientationControlBefore = false;
-    int DEBUG_orientationDeviceSelected = -1;
-    bool DEBUG_trackYaw = true, DEBUG_trackPitch = true, DEBUG_trackRoll = true;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
