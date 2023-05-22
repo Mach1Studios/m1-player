@@ -283,15 +283,15 @@ void MainComponent::render()
 			transportSource.setPosition(videoPlayerWidget.playheadPosition * transportSource.getLengthInSeconds());
 		}
         
-        if (m.eventState.isKeyPressed('z')) {
+        if (m.isKeyPressed('z')) {
             videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
         }
 
-        if (m.eventState.isKeyPressed('w')) {
+        if (m.isKeyPressed('w')) {
             videoPlayerWidget.fov += 10;
         }
 
-        if (m.eventState.isKeyPressed('s')) {
+        if (m.isKeyPressed('s')) {
             videoPlayerWidget.fov -= 10;
         }
 	}
@@ -302,7 +302,7 @@ void MainComponent::render()
 		m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).draw();
 	}
 
-	if (m.eventState.isKeyHeld('q')) {
+	if (m.isKeyHeld('q')) {
 		m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);
 		m.getCurrentFont()->drawString("Playing: " + std::string(clip.get() != nullptr ? "yes" : "no"), 10, 90);
 		m.getCurrentFont()->drawString("Frame: " + std::to_string(transportSource.getCurrentPosition()), 10, 110);
@@ -323,7 +323,7 @@ void MainComponent::render()
 	}
 
 
-	if (m.eventState.isKeyPressed(' ')) {
+	if (m.isKeyPressed(' ')) {
 		if (transportSource.isPlaying()) {
 			transportSource.stop();
 		} else {
