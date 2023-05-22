@@ -70,7 +70,7 @@ public:
         m.drawLine(10, h, 10 + w, h);
         m.drawCircle(10 + playheadPosition * w, h, 10);
 
-        if (inside() && m.eventState.mouseDown[0]) {
+        if (inside() && m.mouseDown(0)) {
             playheadPosition = (mousePosition().x - 10) / w;
         }
         else {
