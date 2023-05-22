@@ -342,26 +342,28 @@ void MainComponent::render()
 		std::string icon = "";
 		if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeBLE) icon = "bt";
 		else icon = "wifi";
-
-		slots.push_back({ icon, devices[i].getDeviceName(), i == DEBUG_orientationDeviceSelected, 0, [&](int idx)
+		
+		std::string name = devices[i].getDeviceName();
+		slots.push_back({ icon, name, name == m1OrientationOSCClient.getCurrentDevice().getDeviceName(), i, [&](int idx)
 			{
-				DEBUG_orientationDeviceSelected = 0;
+				m1OrientationOSCClient.command_startTrackingUsingDevice(devices[idx]);
 			}
 		});
 	}
 
-
-
+	 
     //TODO: set size with getWidth()
     auto& orientationControlButton = m.prepare<M1OrientationWindowToggleButton>({800 - 40 - 5, 5, 40, 40}).onClick([&](M1OrientationWindowToggleButton& b){
         showOrientationControlMenu = !showOrientationControlMenu;
     })
-        .withInteractiveOrientationGimmick(DEBUG_orientationDeviceSelected >= 0, m.getElapsedTime() * 100)
+        .withInteractiveOrientationGimmick(m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone, m.getElapsedTime() * 100)
         .draw();
     
-    if (orientationControlButton.hovered && (DEBUG_orientationDeviceSelected >= 0)) {
-        m.setFont("ProximaNovaReg.ttf", 12);
-        std::string deviceReportString = "Tracking device:" + slots[DEBUG_orientationDeviceSelected].deviceName;
+
+	auto ytt = m1OrientationOSCClient.getCurrentDevice().getDeviceType();
+
+    if (orientationControlButton.hovered && (m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone)) {
+        std::string deviceReportString = "Tracking device:" + m1OrientationOSCClient.getCurrentDevice().getDeviceName();
         auto font = m.getCurrentFont();
         auto bbox = font->getStringBoundingBox(deviceReportString, 0, 0);
         m.setColor(40, 40, 40, 200);
@@ -371,7 +373,7 @@ void MainComponent::render()
     }
 
     if (showOrientationControlMenu) {
-        bool showOrientationSettingsPanelInsideWindow = (DEBUG_orientationDeviceSelected >= 0);
+        bool showOrientationSettingsPanelInsideWindow = (m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone);
         orientationControlWindow = m.prepare<M1OrientationClientWindow>({500, 45, 218, 300 + 100 * showOrientationSettingsPanelInsideWindow}).withDeviceList(slots)
             .withSettingsPanelEnabled(showOrientationSettingsPanelInsideWindow)
             .onClickOutside([&]() {
@@ -382,20 +384,29 @@ void MainComponent::render()
                     }
                 }
             })
-            .onDisconnectClicked([&](){
-                std::cout << "Now disconnect from the device";
-                DEBUG_orientationDeviceSelected = -1;
+			.onDisconnectClicked([&]() {
+				m1OrientationOSCClient.command_disconnect();
+			})
+			.onRefreshClicked([&](){
+				m1OrientationOSCClient.command_refreshDevices();
             })
             .onYPRSwitchesClicked([&](int whichone){
-                if (whichone == 0) DEBUG_trackYaw = !DEBUG_trackYaw;
-                if (whichone == 1) DEBUG_trackPitch = !DEBUG_trackPitch;
-                if (whichone == 2) DEBUG_trackRoll = !DEBUG_trackRoll;
+                if (whichone == 0) m1OrientationOSCClient.command_setTrackingYawEnabled(m1OrientationOSCClient.getTrackingYawEnabled());
+                if (whichone == 1) m1OrientationOSCClient.command_setTrackingPitchEnabled(m1OrientationOSCClient.getTrackingPitchEnabled());
+                if (whichone == 2) m1OrientationOSCClient.command_setTrackingRollEnabled(m1OrientationOSCClient.getTrackingRollEnabled());
             })
-            .withYPRTrackingSettings(DEBUG_trackYaw,
-                                     DEBUG_trackPitch,
-                                     DEBUG_trackRoll, std::pair<int, int>(0, 180),
-                                     std::pair<int, int>(0, 180),
-                                     std::pair<int, int>(0, 180));
+            .withYPRTrackingSettings(
+				m1OrientationOSCClient.getTrackingYawEnabled(),
+				m1OrientationOSCClient.getTrackingPitchEnabled(),
+				m1OrientationOSCClient.getTrackingPitchEnabled(),
+				std::pair<int, int>(0, 180),
+                std::pair<int, int>(0, 180),
+                std::pair<int, int>(0, 180))
+			.withYPR(
+				m1OrientationOSCClient.getOrientation().getYPR().yaw,
+				m1OrientationOSCClient.getOrientation().getYPR().pitch,
+				m1OrientationOSCClient.getOrientation().getYPR().roll
+			);
         
         orientationControlWindow.draw();
     }
