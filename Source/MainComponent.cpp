@@ -370,7 +370,7 @@ void MainComponent::render()
     });
 
     //TODO: set size with getWidth()
-    auto& orientationControlButton = m.prepare<M1OrientationWindowToggleButton>({800 - 40 - 5, 5, 40, 40}).onClick([&](M1OrientationWindowToggleButton& b){
+    auto& orientationControlButton = m.prepare<M1OrientationWindowToggleButton>({m.getSize().width() - 40 - 5, 5, 40, 40}).onClick([&](M1OrientationWindowToggleButton& b){
         showOrientationControlMenu = !showOrientationControlMenu;
     })
         .withInteractiveOrientationGimmick(DEBUG_orientationDeviceSelected >= 0, m.getElapsedTime() * 100)
@@ -389,7 +389,8 @@ void MainComponent::render()
 
     if (showOrientationControlMenu) {
         bool showOrientationSettingsPanelInsideWindow = (DEBUG_orientationDeviceSelected >= 0);
-        orientationControlWindow = m.prepare<M1OrientationClientWindow>({500, 45, 218, 300 + 100 * showOrientationSettingsPanelInsideWindow}).withDeviceList(slots)
+        orientationControlWindow = m.prepare<M1OrientationClientWindow>({m.getSize().width() - 300, 45,
+            300, 300 + 100 * showOrientationSettingsPanelInsideWindow}).withDeviceList(slots)
             .withSettingsPanelEnabled(showOrientationSettingsPanelInsideWindow)
             .onClickOutside([&]() {
                 if (!orientationControlButton.hovered) { // Only switch showing the orientation control if we didn't click on the button
