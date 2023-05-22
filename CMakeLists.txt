@@ -26,7 +26,6 @@ option(JUCE_ENABLE_MODULE_SOURCE_GROUPS "Show all module sources in IDE projects
 add_subdirectory(JUCE)
 # add custom modules
 add_subdirectory(Modules)
-add_subdirectory(Modules/foleys_video_engine) # used to fetch and compile dependencies
 
 # These are used to re-apply brackets for the JucePlugin_PreferredChannelConfigurations
 set(LBRACKET_LITERAL "{")
@@ -91,6 +90,16 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE ${MACH1DECODE_LIBRARY})
 target_sources(${PLUGIN_NAME} PRIVATE ${MACH1SPATIAL_LIBS_PATH}/xcode/include/Mach1Decode.cpp)
 target_link_libraries(${PLUGIN_NAME} PRIVATE ${MACH1TRANSCODE_LIBRARY})
 target_sources(${PLUGIN_NAME} PRIVATE ${MACH1SPATIAL_LIBS_PATH}/xcode/include/Mach1Transcode.cpp)
+
+# link ffmpeg output libs for juce module flags to pick up on
+# TODO: fix this to not require hardcoded paths
+if(APPLE)
+    target_link_directories(${PLUGIN_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg" "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg/x86_64" "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg/arm64")
+elseif(MSVC OR WIN32 OR MINGW)
+    
+else()
+    target_link_directories(${PLUGIN_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg")
+endif()
 
 ### IDE Generator post-config ###
 # IDEs:  Move the "shared code" source group (main target) out of the "Targets" folder
