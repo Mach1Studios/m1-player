@@ -11,6 +11,7 @@
 class VideoPlayerSurface : public View<VideoPlayerSurface> {
     bool inited = false;
     MurVbo sphere;
+	MurkaPoint3D rotationOffset = { 0, 0, 0 };
 
 public:
     void internalDraw(Murka& m) {
@@ -25,16 +26,16 @@ public:
         }
 
         if (drawFlat == false) {
-            
             camera.setPosition(MurkaPoint3D(0, 0, 0));
             camera.lookAt(MurkaPoint3D(0, 0, 10));
 
             if (inside() && mouseDragged(0)) {
-                MurkaPoint3D r = camera.getRotation();
-                r.x += 0.25 * mouseDelta().y;
-                r.y += 0.25 * -mouseDelta().x;
-                camera.setRotation(r);
-            }
+				rotationOffset.x += 0.25 * mouseDelta().x;
+				rotationOffset.y += 0.25 * mouseDelta().y;
+			}
+
+			MurkaPoint3D r = rotation + rotationOffset;
+			camera.setRotation(MurkaPoint3D{ r.y, r.x, r.z }); // YPR -> 3d camera
 
             m.beginCamera(camera);
             m.setColor(255);
@@ -54,6 +55,7 @@ public:
     };
 
     MurCamera camera;
+	MurkaPoint3D rotation = { 0, 0, 0 };
 
     bool drawFlat = false;
     MurImage* imgVideo = nullptr;
@@ -89,7 +91,8 @@ public:
         auto& videoPlayerSurface = m.prepare<VideoPlayerSurface>({ 0, 0, getSize().x, getSize().y - playheadHeight });
         videoPlayerSurface.imgVideo = imgVideo;
         videoPlayerSurface.drawFlat = drawFlat;
-        videoPlayerSurface.camera.setFov(fov);
+		videoPlayerSurface.rotation = rotation;
+		videoPlayerSurface.camera.setFov(fov);
         videoPlayerSurface.draw();
 
         auto& videoPlayerPlayhead = m.prepare<VideoPlayerPlayhead>({ 0, getSize().y - playheadHeight, getSize().x, playheadHeight });
@@ -97,13 +100,14 @@ public:
         videoPlayerPlayhead.draw();
 
         playheadPosition = videoPlayerPlayhead.playheadPosition;
-        rotation = videoPlayerSurface.camera.getRotation();
+		rotationCurrent = videoPlayerSurface.camera.getRotation();
     };
 
     float drawFlat = false;
     int fov = 70;
 
     MurImage* imgVideo = nullptr;
-    MurkaPoint3D rotation;
-    float playheadPosition = 0.0;
+	MurkaPoint3D rotation;
+	MurkaPoint3D rotationCurrent;
+	float playheadPosition = 0.0;
 };
