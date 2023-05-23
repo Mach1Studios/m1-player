@@ -189,17 +189,22 @@ bool MainComponent::isInterestedInFileDrag(const juce::StringArray&)
 
 void MainComponent::filesDropped(const juce::StringArray& files, int, int)
 {
-	openFile(files[0]);
+	for (int i = 0; i < files.size(); ++i) {
+		const juce::String& currentFile = files[i];
+		
+		openFile(currentFile);
 
-	if (clipVideo.get() != nullptr) {
-		clipVideo->setNextReadPosition(0);
-		transportSourceVideo.start();
-	}
+		if (clipVideo.get() != nullptr) {
+			clipVideo->setNextReadPosition(0);
+			transportSourceVideo.stop();
+		}
 
-	if (clipAudio.get() != nullptr) {
-		clipAudio->setNextReadPosition(0);
-		transportSourceAudio.start();
+		if (clipAudio.get() != nullptr) {
+			clipAudio->setNextReadPosition(0);
+			transportSourceAudio.stop();
+		}
 	}
+	
 
 	juce::Process::makeForegroundProcess();
 }
@@ -310,11 +315,11 @@ void MainComponent::render()
 
 	m.clear(20);
 	m.setColor(255);
-    m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 10);
+	m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 10);
 
 	m.begin();
 	if (clipVideo.get() != nullptr || clipAudio.get() != nullptr) {
-        auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
+		auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
 
 		if (m1OrientationOSCClient.isConnectedToServer()) {
 			M1OrientationYPR ypr = m1OrientationOSCClient.getOrientation().getYPR();
@@ -322,11 +327,11 @@ void MainComponent::render()
 			videoPlayerWidget.rotation.y = m1OrientationOSCClient.getTrackingPitchEnabled() ? ypr.pitch : 0.0f;
 			videoPlayerWidget.rotation.z = m1OrientationOSCClient.getTrackingRollEnabled() ? ypr.roll : 0.0f;
 		}
-		
+
 		currentOrientation.x = videoPlayerWidget.rotationCurrent.x;
-        currentOrientation.y = videoPlayerWidget.rotationCurrent.y;
-        currentOrientation.z = videoPlayerWidget.rotationCurrent.z;
-        currentPlayerWidgetFov = videoPlayerWidget.fov;
+		currentOrientation.y = videoPlayerWidget.rotationCurrent.y;
+		currentOrientation.z = videoPlayerWidget.rotationCurrent.z;
+		currentPlayerWidgetFov = videoPlayerWidget.fov;
 
 		videoPlayerWidget.imgVideo = &imgVideo;
 
@@ -345,21 +350,55 @@ void MainComponent::render()
 			transportSourceVideo.setPosition(pos);
 			transportSourceAudio.setPosition(pos);
 		}
-        
-        if (m.isKeyPressed('z')) {
-            videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
-        }
 
-        if (m.isKeyPressed('w')) {
-            videoPlayerWidget.fov += 10;
-        }
+		if (m.isKeyPressed('z')) {
+			videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
+		}
 
-        if (m.isKeyPressed('s')) {
-            videoPlayerWidget.fov -= 10;
-        }
-	} 
+		if (m.isKeyPressed('w')) {
+			videoPlayerWidget.fov += 10;
+		}
+
+		if (m.isKeyPressed('s')) {
+			videoPlayerWidget.fov -= 10;
+		}
+		
+		// play button
+		{
+			bool isPlaying = (transportSourceVideo.isPlaying() || transportSourceAudio.isPlaying());
+			auto& playButton = m.prepare<murka::Button>({ 10, m.getWindowHeight() - 100, 60, 30 }).text(!isPlaying ? "play" : "pause").draw();
+			if (playButton.pressed) {
+				if (isPlaying) {
+					transportSourceVideo.stop();
+					transportSourceAudio.stop();
+				}
+				else {
+					transportSourceVideo.start();
+					transportSourceAudio.start();
+				}
+			}
+		}
+
+		// stop button
+		{
+			auto& stopButton = m.prepare<murka::Button>({ 80, m.getWindowHeight() - 100, 60, 30 }).text("stop").draw();
+			if (stopButton.pressed) {
+				if (clipVideo.get() != nullptr) {
+					clipVideo->setNextReadPosition(0);
+				}
+
+				if (clipAudio.get() != nullptr) {
+					clipAudio->setNextReadPosition(0);
+				}
+
+				transportSourceVideo.stop();
+				transportSourceAudio.stop();
+			}
+		}
+
+	}
 	else {
-		std::string message = "Drop a audio or video here [Press Q for Hotkeys & Info]";
+		std::string message = "Drop a audio and video files here [Press Q for Hotkeys & Info]";
 		float width = m.getCurrentFont()->getStringBoundingBox(message, 0, 0).width;
 		m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).draw();
 	}
