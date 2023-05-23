@@ -32,18 +32,21 @@ class MainComponent   : public murka::JuceMurkaBaseComponent,
 
 	juce::AudioBuffer<float> tempBuffer;
 
-    juce::AudioTransportSource  transportSource;
-    double                      sampleRate = 0.0;
+	juce::AudioTransportSource  transportSourceVideo;
+	juce::AudioTransportSource  transportSourceAudio;
+
+	double                      sampleRate = 0.0;
     int                         blockSize = 0;
     int                         ffwdSpeed = 2;
 
     Mach1Decode m1Decode;
     std::vector<float> spatialMixerCoeffs;
     std::vector<juce::LinearSmoothedValue<float>> smoothedChannelCoeffs;
-    juce::AudioBuffer<float> readBuffer;
-    int detectedNumInputChannels;
+	juce::AudioBuffer<float> readBufferAudio;
+	juce::AudioBuffer<float> readBufferVideo;
+	int detectedNumInputChannels;
     
-    Mach1Point3D currentOrientation;
+	Mach1Point3D currentOrientation = { 0, 0, 0 };
     double currentPlayerWidgetFov = 90;
 
 public:
@@ -60,7 +63,7 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
 
-    void openFile(juce::File name);
+    void openFile(juce::File filepath);
 
     //==============================================================================
     void prepareToPlay(int samplesPerBlockExpected, double newSampleRate) override;
