@@ -43,8 +43,11 @@ void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleR
 	sampleRate = newSampleRate;
 	blockSize = samplesPerBlockExpected;
 
-	if (clip.get() != nullptr)
-		clip->prepareToPlay(blockSize, sampleRate);
+	if (clipVideo.get() != nullptr)
+		clipVideo->prepareToPlay(blockSize, sampleRate);
+
+	if (clipAudio.get() != nullptr)
+		clipAudio->prepareToPlay(blockSize, sampleRate);
 
 	transportSource.prepareToPlay(blockSize, sampleRate);
 
@@ -59,14 +62,14 @@ void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleR
 
 void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    if (clip){
+	std::shared_ptr<foleys::AVClip> clip = (clipVideo && clipAudio) ? clipAudio : clipVideo;
+
+    if (clipVideo || (clipVideo && clipAudio)){
         detectedNumInputChannels = clip->getNumChannels();
         
         readBuffer.setSize(detectedNumInputChannels, bufferToFill.numSamples);
         readBuffer.clear();
         
-        juce::AudioBuffer<float> tempBuffer;
-
         tempBuffer.setSize(detectedNumInputChannels * 2, bufferToFill.numSamples);
         tempBuffer.clear();
         
@@ -153,8 +156,10 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
 void MainComponent::releaseResources()
 {
 	transportSource.releaseResources();
-	if (clip.get() != nullptr)
-		clip->releaseResources();
+	if (clipVideo.get() != nullptr)
+		clipVideo->releaseResources();
+	if (clipAudio.get() != nullptr)
+		clipAudio->releaseResources();
 }
 
 void MainComponent::timecodeChanged(int64_t, double seconds)
@@ -172,36 +177,41 @@ void MainComponent::filesDropped(const juce::StringArray& files, int, int)
 {
 	openFile(files[0]);
 
-	if (clip.get() != nullptr) {
-		clip->setNextReadPosition(0);
-		transportSource.start();
+	if (clipVideo.get() != nullptr) {
+		clipVideo->setNextReadPosition(0);
 	}
+	if (clipAudio.get() != nullptr) {
+		clipAudio->setNextReadPosition(0);
+	}
+
+	transportSource.start();
+
 	juce::Process::makeForegroundProcess();
 }
 
 void MainComponent::openFile(juce::File name)
 {
-	if (clip.get() != nullptr)
-		clip->removeTimecodeListener(this);
-
 	auto newClip = videoEngine.createClipFromFile(juce::URL(name));
 
 	if (newClip.get() == nullptr)
 		return;
 
     newClip->prepareToPlay(blockSize, sampleRate);
-    clip = newClip;
-    
+
     /// Video Setup
     if (newClip->hasVideo()) {
-//        newClip->get
-//        newClip->getFrameDurationInSeconds()
-    }
+		if (clipVideo.get() != nullptr)
+			clipVideo->removeTimecodeListener(this);
+
+		newClip->addTimecodeListener(this);
+
+		clipVideo = newClip;
+	}
     
     /// Audio Setup
-    if (newClip->hasAudio()) {
-        detectedNumInputChannels = clip.get()->getNumChannels();
-        //tempBuffer.setSize(detectedNumInputChannels, blockSize);
+    if ((!newClip->hasVideo() && newClip->hasAudio()) || (newClip->hasAudio() && clipAudio == nullptr))
+	{
+        detectedNumInputChannels = newClip.get()->getNumChannels();
         
         // Setup for Mach1Decode API
         m1Decode.setPlatformType(Mach1PlatformDefault);
@@ -228,15 +238,17 @@ void MainComponent::openFile(juce::File name)
         } else if (detectedNumInputChannels == 60){
             m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_60);
         }
-    }
-	
-    clip->addTimecodeListener(this);
-	transportSource.setSource(clip.get(), 0, nullptr);
+
+		transportSource.setSource(newClip.get(), 0, nullptr);
+		
+		clipAudio = newClip;
+	}
 }
 
 void MainComponent::shutdown()
 { 
-	clip = nullptr;
+	clipVideo = nullptr;
+	clipAudio = nullptr;
 
 	murka::JuceMurkaBaseComponent::shutdown();
 }
@@ -244,8 +256,8 @@ void MainComponent::shutdown()
 void MainComponent::render()
 {
 	// update video frame
-	if (clip.get() != nullptr) {
-		foleys::VideoFrame& frame = clip->getFrame(clip->getCurrentTimeInSeconds());
+	if (clipVideo.get() != nullptr) {
+		foleys::VideoFrame& frame = clipVideo->getFrame(clipVideo->getCurrentTimeInSeconds());
 		if (frame.image.getWidth() > 0 && frame.image.getHeight() > 0) {
 			if (imgVideo.getWidth() != frame.image.getWidth() || imgVideo.getHeight() != frame.image.getHeight()) {
 				imgVideo.allocate(frame.image.getWidth(), frame.image.getHeight());
@@ -264,7 +276,7 @@ void MainComponent::render()
 
 	m.begin();
 
-	if (clip.get() != nullptr) {
+	if (clipVideo.get() != nullptr) {
         auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
 
         currentOrientation.x = videoPlayerWidget.rotation.x;
@@ -296,7 +308,7 @@ void MainComponent::render()
         }
 	}
 
-	if (clip.get() == nullptr) {
+	if (clipVideo.get() == nullptr) {
 		std::string message = "Drop a video here [Press Q for Hotkeys & Info]";
 		float width = m.getCurrentFont()->getStringBoundingBox(message, 0, 0).width;
 		m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).draw();
@@ -304,7 +316,7 @@ void MainComponent::render()
 
 	if (m.isKeyHeld('q')) {
 		m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);
-		m.getCurrentFont()->drawString("Playing: " + std::string(clip.get() != nullptr ? "yes" : "no"), 10, 90);
+		m.getCurrentFont()->drawString("Playing: " + std::string(clipVideo.get() != nullptr ? "yes" : "no"), 10, 90);
 		m.getCurrentFont()->drawString("Frame: " + std::to_string(transportSource.getCurrentPosition()), 10, 110);
 
 		m.getCurrentFont()->drawString("Hotkeys:", 10, 130);
