@@ -25,6 +25,8 @@ void MainComponent::initialise()
 
 	videoEngine.getFormatManager().registerFormat(std::make_unique<foleys::FFmpegFormat>());
 
+	//filesDropped({ "C:/Users/User/Desktop/1.mp4" }, 0, 0);
+
 	m1OrientationOSCClient.init(6345);
 	m1OrientationOSCClient.setStatusCallback(std::bind(&MainComponent::setStatus, this, std::placeholders::_1, std::placeholders::_2));
 } 
@@ -98,10 +100,14 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
                 readBufferAudio.clear(channel, 0, bufferToFill.numSamples);
             
             // Mach1Decode processing loop
-    //        (parameters.getParameter(paramYawEnable)->getValue()) ? currentOrientation.x = parameters.getParameter(paramYaw)->getValue() : currentOrientation.x = 0.0f;
-    //        (parameters.getParameter(paramPitchEnable)->getValue()) ? currentOrientation.y = parameters.getParameter(paramPitch)->getValue() : currentOrientation.y = 0.0f;
-    //        (parameters.getParameter(paramRollEnable)->getValue()) ? currentOrientation.z = parameters.getParameter(paramRoll)->getValue() : currentOrientation.z = 0.0f;
-            m1Decode.setRotation(currentOrientation);
+			/*
+			M1OrientationYPR ypr = m1OrientationOSCClient.getOrientation().getYPR();
+			currentOrientation.x = m1OrientationOSCClient.getTrackingYawEnabled() ? ypr.yaw : 0.0f;
+			currentOrientation.y = m1OrientationOSCClient.getTrackingPitchEnabled() ? ypr.pitch : 0.0f;
+			currentOrientation.z = m1OrientationOSCClient.getTrackingRollEnabled() ? ypr.roll : 0.0f;
+            */
+			m1Decode.setRotation(currentOrientation);
+
             m1Decode.beginBuffer();
             spatialMixerCoeffs = m1Decode.decodeCoeffs();
             m1Decode.endBuffer();
@@ -307,14 +313,19 @@ void MainComponent::render()
     m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 10);
 
 	m.begin();
-
-
 	if (clipVideo.get() != nullptr || clipAudio.get() != nullptr) {
         auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
 
-        currentOrientation.x = videoPlayerWidget.rotation.x;
-        currentOrientation.y = videoPlayerWidget.rotation.y;
-        currentOrientation.z = videoPlayerWidget.rotation.z;
+		if (m1OrientationOSCClient.isConnectedToServer()) {
+			M1OrientationYPR ypr = m1OrientationOSCClient.getOrientation().getYPR();
+			videoPlayerWidget.rotation.x = m1OrientationOSCClient.getTrackingYawEnabled() ? ypr.yaw : 0.0f;
+			videoPlayerWidget.rotation.y = m1OrientationOSCClient.getTrackingPitchEnabled() ? ypr.pitch : 0.0f;
+			videoPlayerWidget.rotation.z = m1OrientationOSCClient.getTrackingRollEnabled() ? ypr.roll : 0.0f;
+		}
+		
+		currentOrientation.x = videoPlayerWidget.rotationCurrent.x;
+        currentOrientation.y = videoPlayerWidget.rotationCurrent.y;
+        currentOrientation.z = videoPlayerWidget.rotationCurrent.z;
         currentPlayerWidgetFov = videoPlayerWidget.fov;
 
 		videoPlayerWidget.imgVideo = &imgVideo;
@@ -355,7 +366,7 @@ void MainComponent::render()
 
 	
 
-	if (m.isKeyHeld('q')) {
+	if (m.eventState.isKeyHeld('q')) {
 		m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);
 		m.getCurrentFont()->drawString("Playing: " + std::string(clipVideo.get() != nullptr ? "yes" : "no"), 10, 90);
 		m.getCurrentFont()->drawString("Frame: " + std::to_string((std::max)(transportSourceAudio.getCurrentPosition(), transportSourceVideo.getCurrentPosition())), 10, 110);
@@ -376,7 +387,7 @@ void MainComponent::render()
 	}
 
 
-	if (m.isKeyPressed(' ')) {
+	if (m.eventState.isKeyPressed(' ')) {
 		if (transportSourceVideo.isPlaying() || transportSourceAudio.isPlaying()) {
 			transportSourceVideo.stop();
 			transportSourceAudio.stop();
@@ -387,7 +398,6 @@ void MainComponent::render()
 	}
 
     // draw m1 logo
-	//m.drawImage(imgVideo, 0, 0, imgVideo.getWidth(), imgVideo.getHeight());
 	m.drawImage(imgLogo, m.getWindowWidth() - imgLogo.getWidth()*0.3 - 10, m.getWindowHeight() - imgLogo.getHeight()*0.3 - 10, imgLogo.getWidth() * 0.3, imgLogo.getHeight() * 0.3);
     
     std::vector<M1OrientationClientWindowDeviceSlot> slots;
