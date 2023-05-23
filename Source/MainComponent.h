@@ -27,7 +27,10 @@ class MainComponent   : public murka::JuceMurkaBaseComponent,
 
     foleys::VideoEngine videoEngine;
 
-    std::shared_ptr<foleys::AVClip> clip;
+	std::shared_ptr<foleys::AVClip> clipVideo;
+	std::shared_ptr<foleys::AVClip> clipAudio;
+
+	juce::AudioBuffer<float> tempBuffer;
 
     juce::AudioTransportSource  transportSource;
     double                      sampleRate = 0.0;
