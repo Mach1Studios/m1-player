@@ -35,21 +35,12 @@ void MainComponent::setStatus(bool success, std::string message)
 	std::cout << success << " , " << message << std::endl;
 }
 
-
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleRate)
 {
 	// This function will be called when the audio device is started, or when
 	// its settings (i.e. sample rate, ablock size, etc) are changed.
 	sampleRate = newSampleRate;
 	blockSize = samplesPerBlockExpected;
-
-	if (clipVideo.get() != nullptr)
-		clipVideo->prepareToPlay(blockSize, sampleRate);
-
-	if (clipAudio.get() != nullptr)
-		clipAudio->prepareToPlay(blockSize, sampleRate);
-
-	transportSource.prepareToPlay(blockSize, sampleRate);
 
     // Setup for Mach1Decode
     smoothedChannelCoeffs.resize(m1Decode.getFormatCoeffCount());
@@ -62,39 +53,49 @@ void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleR
 
 void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
-	std::shared_ptr<foleys::AVClip> clip = (clipVideo && clipAudio) ? clipAudio : clipVideo;
+	std::shared_ptr<foleys::AVClip> clip = (clipAudio.get() != nullptr) ? clipAudio : clipVideo;
 
-    if (clipVideo || (clipVideo && clipAudio)){
-        detectedNumInputChannels = clip->getNumChannels();
-        
-        readBuffer.setSize(detectedNumInputChannels, bufferToFill.numSamples);
-        readBuffer.clear();
-        
-        tempBuffer.setSize(detectedNumInputChannels * 2, bufferToFill.numSamples);
-        tempBuffer.clear();
-        
-        juce::AudioSourceChannelInfo info(&readBuffer,
-            bufferToFill.startSample,
-            bufferToFill.numSamples);
-        
+    if (clip){
         // the AudioTransportSource takes care of start, stop and resample
-        transportSource.getNextAudioBlock(info);
+		 
+		// first read video source
+		if (clipVideo.get() != nullptr && clipVideo != clipAudio) {
+			readBufferVideo.setSize(clipVideo->getNumChannels(), bufferToFill.numSamples);
+			readBufferVideo.clear();
+
+			juce::AudioSourceChannelInfo info(&readBufferVideo,
+				bufferToFill.startSample,
+				bufferToFill.numSamples);
+
+			transportSourceVideo.getNextAudioBlock(info);
+		}
+
+		// then read audio source
+		detectedNumInputChannels = clip->getNumChannels();
+
+		readBufferAudio.setSize(detectedNumInputChannels, bufferToFill.numSamples);
+		readBufferAudio.clear();
+
+		juce::AudioSourceChannelInfo info(&readBufferAudio,
+			bufferToFill.startSample,
+			bufferToFill.numSamples);
+
+		transportSourceAudio.getNextAudioBlock(info);
+
+		tempBuffer.setSize(detectedNumInputChannels * 2, bufferToFill.numSamples);
+		tempBuffer.clear();
 
         /// Detect input audio channels
         if (detectedNumInputChannels > 0) {
             /// Mono or Stereo
             // TODO: mute or block audio playback by default
             // TODO: add button for playing stereo/mono audio in videoplayer?
-            
-            // clear channels
-//            for (auto channel = 0; channel < detectedNumInputChannels; ++channel)
-//                info.buffer->clear(channel, 0, bufferToFill.numSamples);
-            
+      
             /// Multichannel
 
             // if you've got more output channels than input clears extra outputs
-            for (auto channel = detectedNumInputChannels; channel < 2; ++channel)
-                readBuffer.clear(channel, 0, bufferToFill.numSamples);
+            for (auto channel = detectedNumInputChannels; channel < 2 && channel < detectedNumInputChannels; ++channel)
+                readBufferAudio.clear(channel, 0, bufferToFill.numSamples);
             
             // Mach1Decode processing loop
     //        (parameters.getParameter(paramYawEnable)->getValue()) ? currentOrientation.x = parameters.getParameter(paramYaw)->getValue() : currentOrientation.x = 0.0f;
@@ -107,7 +108,7 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
             
             // Update spatial mixer coeffs from Mach1Decode for a smoothed value
             for (int channel = 0; channel < detectedNumInputChannels; ++channel) {
-                smoothedChannelCoeffs[channel * 2    ].setTargetValue(spatialMixerCoeffs[channel * 2    ]);
+                smoothedChannelCoeffs[channel * 2 + 0].setTargetValue(spatialMixerCoeffs[channel * 2    ]);
                 smoothedChannelCoeffs[channel * 2 + 1].setTargetValue(spatialMixerCoeffs[channel * 2 + 1]);
             }
             
@@ -117,33 +118,37 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
 
             if (detectedNumInputChannels == m1Decode.getFormatChannelCount()){ // dumb safety check, TODO: do better i/o error handling
                                 
-                // copy from readBuffer for doubled channels
+                // copy from readBufferAudio for doubled channels
                 for (auto channel = 0; channel < detectedNumInputChannels; ++channel){
-                    tempBuffer.copyFrom(channel * 2    , 0, readBuffer, channel, 0, bufferToFill.numSamples);
-                    tempBuffer.copyFrom(channel * 2 + 1, 0, readBuffer, channel, 0, bufferToFill.numSamples);
+                    tempBuffer.copyFrom(channel * 2 + 0, 0, readBufferAudio, channel, 0, bufferToFill.numSamples);
+                    tempBuffer.copyFrom(channel * 2 + 1, 0, readBufferAudio, channel, 0, bufferToFill.numSamples);
                 }
-                
-//                for (int sample = 0; sample < info.numSamples; sample++) {
-//                    for (int channel = 0; channel < info.buffer->getNumChannels(); channel++) {
-//                        info.buffer->getWritePointer(channel)[sample] = 0;
-//                    }
-//                }
-                
+            
                 for (int sample = 0; sample < info.numSamples; sample++) {
                     for (int channel = 0; channel < detectedNumInputChannels; channel++) {
-                        outBufferL[sample] += tempBuffer.getReadPointer(channel * 2    )[sample] * smoothedChannelCoeffs[channel * 2    ].getNextValue();
-                        outBufferR[sample] += tempBuffer.getReadPointer(channel * 2 + 1)[sample] * smoothedChannelCoeffs[channel * 2 + 1].getNextValue();
+						outBufferL[sample] += tempBuffer.getReadPointer(channel * 2 + 0)[sample] * smoothedChannelCoeffs[channel * 2].getNextValue();
+						outBufferR[sample] += tempBuffer.getReadPointer(channel * 2 + 1)[sample] * smoothedChannelCoeffs[channel * 2 + 1].getNextValue();
                     }
                 }
-            } else {
-                // Invalid Decode I/O; clear buffers
-                for (int channel = detectedNumInputChannels; channel < 2; ++channel)
-                    bufferToFill.buffer->clear(channel, 0, bufferToFill.numSamples);
+            } else if (detectedNumInputChannels == 1) {
+				// mono
+				bufferToFill.buffer->copyFrom(0, 0, readBufferAudio, 0, 0, info.numSamples);
+				bufferToFill.buffer->copyFrom(1, 0, readBufferAudio, 0, 0, info.numSamples);
+			}
+			else if (detectedNumInputChannels == 2) {
+				// stereo
+				bufferToFill.buffer->copyFrom(0, 0, readBufferAudio, 0, 0, info.numSamples);
+				bufferToFill.buffer->copyFrom(1, 0, readBufferAudio, 1, 0, info.numSamples);
+			}
+			else {
+				// Invalid Decode I/O; clear buffers
+				for (int channel = detectedNumInputChannels; channel < 2; ++channel)
+					bufferToFill.buffer->clear(channel, 0, bufferToFill.numSamples);
             }
             
             // clear remaining input channels
             for (auto channel = 2; channel < detectedNumInputChannels; ++channel)
-                readBuffer.clear(channel, 0, bufferToFill.numSamples);
+                readBufferAudio.clear(channel, 0, bufferToFill.numSamples);
             
         } else {
             bufferToFill.clearActiveBufferRegion();
@@ -155,11 +160,14 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
 
 void MainComponent::releaseResources()
 {
-	transportSource.releaseResources();
-	if (clipVideo.get() != nullptr)
+	if (clipVideo.get() != nullptr) {
 		clipVideo->releaseResources();
-	if (clipAudio.get() != nullptr)
+		transportSourceVideo.releaseResources();
+	}
+	if (clipAudio.get() != nullptr) {
 		clipAudio->releaseResources();
+		transportSourceAudio.releaseResources();
+	}
 }
 
 void MainComponent::timecodeChanged(int64_t, double seconds)
@@ -179,69 +187,93 @@ void MainComponent::filesDropped(const juce::StringArray& files, int, int)
 
 	if (clipVideo.get() != nullptr) {
 		clipVideo->setNextReadPosition(0);
-	}
-	if (clipAudio.get() != nullptr) {
-		clipAudio->setNextReadPosition(0);
+		transportSourceVideo.start();
 	}
 
-	transportSource.start();
+	if (clipAudio.get() != nullptr) {
+		clipAudio->setNextReadPosition(0);
+		transportSourceAudio.start();
+	}
 
 	juce::Process::makeForegroundProcess();
 }
 
-void MainComponent::openFile(juce::File name)
+void MainComponent::openFile(juce::File filepath)
 {
-	auto newClip = videoEngine.createClipFromFile(juce::URL(name));
-
-	if (newClip.get() == nullptr)
-		return;
-
-    newClip->prepareToPlay(blockSize, sampleRate);
-
-    /// Video Setup
-    if (newClip->hasVideo()) {
-		if (clipVideo.get() != nullptr)
-			clipVideo->removeTimecodeListener(this);
-
-		newClip->addTimecodeListener(this);
-
-		clipVideo = newClip;
-	}
-    
-    /// Audio Setup
-    if ((!newClip->hasVideo() && newClip->hasAudio()) || (newClip->hasAudio() && clipAudio == nullptr))
+	// Video Setup
 	{
-        detectedNumInputChannels = newClip.get()->getNumChannels();
-        
-        // Setup for Mach1Decode API
-        m1Decode.setPlatformType(Mach1PlatformDefault);
-        m1Decode.setFilterSpeed(0.99);
-        
-        if (detectedNumInputChannels == 4){
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoHorizon_4);
-        } else if (detectedNumInputChannels == 8){
-            bool useIsotropic = true; // TODO: implement this switch
-            if (useIsotropic) {
-                m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_8);
-            } else {
-            }
-        } else if (detectedNumInputChannels == 12){
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_12);
-        } else if (detectedNumInputChannels == 14){
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
-        } else if (detectedNumInputChannels == 32){
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_32);
-        } else if (detectedNumInputChannels == 36){
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_36);
-        } else if (detectedNumInputChannels == 48){
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_48);
-        } else if (detectedNumInputChannels == 60){
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_60);
-        }
+		std::shared_ptr<foleys::AVClip> newClip = videoEngine.createClipFromFile(juce::URL(filepath));
 
-		transportSource.setSource(newClip.get(), 0, nullptr);
+		if (newClip.get() == nullptr)
+			return;
+
+		newClip->prepareToPlay(blockSize, sampleRate);
+
+		/// Video Setup
+		if (newClip->hasVideo()) {
+			if (clipVideo.get() != nullptr) {
+				clipVideo->removeTimecodeListener(this);
+			}
+
+			newClip->addTimecodeListener(this);
 		
-		clipAudio = newClip;
+			transportSourceVideo.setSource(newClip.get(), 0, nullptr);
+
+			clipVideo = newClip;
+		}
+	}
+
+    // Audio Setup
+	{
+		std::shared_ptr<foleys::AVClip> newClip = videoEngine.createClipFromFile(juce::URL(filepath));
+
+		if (newClip.get() == nullptr)
+			return;
+
+		newClip->prepareToPlay(blockSize, sampleRate);
+
+		if (newClip->hasAudio())
+		{
+			detectedNumInputChannels = newClip.get()->getNumChannels();
+
+			// Setup for Mach1Decode API
+			m1Decode.setPlatformType(Mach1PlatformDefault);
+			m1Decode.setFilterSpeed(0.99);
+
+			if (detectedNumInputChannels == 4) {
+				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoHorizon_4);
+			}
+			else if (detectedNumInputChannels == 8) {
+				bool useIsotropic = true; // TODO: implement this switch
+				if (useIsotropic) {
+					m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_8);
+				}
+				else {
+				}
+			}
+			else if (detectedNumInputChannels == 12) {
+				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_12);
+			}
+			else if (detectedNumInputChannels == 14) {
+				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
+			}
+			else if (detectedNumInputChannels == 32) {
+				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_32);
+			}
+			else if (detectedNumInputChannels == 36) {
+				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_36);
+			}
+			else if (detectedNumInputChannels == 48) {
+				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_48);
+			}
+			else if (detectedNumInputChannels == 60) {
+				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_60);
+			}
+			 
+			transportSourceAudio.setSource(newClip.get(), 0, nullptr);
+
+			clipAudio = newClip;
+		}
 	}
 }
 
@@ -276,7 +308,8 @@ void MainComponent::render()
 
 	m.begin();
 
-	if (clipVideo.get() != nullptr) {
+
+	if (clipVideo.get() != nullptr || clipAudio.get() != nullptr) {
         auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
 
         currentOrientation.x = videoPlayerWidget.rotation.x;
@@ -286,13 +319,20 @@ void MainComponent::render()
 
 		videoPlayerWidget.imgVideo = &imgVideo;
 
-		float playheadPosition = transportSource.getCurrentPosition() / transportSource.getLengthInSeconds();
+		float length = 0;
+		if (clipVideo.get() != nullptr && clipAudio.get() != nullptr) length = ((std::min)(transportSourceAudio.getLengthInSeconds(), transportSourceVideo.getLengthInSeconds()));
+		else if (clipVideo.get() != nullptr) length = transportSourceVideo.getLengthInSeconds();
+		else if (clipAudio.get() != nullptr) length = transportSourceAudio.getLengthInSeconds();
+
+		float playheadPosition = transportSourceAudio.getCurrentPosition() / length;
 
 		videoPlayerWidget.playheadPosition = playheadPosition;
 		videoPlayerWidget.draw();
 
 		if (videoPlayerWidget.playheadPosition != playheadPosition) {
-			transportSource.setPosition(videoPlayerWidget.playheadPosition * transportSource.getLengthInSeconds());
+			float pos = videoPlayerWidget.playheadPosition * length;
+			transportSourceVideo.setPosition(pos);
+			transportSourceAudio.setPosition(pos);
 		}
         
         if (m.isKeyPressed('z')) {
@@ -306,18 +346,19 @@ void MainComponent::render()
         if (m.isKeyPressed('s')) {
             videoPlayerWidget.fov -= 10;
         }
-	}
-
-	if (clipVideo.get() == nullptr) {
-		std::string message = "Drop a video here [Press Q for Hotkeys & Info]";
+	} 
+	else {
+		std::string message = "Drop a audio or video here [Press Q for Hotkeys & Info]";
 		float width = m.getCurrentFont()->getStringBoundingBox(message, 0, 0).width;
 		m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).draw();
 	}
 
-	if (m.isKeyHeld('q')) {
+	
+
+	if (true) { // m.isKeyHeld('q')) {
 		m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);
 		m.getCurrentFont()->drawString("Playing: " + std::string(clipVideo.get() != nullptr ? "yes" : "no"), 10, 90);
-		m.getCurrentFont()->drawString("Frame: " + std::to_string(transportSource.getCurrentPosition()), 10, 110);
+		m.getCurrentFont()->drawString("Frame: " + std::to_string((std::max)(transportSourceAudio.getCurrentPosition(), transportSourceVideo.getCurrentPosition())), 10, 110);
 
 		m.getCurrentFont()->drawString("Hotkeys:", 10, 130);
 		m.getCurrentFont()->drawString("[w] - FOV+", 10, 150);
@@ -336,10 +377,12 @@ void MainComponent::render()
 
 
 	if (m.isKeyPressed(' ')) {
-		if (transportSource.isPlaying()) {
-			transportSource.stop();
+		if (transportSourceVideo.isPlaying() || transportSourceAudio.isPlaying()) {
+			transportSourceVideo.stop();
+			transportSourceAudio.stop();
 		} else {
-			transportSource.start();
+			transportSourceVideo.start();
+			transportSourceAudio.start();
 		}
 	}
 

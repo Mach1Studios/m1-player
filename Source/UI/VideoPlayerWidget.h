@@ -38,18 +38,18 @@ public:
 
             m.beginCamera(camera);
             m.setColor(255);
-            if (imgVideo) {
+            if (imgVideo && imgVideo->isAllocated()) {
                 m.bind(*imgVideo);
-            }
-            m.drawVbo(sphere, GL_TRIANGLE_STRIP, 0, sphere.getIndexes().size());
-            if (imgVideo) {
+	            m.drawVbo(sphere, GL_TRIANGLE_STRIP, 0, sphere.getIndexes().size());
                 m.unbind(*imgVideo);
             }
             m.endCamera(camera);
 
         }
         else {
-            m.drawImage(*imgVideo, 0, 0, getSize().x, getSize().y);
+			if (imgVideo && imgVideo->isAllocated()) {
+				m.drawImage(*imgVideo, 0, 0, getSize().x, getSize().y);
+			}
         }
     };
 
@@ -70,10 +70,8 @@ public:
         m.drawLine(10, h, 10 + w, h);
         m.drawCircle(10 + playheadPosition * w, h, 10);
 
-        if (inside() && m.mouseDown(0)) {
+        if (inside() && mouseDownPressed(0)) {
             playheadPosition = (mousePosition().x - 10) / w;
-        }
-        else {
         }
 
     };
