@@ -14,6 +14,8 @@ MainComponent::MainComponent()
 MainComponent::~MainComponent()
 {
 	shutdownAudio();
+
+	juce::OpenGLAppComponent::shutdownOpenGL();
 }
 
 //==============================================================================
