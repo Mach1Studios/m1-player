@@ -33,6 +33,8 @@
       <FILE id="xHp9OR" name="tech_support_icon.png" compile="0" resource="1"
             file="Resources/tech_support_icon.png"/>
       <FILE id="teqqa0" name="wi-fi_icon.png" compile="0" resource="1" file="Resources/wi-fi_icon.png"/>
+      <FILE id="VcoSHt" name="usb_icon.png" compile="0" resource="1" file="Resources/usb_icon.png"/>
+      <FILE id="Gc9N8i" name="camera_icon.png" compile="0" resource="1" file="Resources/camera_icon.png"/>
       <FILE id="GQ43mC" name="AileronSemiBold.ttf" compile="0" resource="1"
             file="Resources/AileronSemiBold.ttf"/>
     </GROUP>
