@@ -30,12 +30,15 @@ public:
             camera.lookAt(MurkaPoint3D(0, 0, 10));
 
             if (inside() && mouseDragged(0)) {
+				float t = mouseDelta().x;
 				rotationOffset.x += 0.25 * mouseDelta().x;
-				rotationOffset.y += 0.25 * mouseDelta().y;
+				rotationOffset.y -= 0.25 * mouseDelta().y;
 			}
 
-			MurkaPoint3D r = rotation + rotationOffset;
-			camera.setRotation(MurkaPoint3D{ r.y, r.x, r.z }); // YPR -> 3d camera
+			rotationCurrent = rotation + rotationOffset;
+			
+			// - r.y, r.x, r.z
+			camera.setRotation(MurkaPoint3D{ -rotationCurrent.y, -90 - rotationCurrent.x , -rotationCurrent.z }); // YPR -> -P-Y-R 3d camera
 
             m.beginCamera(camera);
             m.setColor(255);
@@ -56,7 +59,8 @@ public:
 
     MurCamera camera;
 	MurkaPoint3D rotation = { 0, 0, 0 };
-
+	MurkaPoint3D rotationCurrent = { 0, 0, 0 };
+	
     bool drawFlat = false;
     MurImage* imgVideo = nullptr;
 };
@@ -100,7 +104,7 @@ public:
         videoPlayerPlayhead.draw();
 
         playheadPosition = videoPlayerPlayhead.playheadPosition;
-		rotationCurrent = videoPlayerSurface.camera.getRotation();
+		rotationCurrent = videoPlayerSurface.rotationCurrent;
     };
 
     float drawFlat = false;

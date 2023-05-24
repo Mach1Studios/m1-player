@@ -52,7 +52,7 @@ class MainComponent   : public murka::JuceMurkaBaseComponent,
 public:
     //==============================================================================
     MainComponent();
-    ~MainComponent();
+	virtual ~MainComponent();
 
     //==============================================================================
     void initialise() override;
