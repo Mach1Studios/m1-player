@@ -298,8 +298,8 @@ void MainComponent::shutdown()
 
 	murka::JuceMurkaBaseComponent::shutdown();
 }
- 
-void MainComponent::internalDraw(Murka& m) {
+
+void MainComponent::draw() {
 	// update video frame
 	if (clipVideo.get() != nullptr) {
 		foleys::VideoFrame& frame = clipVideo->getFrame(clipVideo->getCurrentTimeInSeconds());
@@ -349,27 +349,27 @@ void MainComponent::internalDraw(Murka& m) {
 			transportSourceAudio.setPosition(pos);
 		}
 
-		if (isKeyPressed('z')) {
+		if (m.isKeyPressed('z')) {
 			videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
 		}
 
-		if (isKeyPressed('w')) {
+		if (m.isKeyPressed('w')) {
 			videoPlayerWidget.fov += 10;
 		}
 
-		if (isKeyPressed('s')) {
+		if (m.isKeyPressed('s')) {
 			videoPlayerWidget.fov -= 10;
 		}
 
-		if (isKeyPressed('g')) {
+		if (m.isKeyPressed('g')) {
 			drawReference = !drawReference;
 		}
 
-		if (isKeyPressed('o')) {
+		if (m.isKeyPressed('o')) {
 			videoPlayerWidget.drawOverlay = !videoPlayerWidget.drawOverlay;
 		}
 
-		if (isKeyPressed('d')) {
+		if (m.isKeyPressed('d')) {
 			videoPlayerWidget.cropStereoscopic = !videoPlayerWidget.cropStereoscopic;
 		}
 
@@ -417,7 +417,7 @@ void MainComponent::internalDraw(Murka& m) {
 		m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).draw();
 	}
 
-	if (isKeyHeld('q')) {
+	if (m.isKeyHeld('q')) {
 		m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);
 		m.getCurrentFont()->drawString("Playing: " + std::string(clipVideo.get() != nullptr ? "yes" : "no"), 10, 90);
 		m.getCurrentFont()->drawString("Frame: " + std::to_string((std::max)(transportSourceAudio.getCurrentPosition(), transportSourceVideo.getCurrentPosition())), 10, 110);
