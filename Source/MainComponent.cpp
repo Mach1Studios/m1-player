@@ -450,7 +450,11 @@ void MainComponent::draw() {
 	std::vector<M1OrientationDeviceInfo> devices = m1OrientationOSCClient.getDevices();
 	for (int i = 0; i < devices.size(); i++) {
 		std::string icon = "";
-        if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeBLE) {
+        if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeSerial && devices[i].getDeviceName().find("Bluetooth-Incoming-Port") != std::string::npos) {
+            icon = "bt";
+        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeSerial && devices[i].getDeviceName().find("Mach1-") != std::string::npos) {
+            icon = "bt";
+        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeBLE) {
             icon = "bt";
         } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeSerial) {
             icon = "usb";
@@ -458,7 +462,6 @@ void MainComponent::draw() {
             icon = "camera";
         } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeEmulator) {
             icon = "none";
-//        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeSerial && devices[i].getDeviceName() == )
         } else {
             icon = "wifi";
         }
