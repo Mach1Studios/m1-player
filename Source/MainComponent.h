@@ -60,6 +60,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
 	int detectedNumInputChannels;
     
 	Mach1Point3D currentOrientation = { 0, 0, 0 };
+    MurkaPoint lastScrollValue;
 
 public:
     //==============================================================================
