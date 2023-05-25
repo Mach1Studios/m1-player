@@ -7,6 +7,8 @@
 
 #include "Config.h"
 #include "UI/VideoPlayerWidget.h"
+#include "UI/RadioGroupWidget.h"
+
 #include "Mach1Decode.h"
 
 #include "m1_orientation_client/UI/M1Label.h"
