@@ -530,10 +530,8 @@ void MainComponent::draw() {
 	auto& orientationControlButton = m.prepare<M1OrientationWindowToggleButton>({ m.getSize().width() - 40 - 5, 5, 40, 40 }).onClick([&](M1OrientationWindowToggleButton& b) {
 		showOrientationControlMenu = !showOrientationControlMenu;
 		})
-		.withInteractiveOrientationGimmick(m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone, m.getElapsedTime() * 100)
+		.withInteractiveOrientationGimmick(m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone, m1OrientationOSCClient.getOrientation().getYPR().yaw)
 			.draw();
-
-		auto ytt = m1OrientationOSCClient.getCurrentDevice().getDeviceType();
 
 		if (orientationControlButton.hovered && (m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone)) {
 			std::string deviceReportString = "Tracking device:" + m1OrientationOSCClient.getCurrentDevice().getDeviceName();
