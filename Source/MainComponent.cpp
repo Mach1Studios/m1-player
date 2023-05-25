@@ -371,19 +371,19 @@ void MainComponent::draw() {
 			videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
 		}
 
-        if (m.isKeyPressed(65)) { // up arrow
-            
+        if (m.isKeyPressed(MurkaKey::MURKA_KEY_UP)) { // up arrow
+			
         }
 
-        if (m.isKeyPressed(66)) { // down arrow
+        if (m.isKeyPressed(MurkaKey::MURKA_KEY_DOWN)) { // down arrow
             
         }
         
-        if (m.isKeyPressed(67)) { // right arrow
+        if (m.isKeyPressed(MurkaKey::MURKA_KEY_RIGHT)) { // right arrow
             
         }
         
-        if (m.isKeyPressed(68)) { // left arrow
+        if (m.isKeyPressed(MurkaKey::MURKA_KEY_LEFT)) { // left arrow
             
         }
         
