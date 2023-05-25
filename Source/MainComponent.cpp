@@ -406,7 +406,7 @@ void MainComponent::draw() {
 
 	}
 	else {
-		std::string message = "Drop a audio and video files here [Press Q for Hotkeys & Info]";
+		std::string message = "Drop an audio or video file here";
 		float width = m.getCurrentFont()->getStringBoundingBox(message, 0, 0).width;
 		m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).draw();
 	}
