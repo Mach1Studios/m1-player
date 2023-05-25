@@ -7,6 +7,7 @@
 
 #include "Config.h"
 #include "UI/VideoPlayerWidget.h"
+#include "UI/MainWidget.h"
 #include "Mach1Decode.h"
 
 #include "m1_orientation_client/UI/M1Label.h"
@@ -21,7 +22,8 @@
 class MainComponent   : public murka::JuceMurkaBaseComponent,
     public juce::AudioAppComponent,
     public juce::FileDragAndDropTarget,
-    public foleys::TimeCodeAware::Listener
+    public foleys::TimeCodeAware::Listener,
+	public murka::View<MainComponent>
 {
     //==============================================================================
 
@@ -47,7 +49,6 @@ class MainComponent   : public murka::JuceMurkaBaseComponent,
 	int detectedNumInputChannels;
     
 	Mach1Point3D currentOrientation = { 0, 0, 0 };
-    double currentPlayerWidgetFov = 90;
 
 public:
     //==============================================================================
@@ -75,18 +76,10 @@ public:
     bool isInterestedInFileDrag(const juce::StringArray&) override;
     void filesDropped(const juce::StringArray& files, int, int) override;
 
-	void setStatus(bool success, std::string message); 
-
 private:
     //==============================================================================
     // Your private member variables go here...
-    MurImage imgVideo;
-    MurImage imgLogo;
-    
-	M1OrientationOSCClient m1OrientationOSCClient;
-    M1OrientationClientWindow orientationControlWindow;
-    bool showOrientationControlMenu = false;
-    bool showedOrientationControlBefore = false;
+	MurImage imgVideo;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
