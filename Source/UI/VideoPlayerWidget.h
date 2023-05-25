@@ -106,7 +106,7 @@ public:
 	
 	bool drawFlat = false;
 	bool drawOverlay = false;
-	float cropStereoscopic = false;
+	bool cropStereoscopic = false;
 
 	MurImage* imgVideo = nullptr;
 };
@@ -154,9 +154,9 @@ public:
 		rotationCurrent = videoPlayerSurface.rotationCurrent;
     };
 
-	float drawFlat = false;
-	float drawOverlay = false;
-	float cropStereoscopic = false;
+	bool drawFlat = false;
+	bool drawOverlay = false;
+	bool cropStereoscopic = false;
 	
 	int fov = 70;
 

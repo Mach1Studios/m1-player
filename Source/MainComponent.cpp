@@ -9,7 +9,6 @@ MainComponent::MainComponent()
 
 	// specify the number of input and output channels that we want to open
 	setAudioChannels(0, 2);
-
 }
 
 MainComponent::~MainComponent()
@@ -409,6 +408,28 @@ void MainComponent::draw() {
 				transportSourceAudio.stop();
 			}
 		}
+		
+		auto& modeRadioGroup = m.prepare<RadioGroupWidget>({ 20, 20, 150, 30 });
+		modeRadioGroup.labels = { "3d", "2d", "3d+2d" };
+		modeRadioGroup.draw();
+
+		if (modeRadioGroup.selectedIndex == 0) {
+			videoPlayerWidget.drawFlat = false;
+			drawReference = false;
+		}
+		else if (modeRadioGroup.selectedIndex == 1) {
+			videoPlayerWidget.drawFlat = true;
+			drawReference = false;
+		}
+		else {
+			videoPlayerWidget.drawFlat = false;
+			drawReference = true;
+		}
+
+		auto& modeCheckbox = m.prepare<murka::Checkbox>({ 190, 20, 100, 30 });
+		modeCheckbox.dataToControl = &(videoPlayerWidget.drawOverlay);
+		modeCheckbox.label = "overlay";
+		modeCheckbox.draw();
 
 	}
 	else {
@@ -416,6 +437,7 @@ void MainComponent::draw() {
 		float width = m.getCurrentFont()->getStringBoundingBox(message, 0, 0).width;
 		m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).draw();
 	}
+
 
 	if (m.isKeyHeld('q')) {
 		m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);
