@@ -10,6 +10,7 @@
 #include "UI/RadioGroupWidget.h"
 
 #include "Mach1Decode.h"
+#include "TransportOSCServer.h"
 
 #include "m1_orientation_client/UI/M1Label.h"
 #include "m1_orientation_client/UI/M1OrientationWindowToggleButton.h"
@@ -60,6 +61,8 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
 	int detectedNumInputChannels;
     
 	Mach1Point3D currentOrientation = { 0, 0, 0 };
+
+	TransportOSCServer transportOSCServer;
 
 public:
     //==============================================================================

@@ -28,6 +28,8 @@ void MainComponent::initialise()
 	m1OrientationOSCClient.setStatusCallback(std::bind(&MainComponent::setStatus, this, std::placeholders::_1, std::placeholders::_2));
 
 	imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
+
+	transportOSCServer.init(9001);
 } 
 
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleRate)
@@ -294,6 +296,28 @@ void MainComponent::shutdown()
 }
 
 void MainComponent::draw() {
+	// sync playhead from monitor
+	if (transportOSCServer.isUpdated) {
+		float pos = (std::max)(transportSourceAudio.getCurrentPosition(), transportSourceVideo.getCurrentPosition());
+		if (fabs(transportOSCServer.correctTimeInSeconds - pos) > 0.1) {
+			transportSourceVideo.setPosition(transportOSCServer.correctTimeInSeconds);
+			transportSourceAudio.setPosition(transportOSCServer.correctTimeInSeconds);
+		}
+
+		if (transportOSCServer.isPlaying != transportSourceVideo.isPlaying() || transportOSCServer.isPlaying != transportSourceAudio.isPlaying()) {
+			if (transportOSCServer.isPlaying) {
+				transportSourceVideo.start();
+				transportSourceAudio.start();
+			}
+			else {
+				transportSourceVideo.stop();
+				transportSourceAudio.stop();
+			}
+		}
+		
+		transportOSCServer.isUpdated = false;
+	}
+
 	// update video frame
 	if (clipVideo.get() != nullptr) {
 		foleys::VideoFrame& frame = clipVideo->getFrame(clipVideo->getCurrentTimeInSeconds());
