@@ -28,15 +28,15 @@
     <GROUP id="{BE44C3F3-D19E-4C06-B0A5-F502BE2EDC14}" name="Resources">
       <FILE id="N2Cbja" name="mach1logo.png" compile="0" resource="1" file="Resources/mach1logo.png"/>
       <FILE id="dEHhBD" name="overlay.png" compile="0" resource="1" file="Resources/overlay.png"/>
-      <FILE id="Vk4SSU" name="bluetooth_icon.png" compile="0" resource="1"
-            file="Resources/bluetooth_icon.png"/>
-      <FILE id="xHp9OR" name="tech_support_icon.png" compile="0" resource="1"
-            file="Resources/tech_support_icon.png"/>
-      <FILE id="teqqa0" name="wi-fi_icon.png" compile="0" resource="1" file="Resources/wi-fi_icon.png"/>
-      <FILE id="VcoSHt" name="usb_icon.png" compile="0" resource="1" file="Resources/usb_icon.png"/>
-      <FILE id="Gc9N8i" name="camera_icon.png" compile="0" resource="1" file="Resources/camera_icon.png"/>
       <FILE id="GQ43mC" name="AileronSemiBold.ttf" compile="0" resource="1"
             file="Resources/AileronSemiBold.ttf"/>
+      <FILE id="D8yg3Z" name="bluetooth_icon.png" compile="0" resource="1"
+            file="Modules/m1_orientation_client/Resources/bluetooth_icon.png"/>
+      <FILE id="KhsyGc" name="camera_icon.png" compile="0" resource="1" file="Modules/m1_orientation_client/Resources/camera_icon.png"/>
+      <FILE id="j7PGM8" name="tech_support_icon.png" compile="0" resource="1"
+            file="Modules/m1_orientation_client/Resources/tech_support_icon.png"/>
+      <FILE id="wEWphZ" name="usb_icon.png" compile="0" resource="1" file="Modules/m1_orientation_client/Resources/usb_icon.png"/>
+      <FILE id="yL8klA" name="wi-fi_icon.png" compile="0" resource="1" file="Modules/m1_orientation_client/Resources/wi-fi_icon.png"/>
     </GROUP>
   </MAINGROUP>
   <EXPORTFORMATS>

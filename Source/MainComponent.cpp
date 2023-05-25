@@ -14,7 +14,6 @@ MainComponent::MainComponent()
 MainComponent::~MainComponent()
 {
 	shutdownAudio();
-
 	juce::OpenGLAppComponent::shutdownOpenGL();
 }
 
@@ -29,8 +28,6 @@ void MainComponent::initialise()
 	m1OrientationOSCClient.setStatusCallback(std::bind(&MainComponent::setStatus, this, std::placeholders::_1, std::placeholders::_2));
 
 	imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
-
-	filesDropped({ "C:/Users/User/Desktop/1.mp4" }, 0, 0);
 } 
 
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleRate)
@@ -200,8 +197,6 @@ void MainComponent::filesDropped(const juce::StringArray& files, int, int)
 			transportSourceAudio.stop();
 		}
 	}
-	
-
 	juce::Process::makeForegroundProcess();
 }
 
@@ -433,7 +428,7 @@ void MainComponent::draw() {
 
 	}
 	else {
-		std::string message = "Drop a audio and video files here [Press Q for Hotkeys & Info]";
+		std::string message = "Drop an audio or video file here";
 		float width = m.getCurrentFont()->getStringBoundingBox(message, 0, 0).width;
 		m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).draw();
 	}
@@ -478,8 +473,21 @@ void MainComponent::draw() {
 	std::vector<M1OrientationDeviceInfo> devices = m1OrientationOSCClient.getDevices();
 	for (int i = 0; i < devices.size(); i++) {
 		std::string icon = "";
-		if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeBLE) icon = "bt";
-		else icon = "wifi";
+        if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeSerial && devices[i].getDeviceName().find("Bluetooth-Incoming-Port") != std::string::npos) {
+            icon = "bt";
+        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeSerial && devices[i].getDeviceName().find("Mach1-") != std::string::npos) {
+            icon = "bt";
+        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeBLE) {
+            icon = "bt";
+        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeSerial) {
+            icon = "usb";
+        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeCamera) {
+            icon = "camera";
+        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeEmulator) {
+            icon = "none";
+        } else {
+            icon = "wifi";
+        }
 
 		std::string name = devices[i].getDeviceName();
 		slots.push_back({ icon, name, name == m1OrientationOSCClient.getCurrentDevice().getDeviceName(), i, [&](int idx)
@@ -488,7 +496,6 @@ void MainComponent::draw() {
 			}
 			});
 	}
-
 
 	//TODO: set size with getWidth()
 	auto& orientationControlButton = m.prepare<M1OrientationWindowToggleButton>({ m.getSize().width() - 40 - 5, 5, 40, 40 }).onClick([&](M1OrientationWindowToggleButton& b) {
@@ -548,8 +555,6 @@ void MainComponent::draw() {
 
 							orientationControlWindow.draw();
 		}
-
-	
 }
 
 //==============================================================================
