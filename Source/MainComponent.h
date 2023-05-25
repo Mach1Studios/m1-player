@@ -21,8 +21,7 @@
 class MainComponent : public murka::JuceMurkaBaseComponent,
     public juce::AudioAppComponent,
     public juce::FileDragAndDropTarget,
-    public foleys::TimeCodeAware::Listener,
-	public murka::View<MainComponent>
+    public foleys::TimeCodeAware::Listener
 {
     //==============================================================================
 	MurImage imgLogo;
@@ -68,7 +67,7 @@ public:
     //==============================================================================
     void initialise() override;
     void shutdown() override;
-	void internalDraw(Murka& m);
+	void draw();
 
     //==============================================================================
     void paint (juce::Graphics& g) override;
