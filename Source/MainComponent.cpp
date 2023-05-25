@@ -421,10 +421,15 @@ void MainComponent::draw() {
 			drawReference = true;
 		}
 
-		auto& modeCheckbox = m.prepare<murka::Checkbox>({ 190, 20, 100, 30 });
-		modeCheckbox.dataToControl = &(videoPlayerWidget.drawOverlay);
-		modeCheckbox.label = "overlay";
-		modeCheckbox.draw();
+		auto& drawOverlayCheckbox = m.prepare<murka::Checkbox>({ 20, 50, 150, 30 });
+		drawOverlayCheckbox.dataToControl = &(videoPlayerWidget.drawOverlay);
+		drawOverlayCheckbox.label = "overlay";
+		drawOverlayCheckbox.draw();
+
+		auto& cropStereoscopicCheckbox = m.prepare<murka::Checkbox>({ 20, 80, 150, 30 });
+		cropStereoscopicCheckbox.dataToControl = &(videoPlayerWidget.cropStereoscopic);
+		cropStereoscopicCheckbox.label = "crop stereoscopic";
+		cropStereoscopicCheckbox.draw();
 
 	}
 	else {
