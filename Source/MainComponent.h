@@ -7,7 +7,6 @@
 
 #include "Config.h"
 #include "UI/VideoPlayerWidget.h"
-#include "UI/MainWidget.h"
 #include "Mach1Decode.h"
 
 #include "m1_orientation_client/UI/M1Label.h"
@@ -19,13 +18,24 @@
     This component lives inside our window, and this is where you should put all
     your controls and content.
 */
-class MainComponent   : public murka::JuceMurkaBaseComponent,
+class MainComponent : public murka::JuceMurkaBaseComponent,
     public juce::AudioAppComponent,
     public juce::FileDragAndDropTarget,
     public foleys::TimeCodeAware::Listener,
 	public murka::View<MainComponent>
 {
     //==============================================================================
+	MurImage imgLogo;
+	MurImage imgVideo;
+
+	M1OrientationOSCClient m1OrientationOSCClient;
+	M1OrientationClientWindow orientationControlWindow;
+	bool showOrientationControlMenu = false;
+	bool showedOrientationControlBefore = false;
+
+	double currentPlayerWidgetFov = 0;
+
+	bool drawReference = false;
 
     foleys::VideoEngine videoEngine;
 
@@ -58,13 +68,14 @@ public:
     //==============================================================================
     void initialise() override;
     void shutdown() override;
-    void render() override;
+	void internalDraw(Murka& m);
 
     //==============================================================================
     void paint (juce::Graphics& g) override;
     void resized() override;
 
     void openFile(juce::File filepath);
+	void setStatus(bool success, std::string message);
 
     //==============================================================================
     void prepareToPlay(int samplesPerBlockExpected, double newSampleRate) override;
@@ -79,7 +90,6 @@ public:
 private:
     //==============================================================================
     // Your private member variables go here...
-	MurImage imgVideo;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
