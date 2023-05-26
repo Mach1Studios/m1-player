@@ -592,9 +592,9 @@ void MainComponent::draw() {
 						m1OrientationOSCClient.command_refreshDevices();
 							})
 						.onYPRSwitchesClicked([&](int whichone) {
-								if (whichone == 0) m1OrientationOSCClient.command_setTrackingYawEnabled(m1OrientationOSCClient.getTrackingYawEnabled());
-								if (whichone == 1) m1OrientationOSCClient.command_setTrackingPitchEnabled(m1OrientationOSCClient.getTrackingPitchEnabled());
-								if (whichone == 2) m1OrientationOSCClient.command_setTrackingRollEnabled(m1OrientationOSCClient.getTrackingRollEnabled());
+								if (whichone == 0) m1OrientationOSCClient.command_setTrackingYawEnabled(!m1OrientationOSCClient.getTrackingYawEnabled());
+								if (whichone == 1) m1OrientationOSCClient.command_setTrackingPitchEnabled(!m1OrientationOSCClient.getTrackingPitchEnabled());
+								if (whichone == 2) m1OrientationOSCClient.command_setTrackingRollEnabled(!m1OrientationOSCClient.getTrackingRollEnabled());
 							})
 								.withYPRTrackingSettings(
 									m1OrientationOSCClient.getTrackingYawEnabled(),
