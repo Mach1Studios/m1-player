@@ -101,7 +101,7 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
 			currentOrientation.y = m1OrientationOSCClient.getTrackingPitchEnabled() ? ypr.pitch : 0.0f;
 			currentOrientation.z = m1OrientationOSCClient.getTrackingRollEnabled() ? ypr.roll : 0.0f;
             */
-			m1Decode.setRotation(currentOrientation);
+			m1Decode.setRotationDegrees(currentOrientation);
 
             m1Decode.beginBuffer();
             spatialMixerCoeffs = m1Decode.decodeCoeffs();
@@ -211,10 +211,10 @@ void MainComponent::openFile(juce::File filepath)
 		if (newClip.get() == nullptr)
 			return;
 
-		newClip->prepareToPlay(blockSize, sampleRate);
-
 		/// Video Setup
 		if (newClip->hasVideo()) {
+			newClip->prepareToPlay(blockSize, sampleRate);
+
 			if (clipVideo.get() != nullptr) {
 				clipVideo->removeTimecodeListener(this);
 			}
@@ -234,10 +234,10 @@ void MainComponent::openFile(juce::File filepath)
 		if (newClip.get() == nullptr)
 			return;
 
-		newClip->prepareToPlay(blockSize, sampleRate);
-
 		if (newClip->hasAudio())
 		{
+			newClip->prepareToPlay(blockSize, sampleRate);
+
 			detectedNumInputChannels = newClip.get()->getNumChannels();
 
 			// Setup for Mach1Decode API
