@@ -372,20 +372,20 @@ void MainComponent::draw() {
 		}
 
         if (m.isKeyPressed(MurkaKey::MURKA_KEY_UP)) { // up arrow
-			
+			videoPlayerWidget.rotationOffset.y += 90;
         }
 
         if (m.isKeyPressed(MurkaKey::MURKA_KEY_DOWN)) { // down arrow
-            
+			videoPlayerWidget.rotationOffset.y -= 90;
         }
         
         if (m.isKeyPressed(MurkaKey::MURKA_KEY_RIGHT)) { // right arrow
-            
-        }
+			videoPlayerWidget.rotationOffset.x += 90;
+		}
         
         if (m.isKeyPressed(MurkaKey::MURKA_KEY_LEFT)) { // left arrow
-            
-        }
+			videoPlayerWidget.rotationOffset.x -= 90;
+		}
         
         if (m.isKeyPressed('w') || m.mouseScroll().y > lastScrollValue.y) {
             videoPlayerWidget.fov += 10;
