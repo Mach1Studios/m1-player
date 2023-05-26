@@ -541,6 +541,14 @@ void MainComponent::draw() {
 			}
 			});
 	}
+    
+    if (std::holds_alternative<bool>(m1OrientationOSCClient.getCurrentDevice().batteryPercentage)) {
+        // it's false, which means the battery percentage is unknown
+    } else {
+        // it has a battery percentage value
+        int battery_value = std::get<int>(m1OrientationOSCClient.getCurrentDevice().batteryPercentage);
+        m.getCurrentFont()->drawString("Battery: " + std::to_string(battery_value), m.getWindowWidth() - 100, m.getWindowHeight() - 100);
+    }
 
 	//TODO: set size with getWidth()
 	auto& orientationControlButton = m.prepare<M1OrientationWindowToggleButton>({ m.getSize().width() - 40 - 5, 5, 40, 40 }).onClick([&](M1OrientationWindowToggleButton& b) {
@@ -558,7 +566,7 @@ void MainComponent::draw() {
 			m.setColor(230, 230, 230);
 			m.prepare<M1Label>({ 678 + 40 - bbox.width - 5, 48, bbox.width + 10, 30 }).text(deviceReportString).draw();
 		}
-
+    
 		if (showOrientationControlMenu) {
 			bool showOrientationSettingsPanelInsideWindow = (m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone);
 			orientationControlWindow = m.prepare<M1OrientationClientWindow>({ 500, 45, 218, 300 + 100 * showOrientationSettingsPanelInsideWindow })
