@@ -471,6 +471,11 @@ void MainComponent::draw() {
 		cropStereoscopicCheckbox.label = "CROP STEREOSCOPIC";
 		cropStereoscopicCheckbox.draw();
 
+		// draw overlay if videoempty
+		if (clipVideo.get() == nullptr) {
+			videoPlayerWidget.drawOverlay = true;
+		}
+
 	}
 	else {
 		std::string message = "Drop an audio or video file here";
