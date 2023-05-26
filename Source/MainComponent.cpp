@@ -406,6 +406,11 @@ void MainComponent::draw() {
 		if (m.isKeyPressed('d')) {
 			videoPlayerWidget.cropStereoscopic = !videoPlayerWidget.cropStereoscopic;
 		}
+        
+        // toggles hiding the UI for better video review
+        if (m.isKeyPressed('h')) {
+            bHideUI = !bHideUI;
+        }
 
 		if (drawReference) {
 			m.drawImage(imgVideo, 0, 0, imgVideo.getWidth() * 0.3, imgVideo.getHeight() * 0.3);
@@ -445,8 +450,10 @@ void MainComponent::draw() {
 		
 		auto& modeRadioGroup = m.prepare<RadioGroupWidget>({ 20, 20, 90, 30 });
 		modeRadioGroup.labels = { "3D", "2D" };
-		modeRadioGroup.draw();
-
+        if (!bHideUI) {
+            modeRadioGroup.draw();
+        }
+        
 		if (modeRadioGroup.selectedIndex == 0) {
 			videoPlayerWidget.drawFlat = false;
 			drawReference = false;
@@ -463,13 +470,16 @@ void MainComponent::draw() {
 		auto& drawOverlayCheckbox = m.prepare<murka::Checkbox>({ 20, 50, 130, 30 });
 		drawOverlayCheckbox.dataToControl = &(videoPlayerWidget.drawOverlay);
 		drawOverlayCheckbox.label = "OVERLAY";
-		drawOverlayCheckbox.draw();
+        if (!bHideUI) {
+            drawOverlayCheckbox.draw();
+        }
 
 		auto& cropStereoscopicCheckbox = m.prepare<murka::Checkbox>({ 20, 80, 130, 30 });
 		cropStereoscopicCheckbox.dataToControl = &(videoPlayerWidget.cropStereoscopic);
 		cropStereoscopicCheckbox.label = "CROP STEREOSCOPIC";
-		cropStereoscopicCheckbox.draw();
-
+        if (!bHideUI) {
+            cropStereoscopicCheckbox.draw();
+        }
 		// draw overlay if videoempty
 		if (clipVideo.get() == nullptr) {
 			videoPlayerWidget.drawOverlay = true;
@@ -494,13 +504,29 @@ void MainComponent::draw() {
 		m.getCurrentFont()->drawString("[g] - Overlay 2D Reference", 10, 210);
 		m.getCurrentFont()->drawString("[o] - Overlay Reference", 10, 230);
 		m.getCurrentFont()->drawString("[d] - Crop stereoscopic", 10, 250);
-		m.getCurrentFont()->drawString("[Arrow Keys] - Orientation Resets", 10, 270);
+        m.getCurrentFont()->drawString("[h] - Hide UI", 10, 270);
+		m.getCurrentFont()->drawString("[Arrow Keys] - Orientation Resets", 10, 290);
 
-		m.getCurrentFont()->drawString("OverlayCoords:", 10, 330);
-		m.getCurrentFont()->drawString("Y: " + std::to_string(currentOrientation.x), 10, 350);
-		m.getCurrentFont()->drawString("P: " + std::to_string(currentOrientation.y), 10, 370);
-		m.getCurrentFont()->drawString("R: " + std::to_string(currentOrientation.z), 10, 390);
+		m.getCurrentFont()->drawString("OverlayCoords:", 10, 350);
+		m.getCurrentFont()->drawString("Y: " + std::to_string(currentOrientation.x), 10, 370);
+		m.getCurrentFont()->drawString("P: " + std::to_string(currentOrientation.y), 10, 390);
+		m.getCurrentFont()->drawString("R: " + std::to_string(currentOrientation.z), 10, 410);
 	}
+    
+    // Quick mute for Yaw orientation input from device
+    if (m.isKeyPressed('j')) {
+        m1OrientationOSCClient.command_setTrackingYawEnabled(!m1OrientationOSCClient.getTrackingYawEnabled());
+    }
+
+    // Quick mute for Pitch orientation input from device
+    if (m.isKeyPressed('k')) {
+        m1OrientationOSCClient.command_setTrackingPitchEnabled(!m1OrientationOSCClient.getTrackingPitchEnabled());
+    }
+    
+    // Quick mute for Roll orientation input from device
+    if (m.isKeyPressed('l')) {
+        m1OrientationOSCClient.command_setTrackingRollEnabled(!m1OrientationOSCClient.getTrackingRollEnabled());
+    }
     
 	if (m.eventState.isKeyPressed(' ')) {
 		if (transportSourceVideo.isPlaying() || transportSourceAudio.isPlaying()) {
@@ -591,14 +617,14 @@ void MainComponent::draw() {
                     m1OrientationOSCClient.command_refreshDevices();
                         })
                     .onYPRSwitchesClicked([&](int whichone) {
-                            if (whichone == 0) m1OrientationOSCClient.command_setTrackingYawEnabled(m1OrientationOSCClient.getTrackingYawEnabled());
-                            if (whichone == 1) m1OrientationOSCClient.command_setTrackingPitchEnabled(m1OrientationOSCClient.getTrackingPitchEnabled());
-                            if (whichone == 2) m1OrientationOSCClient.command_setTrackingRollEnabled(m1OrientationOSCClient.getTrackingRollEnabled());
+                            if (whichone == 0) m1OrientationOSCClient.command_setTrackingYawEnabled(!m1OrientationOSCClient.getTrackingYawEnabled());
+                            if (whichone == 1) m1OrientationOSCClient.command_setTrackingPitchEnabled(!m1OrientationOSCClient.getTrackingPitchEnabled());
+                            if (whichone == 2) m1OrientationOSCClient.command_setTrackingRollEnabled(!m1OrientationOSCClient.getTrackingRollEnabled());
                         })
                             .withYPRTrackingSettings(
                                 m1OrientationOSCClient.getTrackingYawEnabled(),
                                 m1OrientationOSCClient.getTrackingPitchEnabled(),
-                                m1OrientationOSCClient.getTrackingPitchEnabled(),
+                                m1OrientationOSCClient.getTrackingRollEnabled(),
                                 std::pair<int, int>(0, 180),
                                 std::pair<int, int>(0, 180),
                                 std::pair<int, int>(0, 180))
