@@ -11,7 +11,7 @@
 class VideoPlayerSurface : public View<VideoPlayerSurface> {
     bool inited = false;
     MurVbo sphere;
-	MurkaPoint3D rotationOffset = { 0, 0, 0 };
+	MurkaPoint3D rotationOffsetMouse = { 0, 0, 0 };
 	MurImage imgOverlay;
 	MurShader videoShader;
 
@@ -59,11 +59,11 @@ public:
 
             if (inside() && mouseDragged(0)) {
 				float t = mouseDelta().x;
-				rotationOffset.x += 0.25 * mouseDelta().x;
-				rotationOffset.y -= 0.25 * mouseDelta().y;
+				rotationOffsetMouse.x += 0.25 * mouseDelta().x;
+				rotationOffsetMouse.y -= 0.25 * mouseDelta().y;
 			}
 
-			rotationCurrent = rotation + rotationOffset;
+			rotationCurrent = rotation + rotationOffsetMouse + rotationOffset;
 			
 			// - r.y, r.x, r.z
 			camera.setRotation(MurkaPoint3D{ -rotationCurrent.y, -90 - rotationCurrent.x , -rotationCurrent.z }); // YPR -> -P-Y-R 3d camera
@@ -102,6 +102,8 @@ public:
 
     MurCamera camera;
 	MurkaPoint3D rotation = { 0, 0, 0 };
+	MurkaPoint3D rotationOffset = { 0, 0, 0 };
+
 	MurkaPoint3D rotationCurrent = { 0, 0, 0 };
 	
 	bool drawFlat = false;
@@ -143,6 +145,7 @@ public:
 		videoPlayerSurface.drawOverlay = drawOverlay;
 		videoPlayerSurface.cropStereoscopic = cropStereoscopic;
 		videoPlayerSurface.rotation = rotation;
+		videoPlayerSurface.rotationOffset = rotationOffset;
 		videoPlayerSurface.camera.setFov(fov);
         videoPlayerSurface.draw();
 
@@ -161,7 +164,8 @@ public:
 	int fov = 70;
 
     MurImage* imgVideo = nullptr;
-	MurkaPoint3D rotation;
-	MurkaPoint3D rotationCurrent;
+	MurkaPoint3D rotation = { 0, 0, 0 };
+	MurkaPoint3D rotationCurrent = { 0, 0, 0 };
+	MurkaPoint3D rotationOffset = { 0, 0, 0 };
 	float playheadPosition = 0.0;
 };
