@@ -62,7 +62,8 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     
 	Mach1Point3D currentOrientation = { 0, 0, 0 };
     MurkaPoint lastScrollValue;
-
+    bool bHideUI = false;
+    
 	TransportOSCServer transportOSCServer;
 
 public:
