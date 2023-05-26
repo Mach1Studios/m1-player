@@ -314,7 +314,6 @@ void MainComponent::draw() {
 				transportSourceAudio.stop();
 			}
 		}
-		
 		transportOSCServer.isUpdated = false;
 	}
 
@@ -371,28 +370,29 @@ void MainComponent::draw() {
 			videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
 		}
 
+        // TODO: fix these reset keys, they are supposed to set the overal camera to front/back/left/right not the offset
         if (m.isKeyPressed(MurkaKey::MURKA_KEY_UP)) { // up arrow
-			videoPlayerWidget.rotationOffset.y += 90;
+			videoPlayerWidget.rotationOffset.x = 0;
         }
 
         if (m.isKeyPressed(MurkaKey::MURKA_KEY_DOWN)) { // down arrow
-			videoPlayerWidget.rotationOffset.y -= 90;
+			videoPlayerWidget.rotationOffset.x = 180;
         }
         
         if (m.isKeyPressed(MurkaKey::MURKA_KEY_RIGHT)) { // right arrow
-			videoPlayerWidget.rotationOffset.x += 90;
+			videoPlayerWidget.rotationOffset.x = 90;
 		}
         
         if (m.isKeyPressed(MurkaKey::MURKA_KEY_LEFT)) { // left arrow
-			videoPlayerWidget.rotationOffset.x -= 90;
+			videoPlayerWidget.rotationOffset.x = 270;
 		}
         
         if (m.isKeyPressed('w') || m.mouseScroll().y > lastScrollValue.y) {
-            videoPlayerWidget.fov += 10;
+            videoPlayerWidget.fov -= 10;
         }
         
         if (m.isKeyPressed('s') || m.mouseScroll().y < lastScrollValue.y) {
-            videoPlayerWidget.fov -= 10;
+            videoPlayerWidget.fov += 10;
         }
 
 		if (m.isKeyPressed('g')) {
@@ -438,14 +438,13 @@ void MainComponent::draw() {
 				if (clipAudio.get() != nullptr) {
 					clipAudio->setNextReadPosition(0);
 				}
-
 				transportSourceVideo.stop();
 				transportSourceAudio.stop();
 			}
 		}
 		
-		auto& modeRadioGroup = m.prepare<RadioGroupWidget>({ 20, 20, 120, 30 });
-		modeRadioGroup.labels = { "3D", "2D", "3D+2D" };
+		auto& modeRadioGroup = m.prepare<RadioGroupWidget>({ 20, 20, 90, 30 });
+		modeRadioGroup.labels = { "3D", "2D" };
 		modeRadioGroup.draw();
 
 		if (modeRadioGroup.selectedIndex == 0) {
@@ -461,12 +460,12 @@ void MainComponent::draw() {
 			drawReference = true;
 		}
 
-		auto& drawOverlayCheckbox = m.prepare<murka::Checkbox>({ 20, 50, 120, 30 });
+		auto& drawOverlayCheckbox = m.prepare<murka::Checkbox>({ 20, 50, 130, 30 });
 		drawOverlayCheckbox.dataToControl = &(videoPlayerWidget.drawOverlay);
 		drawOverlayCheckbox.label = "OVERLAY";
 		drawOverlayCheckbox.draw();
 
-		auto& cropStereoscopicCheckbox = m.prepare<murka::Checkbox>({ 20, 80, 120, 30 });
+		auto& cropStereoscopicCheckbox = m.prepare<murka::Checkbox>({ 20, 80, 130, 30 });
 		cropStereoscopicCheckbox.dataToControl = &(videoPlayerWidget.cropStereoscopic);
 		cropStereoscopicCheckbox.label = "CROP STEREOSCOPIC";
 		cropStereoscopicCheckbox.draw();
@@ -482,7 +481,6 @@ void MainComponent::draw() {
 		float width = m.getCurrentFont()->getStringBoundingBox(message, 0, 0).width;
 		m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).draw();
 	}
-
 
 	if (m.isKeyHeld('q')) {
 		m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);
@@ -503,7 +501,7 @@ void MainComponent::draw() {
 		m.getCurrentFont()->drawString("P: " + std::to_string(currentOrientation.y), 10, 370);
 		m.getCurrentFont()->drawString("R: " + std::to_string(currentOrientation.z), 10, 390);
 	}
-
+    
 	if (m.eventState.isKeyPressed(' ')) {
 		if (transportSourceVideo.isPlaying() || transportSourceAudio.isPlaying()) {
 			transportSourceVideo.stop();
@@ -546,7 +544,14 @@ void MainComponent::draw() {
 			}
 			});
 	}
-    
+
+	auto& orientationControlButton = m.prepare<M1OrientationWindowToggleButton>({ m.getSize().width() - 40 - 5, 5, 40, 40 }).onClick([&](M1OrientationWindowToggleButton& b) {
+		showOrientationControlMenu = !showOrientationControlMenu;
+		})
+		.withInteractiveOrientationGimmick(m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone, m1OrientationOSCClient.getOrientation().getYPR().yaw)
+			.draw();
+
+    // TODO: move this to be to the left of the orientation client window button
     if (std::holds_alternative<bool>(m1OrientationOSCClient.getCurrentDevice().batteryPercentage)) {
         // it's false, which means the battery percentage is unknown
     } else {
@@ -554,63 +559,57 @@ void MainComponent::draw() {
         int battery_value = std::get<int>(m1OrientationOSCClient.getCurrentDevice().batteryPercentage);
         m.getCurrentFont()->drawString("Battery: " + std::to_string(battery_value), m.getWindowWidth() - 100, m.getWindowHeight() - 100);
     }
-
-	//TODO: set size with getWidth()
-	auto& orientationControlButton = m.prepare<M1OrientationWindowToggleButton>({ m.getSize().width() - 40 - 5, 5, 40, 40 }).onClick([&](M1OrientationWindowToggleButton& b) {
-		showOrientationControlMenu = !showOrientationControlMenu;
-		})
-		.withInteractiveOrientationGimmick(m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone, m1OrientationOSCClient.getOrientation().getYPR().yaw)
-			.draw();
-
-		if (orientationControlButton.hovered && (m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone)) {
-			std::string deviceReportString = "Tracking device:" + m1OrientationOSCClient.getCurrentDevice().getDeviceName();
-			auto font = m.getCurrentFont();
-			auto bbox = font->getStringBoundingBox(deviceReportString, 0, 0);
-			m.setColor(40, 40, 40, 200);
-			m.drawRectangle(m.getSize().width() - 40 - 10 /* padding */ - bbox.width - 5, 5, bbox.width + 10, 30);
-			m.setColor(230, 230, 230);
-			m.prepare<M1Label>({ m.getSize().width() - 40 - 10 /* padding */ - bbox.width - 5, 5, bbox.width + 10, 30 - 5 }).text(deviceReportString).draw();
-		}
     
-		if (showOrientationControlMenu) {
-			bool showOrientationSettingsPanelInsideWindow = (m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone);
-			orientationControlWindow = m.prepare<M1OrientationClientWindow>({ m.getSize().width() - 218 - 5 , 5, 218, 300 + 100 * showOrientationSettingsPanelInsideWindow })
-				.withDeviceList(slots)
-				.withSettingsPanelEnabled(showOrientationSettingsPanelInsideWindow)
-				.onClickOutside([&]() {
-				if (!orientationControlButton.hovered) { // Only switch showing the orientation control if we didn't click on the button
-					showOrientationControlMenu = !showOrientationControlMenu;
-					if (showOrientationControlMenu && !showedOrientationControlBefore) {
-						orientationControlWindow.startRefreshing();
-					}
-				}
-					})
-				.onDisconnectClicked([&]() {
-						m1OrientationOSCClient.command_disconnect();
-					})
-						.onRefreshClicked([&]() {
-						m1OrientationOSCClient.command_refreshDevices();
-							})
-						.onYPRSwitchesClicked([&](int whichone) {
-								if (whichone == 0) m1OrientationOSCClient.command_setTrackingYawEnabled(!m1OrientationOSCClient.getTrackingYawEnabled());
-								if (whichone == 1) m1OrientationOSCClient.command_setTrackingPitchEnabled(!m1OrientationOSCClient.getTrackingPitchEnabled());
-								if (whichone == 2) m1OrientationOSCClient.command_setTrackingRollEnabled(!m1OrientationOSCClient.getTrackingRollEnabled());
-							})
-								.withYPRTrackingSettings(
-									m1OrientationOSCClient.getTrackingYawEnabled(),
-									m1OrientationOSCClient.getTrackingPitchEnabled(),
-									m1OrientationOSCClient.getTrackingPitchEnabled(),
-									std::pair<int, int>(0, 180),
-									std::pair<int, int>(0, 180),
-									std::pair<int, int>(0, 180))
-								.withYPR(
-									m1OrientationOSCClient.getOrientation().getYPR().yaw,
-									m1OrientationOSCClient.getOrientation().getYPR().pitch,
-									m1OrientationOSCClient.getOrientation().getYPR().roll
-								);
+    if (orientationControlButton.hovered && (m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone)) {
+        std::string deviceReportString = "CONNECTED DEVICE: " + m1OrientationOSCClient.getCurrentDevice().getDeviceName();
+        auto font = m.getCurrentFont();
+        auto bbox = font->getStringBoundingBox(deviceReportString, 0, 0);
+        //m.setColor(40, 40, 40, 200);
+        // TODO: fix this bounding box (doesnt draw the same place despite matching settings with Label.draw
+        //m.drawRectangle(     m.getSize().width() - 40 - 10 /* padding */ - bbox.width - 5, 5, bbox.width + 10, 40);
+        m.setColor(230, 230, 230);
+        m.prepare<M1Label>({ m.getSize().width() - 40 - 10 /* padding */ - bbox.width - 5, 5 + 10, bbox.width + 10, 40 }).text(deviceReportString).withTextAlignment(TEXT_CENTER).draw();
+    }
+    
+    if (showOrientationControlMenu) {
+        bool showOrientationSettingsPanelInsideWindow = (m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone);
+        orientationControlWindow = m.prepare<M1OrientationClientWindow>({ m.getSize().width() - 218 - 5 , 5, 218, 300 + 100 * showOrientationSettingsPanelInsideWindow })
+            .withDeviceList(slots)
+            .withSettingsPanelEnabled(showOrientationSettingsPanelInsideWindow)
+            .onClickOutside([&]() {
+            if (!orientationControlButton.hovered) { // Only switch showing the orientation control if we didn't click on the button
+                showOrientationControlMenu = !showOrientationControlMenu;
+                if (showOrientationControlMenu && !showedOrientationControlBefore) {
+                    orientationControlWindow.startRefreshing();
+                }
+            }
+                })
+            .onDisconnectClicked([&]() {
+                    m1OrientationOSCClient.command_disconnect();
+                })
+                    .onRefreshClicked([&]() {
+                    m1OrientationOSCClient.command_refreshDevices();
+                        })
+                    .onYPRSwitchesClicked([&](int whichone) {
+                            if (whichone == 0) m1OrientationOSCClient.command_setTrackingYawEnabled(m1OrientationOSCClient.getTrackingYawEnabled());
+                            if (whichone == 1) m1OrientationOSCClient.command_setTrackingPitchEnabled(m1OrientationOSCClient.getTrackingPitchEnabled());
+                            if (whichone == 2) m1OrientationOSCClient.command_setTrackingRollEnabled(m1OrientationOSCClient.getTrackingRollEnabled());
+                        })
+                            .withYPRTrackingSettings(
+                                m1OrientationOSCClient.getTrackingYawEnabled(),
+                                m1OrientationOSCClient.getTrackingPitchEnabled(),
+                                m1OrientationOSCClient.getTrackingPitchEnabled(),
+                                std::pair<int, int>(0, 180),
+                                std::pair<int, int>(0, 180),
+                                std::pair<int, int>(0, 180))
+                            .withYPR(
+                                m1OrientationOSCClient.getOrientation().getYPR().yaw,
+                                m1OrientationOSCClient.getOrientation().getYPR().pitch,
+                                m1OrientationOSCClient.getOrientation().getYPR().roll
+                            );
 
-							orientationControlWindow.draw();
-		}
+                        orientationControlWindow.draw();
+    }
     
     // update the mousewheel scroll for testing
     lastScrollValue = m.mouseScroll();
