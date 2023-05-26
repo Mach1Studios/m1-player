@@ -444,8 +444,8 @@ void MainComponent::draw() {
 			}
 		}
 		
-		auto& modeRadioGroup = m.prepare<RadioGroupWidget>({ 20, 20, 150, 30 });
-		modeRadioGroup.labels = { "3d", "2d", "3d+2d" };
+		auto& modeRadioGroup = m.prepare<RadioGroupWidget>({ 20, 20, 120, 30 });
+		modeRadioGroup.labels = { "3D", "2D", "3D+2D" };
 		modeRadioGroup.draw();
 
 		if (modeRadioGroup.selectedIndex == 0) {
@@ -461,14 +461,14 @@ void MainComponent::draw() {
 			drawReference = true;
 		}
 
-		auto& drawOverlayCheckbox = m.prepare<murka::Checkbox>({ 20, 50, 150, 30 });
+		auto& drawOverlayCheckbox = m.prepare<murka::Checkbox>({ 20, 50, 120, 30 });
 		drawOverlayCheckbox.dataToControl = &(videoPlayerWidget.drawOverlay);
-		drawOverlayCheckbox.label = "overlay";
+		drawOverlayCheckbox.label = "OVERLAY";
 		drawOverlayCheckbox.draw();
 
-		auto& cropStereoscopicCheckbox = m.prepare<murka::Checkbox>({ 20, 80, 150, 30 });
+		auto& cropStereoscopicCheckbox = m.prepare<murka::Checkbox>({ 20, 80, 120, 30 });
 		cropStereoscopicCheckbox.dataToControl = &(videoPlayerWidget.cropStereoscopic);
-		cropStereoscopicCheckbox.label = "crop stereoscopic";
+		cropStereoscopicCheckbox.label = "CROP STEREOSCOPIC";
 		cropStereoscopicCheckbox.draw();
 
 	}
@@ -562,14 +562,14 @@ void MainComponent::draw() {
 			auto font = m.getCurrentFont();
 			auto bbox = font->getStringBoundingBox(deviceReportString, 0, 0);
 			m.setColor(40, 40, 40, 200);
-			m.drawRectangle(678 + 40 - bbox.width - 5, 45, bbox.width + 10, 30);
+			m.drawRectangle(m.getSize().width() - 40 - 10 /* padding */ - bbox.width - 5, 5, bbox.width + 10, 30);
 			m.setColor(230, 230, 230);
-			m.prepare<M1Label>({ 678 + 40 - bbox.width - 5, 48, bbox.width + 10, 30 }).text(deviceReportString).draw();
+			m.prepare<M1Label>({ m.getSize().width() - 40 - 10 /* padding */ - bbox.width - 5, 5, bbox.width + 10, 30 - 5 }).text(deviceReportString).draw();
 		}
     
 		if (showOrientationControlMenu) {
 			bool showOrientationSettingsPanelInsideWindow = (m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone);
-			orientationControlWindow = m.prepare<M1OrientationClientWindow>({ 500, 45, 218, 300 + 100 * showOrientationSettingsPanelInsideWindow })
+			orientationControlWindow = m.prepare<M1OrientationClientWindow>({ m.getSize().width() - 218 - 5 , 5, 218, 300 + 100 * showOrientationSettingsPanelInsideWindow })
 				.withDeviceList(slots)
 				.withSettingsPanelEnabled(showOrientationSettingsPanelInsideWindow)
 				.onClickOutside([&]() {
