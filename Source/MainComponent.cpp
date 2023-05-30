@@ -298,13 +298,16 @@ void MainComponent::shutdown()
 void MainComponent::draw() {
 	// sync playhead from monitor
 	if (transportOSCServer.isUpdated) {
+
+		float length = (std::max)(transportSourceAudio.getLengthInSeconds(), transportSourceVideo.getLengthInSeconds());
 		float pos = (std::max)(transportSourceAudio.getCurrentPosition(), transportSourceVideo.getCurrentPosition());
-		if (fabs(transportOSCServer.correctTimeInSeconds - pos) > 0.1) {
+		if (fabs(transportOSCServer.correctTimeInSeconds - pos) > 0.1 && transportOSCServer.correctTimeInSeconds < length) {
 			transportSourceVideo.setPosition(transportOSCServer.correctTimeInSeconds);
 			transportSourceAudio.setPosition(transportOSCServer.correctTimeInSeconds);
 		}
 
-		if (transportOSCServer.isPlaying != transportSourceVideo.isPlaying() || transportOSCServer.isPlaying != transportSourceAudio.isPlaying()) {
+		if ((clipVideo.get() != nullptr && transportOSCServer.isPlaying != transportSourceVideo.isPlaying()) || 
+			(clipAudio.get() != nullptr && transportOSCServer.isPlaying != transportSourceAudio.isPlaying())) {
 			if (transportOSCServer.isPlaying) {
 				transportSourceVideo.start();
 				transportSourceAudio.start();
