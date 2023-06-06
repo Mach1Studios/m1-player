@@ -13,6 +13,10 @@ MainComponent::MainComponent()
 
 MainComponent::~MainComponent()
 {
+    m1OrientationOSCClient.command_disconnect();
+    m1OrientationOSCClient.close();
+    // TODO: properly kill the ClientWindow and all children UI elements safely
+    orientationControlWindow.~M1OrientationClientWindow();
 	shutdownAudio();
 	juce::OpenGLAppComponent::shutdownOpenGL();
 }
@@ -571,7 +575,7 @@ void MainComponent::draw() {
 			{
 				m1OrientationOSCClient.command_startTrackingUsingDevice(devices[idx]);
 			}
-			});
+        });
 	}
 
 	auto& orientationControlButton = m.prepare<M1OrientationWindowToggleButton>({ m.getSize().width() - 40 - 5, 5, 40, 40 }).onClick([&](M1OrientationWindowToggleButton& b) {
