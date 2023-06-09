@@ -28,7 +28,7 @@ void MainComponent::initialise()
 
 	videoEngine.getFormatManager().registerFormat(std::make_unique<foleys::FFmpegFormat>());
 
-	m1OrientationOSCClient.init(6345);
+	m1OrientationOSCClient.init(6345, 6346);
 	m1OrientationOSCClient.setStatusCallback(std::bind(&MainComponent::setStatus, this, std::placeholders::_1, std::placeholders::_2));
 
 	imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
