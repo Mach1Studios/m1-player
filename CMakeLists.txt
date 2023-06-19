@@ -76,9 +76,30 @@ add_subdirectory(Resources)
 # See https://forum.juce.com/t/loading-pytorch-model-using-binarydata/39997/2
 set_target_properties(Resources PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 set_target_properties(Resources PROPERTIES FOLDER "Targets")
+target_link_libraries(${PLUGIN_NAME} PRIVATE Resources)
 
-target_link_libraries(${PLUGIN_NAME} PRIVATE juce::juce_audio_basics juce::juce_audio_devices juce::juce_audio_formats juce::juce_audio_plugin_client juce::juce_audio_processors juce::juce_audio_utils juce::juce_core juce::juce_data_structures juce::juce_events juce::juce_graphics juce::juce_gui_basics juce::juce_gui_extra juce::juce_opengl juce::juce_osc juce_murka m1_orientation_client foleys_video_engine)
-target_link_libraries(${PLUGIN_NAME} PRIVATE Resources PUBLIC juce::juce_recommended_warning_flags juce::juce_recommended_config_flags juce::juce_recommended_lto_flags)
+target_link_libraries(${PLUGIN_NAME} PRIVATE
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_lto_flags
+        juce::juce_recommended_warning_flags
+        juce::juce_audio_basics 
+        juce::juce_audio_devices 
+        juce::juce_audio_formats 
+        juce::juce_audio_plugin_client 
+        juce::juce_audio_processors 
+        juce::juce_audio_utils 
+        juce::juce_core 
+        juce::juce_data_structures 
+        juce::juce_events 
+        juce::juce_graphics 
+        juce::juce_gui_basics 
+        juce::juce_gui_extra 
+        juce::juce_opengl 
+        juce::juce_osc 
+        juce_murka 
+        m1_orientation_client 
+        foleys_video_engine
+        )
 
 # definitions to replace the `JucePluginDefines.h`
 set(JucePlugin_Name ${PLUGIN_NAME})
