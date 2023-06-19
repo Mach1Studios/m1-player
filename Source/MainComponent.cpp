@@ -15,8 +15,6 @@ MainComponent::~MainComponent()
 {
     m1OrientationOSCClient.command_disconnect();
     m1OrientationOSCClient.close();
-    // TODO: properly kill the ClientWindow and all children UI elements safely
-    orientationControlWindow.~M1OrientationClientWindow();
 	shutdownAudio();
 	juce::OpenGLAppComponent::shutdownOpenGL();
 }
