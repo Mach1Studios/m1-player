@@ -26,8 +26,25 @@ void MainComponent::initialise()
 
 	videoEngine.getFormatManager().registerFormat(std::make_unique<foleys::FFmpegFormat>());
 
-	m1OrientationOSCClient.init(6345, 6346);
-	m1OrientationOSCClient.setStatusCallback(std::bind(&MainComponent::setStatus, this, std::placeholders::_1, std::placeholders::_2));
+    // We will assume the folders are properly created during the installation step
+    juce::File settingsFile;
+    // Using common support files installation location
+    juce::File m1SupportDirectory = juce::File::getSpecialLocation(juce::File::commonApplicationDataDirectory);
+
+    if ((juce::SystemStats::getOperatingSystemType() & juce::SystemStats::MacOSX) != 0) {
+        // test for any mac OS
+        settingsFile = m1SupportDirectory.getChildFile("Application Support").getChildFile("Mach1");
+    } else if ((juce::SystemStats::getOperatingSystemType() & juce::SystemStats::Windows) != 0) {
+        // test for any windows OS
+        settingsFile = m1SupportDirectory.getChildFile("Mach1");
+    } else {
+        settingsFile = m1SupportDirectory.getChildFile("Mach1");
+    }
+    settingsFile = settingsFile.getChildFile("settings.json");
+    DBG("Opening settings file: " + settingsFile.getFullPathName().quoted());
+    
+    m1OrientationOSCClient.initFromSettings(settingsFile.getFullPathName().toStdString(), true);
+    m1OrientationOSCClient.setStatusCallback(std::bind(&MainComponent::setStatus, this, std::placeholders::_1, std::placeholders::_2));
 
 	imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
 
