@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="agVUOj" name="M1-Player" projectType="guiapp" version="0.1.0"
-              bundleIdentifier="com.mach1.player" includeBinaryInAppConfig="1"
+              bundleIdentifier="com.mach1.spatial.player" includeBinaryInAppConfig="1"
               displaySplashScreen="0" splashScreenColour="Dark" companyCopyright="Mach1, Corp."
               cppLanguageStandard="17" jucerFormatVersion="1" projectLineFeed="&#10;"
               addUsingNamespaceToJuceHeader="0" companyName="Mach1" companyWebsite="https://www.mach1.tech"
