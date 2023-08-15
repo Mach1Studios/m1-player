@@ -33,7 +33,7 @@ set(RBRACKET_LITERAL "}")
 
 # DYNAMIC_IO_PLUGIN_MODE or STREAMING_PANNER_PLUGIN or AAX/RTAS
 set(PLUGIN_NAME "${CMAKE_PROJECT_NAME}")
-set(CUSTOM_BUNDLE_ID "com.mach1.player")
+set(CUSTOM_BUNDLE_ID "com.mach1.spatial.player")
 set(CUSTOM_PLUGIN_CODE "M1PL")
 
 # add the plugin targets
