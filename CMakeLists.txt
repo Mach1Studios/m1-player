@@ -122,6 +122,16 @@ else()
     target_link_directories(${PLUGIN_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg")
 endif()
 
+### setup info.plist and entitlements for macos
+if(APPLE)
+set_target_properties(${PLUGIN_NAME} PROPERTIES
+    XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS
+    "${CMAKE_CURRENT_SOURCE_DIR}/Resources/${PLUGIN_NAME}.entitlements")
+set_target_properties(${PLUGIN_NAME} PROPERTIES
+    MACOSX_BUNDLE TRUE
+    MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Resources/${PLUGIN_NAME}-Info.plist")
+endif()
+
 ### IDE Generator post-config ###
 # IDEs:  Move the "shared code" source group (main target) out of the "Targets" folder
 #        to the top level.
