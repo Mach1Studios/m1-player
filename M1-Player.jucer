@@ -26,6 +26,8 @@
       </GROUP>
     </GROUP>
     <GROUP id="{BE44C3F3-D19E-4C06-B0A5-F502BE2EDC14}" name="Resources">
+      <FILE id="iAPSJ7" name="icon.icns" compile="0" resource="1" file="Resources/icon.icns"/>
+      <FILE id="ojO1A7" name="icon.ico" compile="0" resource="1" file="Resources/icon.ico"/>
       <FILE id="N2Cbja" name="mach1logo.png" compile="0" resource="1" file="Resources/mach1logo.png"/>
       <FILE id="dEHhBD" name="overlay.png" compile="0" resource="1" file="Resources/overlay.png"/>
       <FILE id="GQ43mC" name="AileronSemiBold.ttf" compile="0" resource="1"
