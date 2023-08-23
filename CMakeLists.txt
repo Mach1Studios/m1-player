@@ -42,13 +42,14 @@ juce_add_gui_app(${PLUGIN_NAME}
                 COMPANY_NAME "Mach1"
                 COMPANY_WEBSITE "https://mach1.tech"
                 COMPANY_EMAIL "whatsup@mach1.tech"
+                ICON_BIG "${CMAKE_CURRENT_SOURCE_DIR}/Resources/icon.png"
+                ICON_SMALL "${CMAKE_CURRENT_SOURCE_DIR}/Resources/icon.png"
                 PLUGIN_MANUFACTURER_CODE "Mac1"
                 PLUGIN_CODE ${CUSTOM_PLUGIN_CODE}
                 BUNDLE_ID ${CUSTOM_BUNDLE_ID}
                 PLUGIN_NAME ${PLUGIN_NAME}
                 PRODUCT_NAME ${PLUGIN_NAME}
-                IS_SYNTH FALSE
-                COPY_PLUGIN_AFTER_BUILD TRUE)
+                IS_SYNTH FALSE)
 
 # add required flags
 juce_generate_juce_header(${PLUGIN_NAME})

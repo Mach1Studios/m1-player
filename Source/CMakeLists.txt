@@ -3,5 +3,7 @@ file(GLOB source_files  Config.h
                         MainComponent.h
                         MainComponent.cpp
                         SphereMeshGenerator.h
-                        UI/VideoPlayerWidget.h)
+                        TransportOSCServer.h
+                        UI/VideoPlayerWidget.h
+                        UI/RadioGroupWidget.h)
 target_sources(${PLUGIN_NAME} PRIVATE ${source_files})
