@@ -621,14 +621,14 @@ void MainComponent::draw() {
     
     if (showOrientationControlMenu) {
         bool showOrientationSettingsPanelInsideWindow = (m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone);
-        orientationControlWindow = m.prepare<M1OrientationClientWindow>({ m.getSize().width() - 218 - 5 , 5, 218, 300 + 100 * showOrientationSettingsPanelInsideWindow })
+        orientationControlWindow = &(m.prepare<M1OrientationClientWindow>({ m.getSize().width() - 218 - 5 , 5, 218, 300 + 100 * showOrientationSettingsPanelInsideWindow })
             .withDeviceList(slots)
             .withSettingsPanelEnabled(showOrientationSettingsPanelInsideWindow)
             .onClickOutside([&]() {
             if (!orientationControlButton.hovered) { // Only switch showing the orientation control if we didn't click on the button
                 showOrientationControlMenu = !showOrientationControlMenu;
                 if (showOrientationControlMenu && !showedOrientationControlBefore) {
-                    orientationControlWindow.startRefreshing();
+                    orientationControlWindow->startRefreshing();
                 }
             }
                 })
@@ -654,9 +654,8 @@ void MainComponent::draw() {
                                 m1OrientationOSCClient.getOrientation().getYPRinDegrees().yaw,
                                 m1OrientationOSCClient.getOrientation().getYPRinDegrees().pitch,
                                 m1OrientationOSCClient.getOrientation().getYPRinDegrees().roll
-                            );
-
-                        orientationControlWindow.draw();
+                            ));
+                        orientationControlWindow->draw();
     }
     
     // update the mousewheel scroll for testing
