@@ -31,7 +31,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
 	MurImage imgVideo;
 
 	M1OrientationOSCClient m1OrientationOSCClient;
-	M1OrientationClientWindow orientationControlWindow;
+	M1OrientationClientWindow* orientationControlWindow;
 	bool showOrientationControlMenu = false;
 	bool showedOrientationControlBefore = false;
 
