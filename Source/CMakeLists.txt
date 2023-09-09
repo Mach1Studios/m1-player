@@ -6,4 +6,5 @@ file(GLOB source_files  Config.h
                         TransportOSCServer.h
                         UI/VideoPlayerWidget.h
                         UI/RadioGroupWidget.h)
-target_sources(${PLUGIN_NAME} PRIVATE ${source_files})
+
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${source_files})
