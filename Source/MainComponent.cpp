@@ -633,29 +633,33 @@ void MainComponent::draw() {
             }
                 })
             .onDisconnectClicked([&]() {
-                    m1OrientationOSCClient.command_disconnect();
-                })
-                    .onRefreshClicked([&]() {
-                    m1OrientationOSCClient.command_refreshDevices();
-                        })
-                    .onYPRSwitchesClicked([&](int whichone) {
-                            if (whichone == 0) m1OrientationOSCClient.command_setTrackingYawEnabled(!m1OrientationOSCClient.getTrackingYawEnabled());
-                            if (whichone == 1) m1OrientationOSCClient.command_setTrackingPitchEnabled(!m1OrientationOSCClient.getTrackingPitchEnabled());
-                            if (whichone == 2) m1OrientationOSCClient.command_setTrackingRollEnabled(!m1OrientationOSCClient.getTrackingRollEnabled());
-                        })
-                            .withYPRTrackingSettings(
-                                m1OrientationOSCClient.getTrackingYawEnabled(),
-                                m1OrientationOSCClient.getTrackingPitchEnabled(),
-                                m1OrientationOSCClient.getTrackingRollEnabled(),
-                                std::pair<int, int>(0, 180),
-                                std::pair<int, int>(0, 180),
-                                std::pair<int, int>(0, 180))
-                            .withYPR(
-                                m1OrientationOSCClient.getOrientation().getYPRinDegrees().yaw,
-                                m1OrientationOSCClient.getOrientation().getYPRinDegrees().pitch,
-                                m1OrientationOSCClient.getOrientation().getYPRinDegrees().roll
-                            ));
-                        orientationControlWindow->draw();
+                m1OrientationOSCClient.command_disconnect();
+             })
+            .onRefreshClicked([&]() {
+                m1OrientationOSCClient.command_refreshDevices();
+            })
+            .onOscSettingsChanged([&](int port, std::string addr_pttrn) {
+                m1OrientationOSCClient.command_updateOscDevice(port, addr_pttrn);
+            })
+            .onYPRSwitchesClicked([&](int whichone) {
+                if (whichone == 0) m1OrientationOSCClient.command_setTrackingYawEnabled(!m1OrientationOSCClient.getTrackingYawEnabled());
+                if (whichone == 1) m1OrientationOSCClient.command_setTrackingPitchEnabled(!m1OrientationOSCClient.getTrackingPitchEnabled());
+                if (whichone == 2) m1OrientationOSCClient.command_setTrackingRollEnabled(!m1OrientationOSCClient.getTrackingRollEnabled());
+            })
+            .withYPRTrackingSettings(
+                                     m1OrientationOSCClient.getTrackingYawEnabled(),
+                                     m1OrientationOSCClient.getTrackingPitchEnabled(),
+                                     m1OrientationOSCClient.getTrackingRollEnabled(),
+                                     std::pair<int, int>(0, 180),
+                                     std::pair<int, int>(0, 180),
+                                     std::pair<int, int>(0, 180)
+            )
+            .withYPR(
+                     m1OrientationOSCClient.getOrientation().getYPRinDegrees().yaw,
+                     m1OrientationOSCClient.getOrientation().getYPRinDegrees().pitch,
+                     m1OrientationOSCClient.getOrientation().getYPRinDegrees().roll
+            ));
+            orientationControlWindow->draw();
     }
     
     // update the mousewheel scroll for testing
