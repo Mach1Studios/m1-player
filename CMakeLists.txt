@@ -125,9 +125,6 @@ endif()
 ### setup info.plist and entitlements for macos
 if(APPLE)
     set_target_properties("${CMAKE_PROJECT_NAME}" PROPERTIES
-        CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Automatic"
-        CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "6ZETDT84RB"
-        CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Developer ID Application"
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Resources/${CMAKE_PROJECT_NAME}-Info.plist"
         MACOSX_BUNDLE_BUNDLE_NAME ${CMAKE_PROJECT_NAME}
@@ -136,10 +133,6 @@ if(APPLE)
         XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/Resources/${CMAKE_PROJECT_NAME}.entitlements"
         XCODE_ATTRIBUTE_INFOPLIST_KEY_LSApplicationCategoryType "public.app-category.utilities"
     )
-    # # Add icon file
-    # set_target_properties("${CMAKE_PROJECT_NAME}" PROPERTIES MACOSX_BUNDLE_ICON_FILE Icon.icns)
-    # set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/Resources/Icon.icns" PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
-    # target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${source_files} "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Icon.icns")
 endif()
 
 ### IDE Generator post-config ###
