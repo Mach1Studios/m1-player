@@ -14,10 +14,13 @@ public:
 		
 		int hoverIndex = -1;
 
+		changed = false;
+
 		if (isHovered()) {
 			hoverIndex = mousePosition().x / w;
 			if (mouseDownPressed(0)) {
 				selectedIndex = hoverIndex;
+				changed = true;
 				lastTimeClicked = m.getElapsedTime();
 			}
 		}
@@ -66,6 +69,7 @@ public:
 
 	std::vector<std::string> labels;
 	int selectedIndex = 0;
+	bool changed = false;
 
 	// Internal state
 	float lastTimeClicked = 0;
