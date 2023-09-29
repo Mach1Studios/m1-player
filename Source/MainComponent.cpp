@@ -120,7 +120,7 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
 			currentOrientation.y = m1OrientationOSCClient.getTrackingPitchEnabled() ? ypr.pitch : 0.0f;
 			currentOrientation.z = m1OrientationOSCClient.getTrackingRollEnabled() ? ypr.roll : 0.0f;
             */
-			m1Decode.setRotationDegrees(currentOrientation);
+            m1Decode.setRotationDegrees({ currentOrientation.yaw, currentOrientation.pitch, currentOrientation.roll });
 
             m1Decode.beginBuffer();
             spatialMixerCoeffs = m1Decode.decodeCoeffs();
@@ -359,15 +359,24 @@ void MainComponent::draw() {
 		auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
 
 		if (m1OrientationOSCClient.isConnectedToServer()) {
+            // sending un-normalized full range values in degrees
+            
+            // calculate normalized signed offset and send to server
+            M1OrientationYPR offset;
+            offset = currentOrientation - previousOrientation;
+            
+            m1OrientationOSCClient.command_setOffsetYPR(offset.yaw, offset.pitch, offset.roll);
+            
+            // add server orientation to player
             M1OrientationYPR ypr = m1OrientationOSCClient.getOrientation().getYPRasDegrees();
 			videoPlayerWidget.rotation.x = m1OrientationOSCClient.getTrackingYawEnabled() ? ypr.yaw : 0.0f;
 			videoPlayerWidget.rotation.y = m1OrientationOSCClient.getTrackingPitchEnabled() ? ypr.pitch : 0.0f;
 			videoPlayerWidget.rotation.z = m1OrientationOSCClient.getTrackingRollEnabled() ? ypr.roll : 0.0f;
 		}
 
-		currentOrientation.x = videoPlayerWidget.rotationCurrent.x;
-		currentOrientation.y = videoPlayerWidget.rotationCurrent.y;
-		currentOrientation.z = videoPlayerWidget.rotationCurrent.z;
+		currentOrientation.yaw = videoPlayerWidget.rotationCurrent.x;
+		currentOrientation.pitch = videoPlayerWidget.rotationCurrent.y;
+		currentOrientation.roll = videoPlayerWidget.rotationCurrent.z;
 		currentPlayerWidgetFov = videoPlayerWidget.fov;
 
 		videoPlayerWidget.imgVideo = &imgVideo;
@@ -530,9 +539,9 @@ void MainComponent::draw() {
 		m.getCurrentFont()->drawString("[Arrow Keys] - Orientation Resets", 10, 290);
 
 		m.getCurrentFont()->drawString("OverlayCoords:", 10, 350);
-		m.getCurrentFont()->drawString("Y: " + std::to_string(currentOrientation.x), 10, 370);
-		m.getCurrentFont()->drawString("P: " + std::to_string(currentOrientation.y), 10, 390);
-		m.getCurrentFont()->drawString("R: " + std::to_string(currentOrientation.z), 10, 410);
+		m.getCurrentFont()->drawString("Y: " + std::to_string(currentOrientation.yaw), 10, 370);
+		m.getCurrentFont()->drawString("P: " + std::to_string(currentOrientation.pitch), 10, 390);
+		m.getCurrentFont()->drawString("R: " + std::to_string(currentOrientation.roll), 10, 410);
 	}
     
     // Quick mute for Yaw orientation input from device
@@ -661,6 +670,9 @@ void MainComponent::draw() {
             ));
             orientationControlWindow->draw();
     }
+    
+    // update the previous orientation for calculating offset
+    previousOrientation = currentOrientation;
     
     // update the mousewheel scroll for testing
     lastScrollValue = m.mouseScroll();
