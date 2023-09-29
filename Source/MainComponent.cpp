@@ -365,7 +365,7 @@ void MainComponent::draw() {
             M1OrientationYPR offset;
             offset = currentOrientation - previousOrientation;
             
-            m1OrientationOSCClient.command_setOffsetYPR(offset.yaw, offset.pitch, offset.roll);
+            m1OrientationOSCClient.command_setOffsetYPR(m1OrientationOSCClient.client_id, offset.yaw, offset.pitch, offset.roll);
             
             // add server orientation to player
             M1OrientationYPR ypr = m1OrientationOSCClient.getOrientation().getYPRasDegrees();
