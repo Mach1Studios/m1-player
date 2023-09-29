@@ -355,22 +355,25 @@ void MainComponent::draw() {
 	m.setColor(255);
 	m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 10);
 
+	auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
+
+	if (m1OrientationOSCClient.isConnectedToServer()) {
+		M1OrientationYPR ypr = m1OrientationOSCClient.getOrientation().getYPRasDegrees();
+		videoPlayerWidget.rotation.x = m1OrientationOSCClient.getTrackingYawEnabled() ? ypr.yaw : 0.0f;
+		videoPlayerWidget.rotation.y = m1OrientationOSCClient.getTrackingPitchEnabled() ? ypr.pitch : 0.0f;
+		videoPlayerWidget.rotation.z = m1OrientationOSCClient.getTrackingRollEnabled() ? ypr.roll : 0.0f;
+	}
+
+	currentOrientation.x = videoPlayerWidget.rotationCurrent.x;
+	currentOrientation.y = videoPlayerWidget.rotationCurrent.y;
+	currentOrientation.z = videoPlayerWidget.rotationCurrent.z;
+	currentPlayerWidgetFov = videoPlayerWidget.fov;
+
 	if (clipVideo.get() != nullptr || clipAudio.get() != nullptr) {
-		auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
 
-		if (m1OrientationOSCClient.isConnectedToServer()) {
-            M1OrientationYPR ypr = m1OrientationOSCClient.getOrientation().getYPRasDegrees();
-			videoPlayerWidget.rotation.x = m1OrientationOSCClient.getTrackingYawEnabled() ? ypr.yaw : 0.0f;
-			videoPlayerWidget.rotation.y = m1OrientationOSCClient.getTrackingPitchEnabled() ? ypr.pitch : 0.0f;
-			videoPlayerWidget.rotation.z = m1OrientationOSCClient.getTrackingRollEnabled() ? ypr.roll : 0.0f;
+		if (clipVideo.get() != nullptr) {
+			videoPlayerWidget.imgVideo = &imgVideo;
 		}
-
-		currentOrientation.x = videoPlayerWidget.rotationCurrent.x;
-		currentOrientation.y = videoPlayerWidget.rotationCurrent.y;
-		currentOrientation.z = videoPlayerWidget.rotationCurrent.z;
-		currentPlayerWidgetFov = videoPlayerWidget.fov;
-
-		videoPlayerWidget.imgVideo = &imgVideo;
 
 		float length = 0;
 		if (clipVideo.get() != nullptr && clipAudio.get() != nullptr) length = ((std::min)(transportSourceAudio.getLengthInSeconds(), transportSourceVideo.getLengthInSeconds()));
@@ -380,64 +383,22 @@ void MainComponent::draw() {
 		float playheadPosition = transportSourceAudio.getCurrentPosition() / length;
 
 		videoPlayerWidget.playheadPosition = playheadPosition;
-		videoPlayerWidget.draw();
 
 		if (videoPlayerWidget.playheadPosition != playheadPosition) {
 			float pos = videoPlayerWidget.playheadPosition * length;
 			transportSourceVideo.setPosition(pos);
 			transportSourceAudio.setPosition(pos);
 		}
-
-		if (m.isKeyPressed('z')) {
-			videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
-		}
-
-        // TODO: fix these reset keys, they are supposed to set the overal camera to front/back/left/right not the offset
-        if (m.isKeyPressed(MurkaKey::MURKA_KEY_UP)) { // up arrow
-			videoPlayerWidget.rotationOffset.x = 0;
-        }
-
-        if (m.isKeyPressed(MurkaKey::MURKA_KEY_DOWN)) { // down arrow
-			videoPlayerWidget.rotationOffset.x = 180;
-        }
-        
-        if (m.isKeyPressed(MurkaKey::MURKA_KEY_RIGHT)) { // right arrow
-			videoPlayerWidget.rotationOffset.x = 90;
-		}
-        
-        if (m.isKeyPressed(MurkaKey::MURKA_KEY_LEFT)) { // left arrow
-			videoPlayerWidget.rotationOffset.x = 270;
-		}
-        
-        if (m.isKeyPressed('w') || m.mouseScroll().y > lastScrollValue.y) {
-            videoPlayerWidget.fov -= 10;
-        }
-        
-        if (m.isKeyPressed('s') || m.mouseScroll().y < lastScrollValue.y) {
-            videoPlayerWidget.fov += 10;
-        }
-
-		if (m.isKeyPressed('g')) {
-			drawReference = !drawReference;
-		}
-
-		if (m.isKeyPressed('o')) {
-			videoPlayerWidget.drawOverlay = !videoPlayerWidget.drawOverlay;
-		}
-
-		if (m.isKeyPressed('d')) {
-			videoPlayerWidget.cropStereoscopic = !videoPlayerWidget.cropStereoscopic;
-		}
-        
-        // toggles hiding the UI for better video review
-        if (m.isKeyPressed('h')) {
-            bHideUI = !bHideUI;
-        }
-
-		if (drawReference) {
-			m.drawImage(imgVideo, 0, 0, imgVideo.getWidth() * 0.3, imgVideo.getHeight() * 0.3);
-		}
-
+	}
+	
+	// draw overlay if video empty
+	if (clipVideo.get() == nullptr) {
+		videoPlayerWidget.drawOverlay = true;
+	}
+	videoPlayerWidget.draw();
+	
+	// draw reference
+	if (clipVideo.get() != nullptr || clipAudio.get() != nullptr) {
 		// play button
 		{
 			bool isPlaying = (transportSourceVideo.isPlaying() || transportSourceAudio.isPlaying());
@@ -469,50 +430,99 @@ void MainComponent::draw() {
 				transportSourceAudio.stop();
 			}
 		}
-		
+
+		if (drawReference) {
+			m.drawImage(imgVideo, 0, 0, imgVideo.getWidth() * 0.3, imgVideo.getHeight() * 0.3);
+		}
+
 		auto& modeRadioGroup = m.prepare<RadioGroupWidget>({ 20, 20, 90, 30 });
 		modeRadioGroup.labels = { "3D", "2D" };
-        if (!bHideUI) {
-            modeRadioGroup.draw();
-        }
-        
-		if (modeRadioGroup.selectedIndex == 0) {
-			videoPlayerWidget.drawFlat = false;
-			drawReference = false;
-		}
-		else if (modeRadioGroup.selectedIndex == 1) {
-			videoPlayerWidget.drawFlat = true;
-			drawReference = false;
-		}
-		else {
-			videoPlayerWidget.drawFlat = false;
-			drawReference = true;
+		if (!bHideUI) {
+			modeRadioGroup.selectedIndex = videoPlayerWidget.drawFlat ? 1 : 0;
+			modeRadioGroup.draw();
+			if (modeRadioGroup.changed) {
+				if (modeRadioGroup.selectedIndex == 0) {
+					videoPlayerWidget.drawFlat = false;
+					drawReference = false;
+				}
+				else if (modeRadioGroup.selectedIndex == 1) {
+					videoPlayerWidget.drawFlat = true;
+					drawReference = false;
+				}
+				else {
+					videoPlayerWidget.drawFlat = false;
+					drawReference = true;
+				}
+			}
 		}
 
 		auto& drawOverlayCheckbox = m.prepare<murka::Checkbox>({ 20, 50, 130, 30 });
 		drawOverlayCheckbox.dataToControl = &(videoPlayerWidget.drawOverlay);
 		drawOverlayCheckbox.label = "OVERLAY";
-        if (!bHideUI) {
-            drawOverlayCheckbox.draw();
-        }
+		if (!bHideUI) {
+			drawOverlayCheckbox.draw();
+		}
 
 		auto& cropStereoscopicCheckbox = m.prepare<murka::Checkbox>({ 20, 80, 130, 30 });
 		cropStereoscopicCheckbox.dataToControl = &(videoPlayerWidget.cropStereoscopic);
 		cropStereoscopicCheckbox.label = "CROP STEREOSCOPIC";
-        if (!bHideUI) {
-            cropStereoscopicCheckbox.draw();
-        }
-		// draw overlay if videoempty
-		if (clipVideo.get() == nullptr) {
-			videoPlayerWidget.drawOverlay = true;
+		if (!bHideUI) {
+			cropStereoscopicCheckbox.draw();
 		}
-
 	}
 	else {
 		std::string message = "Drop an audio or video file here";
 		float width = m.getCurrentFont()->getStringBoundingBox(message, 0, 0).width;
 		m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).draw();
 	}
+
+
+	if (m.isKeyPressed('z')) {
+		videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
+	}
+
+	// TODO: fix these reset keys, they are supposed to set the overal camera to front/back/left/right not the offset
+	if (m.isKeyPressed(MurkaKey::MURKA_KEY_UP)) { // up arrow
+		videoPlayerWidget.rotationOffset.x = 0;
+	}
+
+	if (m.isKeyPressed(MurkaKey::MURKA_KEY_DOWN)) { // down arrow
+		videoPlayerWidget.rotationOffset.x = 180;
+	}
+
+	if (m.isKeyPressed(MurkaKey::MURKA_KEY_RIGHT)) { // right arrow
+		videoPlayerWidget.rotationOffset.x = 90;
+	}
+
+	if (m.isKeyPressed(MurkaKey::MURKA_KEY_LEFT)) { // left arrow
+		videoPlayerWidget.rotationOffset.x = 270;
+	}
+
+	if (m.isKeyPressed('w') || m.mouseScroll().y > lastScrollValue.y) {
+		videoPlayerWidget.fov -= 10; 
+	}
+
+	if (m.isKeyPressed('s') || m.mouseScroll().y < lastScrollValue.y) {
+		videoPlayerWidget.fov += 10;
+	}
+
+	if (m.isKeyPressed('g')) {
+		drawReference = !drawReference;
+	}
+
+	if (m.isKeyPressed('o')) {
+		videoPlayerWidget.drawOverlay = !videoPlayerWidget.drawOverlay;
+	}
+
+	if (m.isKeyPressed('d')) {
+		videoPlayerWidget.cropStereoscopic = !videoPlayerWidget.cropStereoscopic;
+	}
+
+	// toggles hiding the UI for better video review
+	if (m.isKeyPressed('h')) {
+		bHideUI = !bHideUI;
+	}
+
 
 	if (m.isKeyHeld('q')) {
 		m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);
