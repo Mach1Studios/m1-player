@@ -43,6 +43,8 @@ void MainComponent::initialise()
     settingsFile = settingsFile.getChildFile("settings.json");
     DBG("Opening settings file: " + settingsFile.getFullPathName().quoted());
     
+    // Informs OrientationManager that this client is expected to send additional offset for the final orientation to be calculated and to count instances for error handling
+    m1OrientationOSCClient.setClientType("player"); // Needs to be set before the init() function
     m1OrientationOSCClient.initFromSettings(settingsFile.getFullPathName().toStdString(), true);
     m1OrientationOSCClient.setStatusCallback(std::bind(&MainComponent::setStatus, this, std::placeholders::_1, std::placeholders::_2));
 
@@ -358,7 +360,7 @@ void MainComponent::draw() {
 	if (clipVideo.get() != nullptr || clipAudio.get() != nullptr) {
 		auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
 
-		if (m1OrientationOSCClient.isConnectedToServer()) {
+		if (m1OrientationOSCClient.isConnectedToServer() && m1OrientationOSCClient.client_active) {
             // sending un-normalized full range values in degrees
             
             // calculate normalized signed offset and send to server
