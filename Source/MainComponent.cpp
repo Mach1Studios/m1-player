@@ -375,9 +375,9 @@ void MainComponent::draw() {
 		videoPlayerWidget.rotation.z = m1OrientationClient.getTrackingRollEnabled() ? ypr.roll : 0.0f;
 	}
 
-	currentOrientation.x = videoPlayerWidget.rotationCurrent.x;
-	currentOrientation.y = videoPlayerWidget.rotationCurrent.y;
-	currentOrientation.z = videoPlayerWidget.rotationCurrent.z;
+	currentOrientation.yaw = videoPlayerWidget.rotationCurrent.x;
+	currentOrientation.pitch = videoPlayerWidget.rotationCurrent.y;
+	currentOrientation.roll = videoPlayerWidget.rotationCurrent.z;
 	currentPlayerWidgetFov = videoPlayerWidget.fov;
 
 	if (clipVideo.get() != nullptr || clipAudio.get() != nullptr) {
@@ -660,7 +660,7 @@ void MainComponent::draw() {
                 m1OrientationClient.command_refreshDevices();
             })
             .onOscSettingsChanged([&](int port, std::string addr_pttrn) {
-                m1OrientationClient.command_updateOscDevice(port, addr_pttrn);
+                m1OrientationClient.command_setOscDevice(port, addr_pttrn);
             })
             .onYPRSwitchesClicked([&](int whichone) {
                 if (whichone == 0) m1OrientationClient.command_setTrackingYawEnabled(!m1OrientationClient.getTrackingYawEnabled());
