@@ -30,7 +30,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
 	MurImage imgLogo;
 	MurImage imgVideo;
 
-	M1OrientationOSCClient m1OrientationOSCClient;
+	M1OrientationClient m1OrientationClient;
     M1OrientationYPR currentOrientation; // TODO: use Orientation class instead
     M1OrientationYPR previousOrientation;
 	M1OrientationClientWindow* orientationControlWindow;

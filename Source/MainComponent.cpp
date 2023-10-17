@@ -13,8 +13,8 @@ MainComponent::MainComponent()
 
 MainComponent::~MainComponent()
 {
-    m1OrientationOSCClient.command_disconnect();
-    m1OrientationOSCClient.close();
+    m1OrientationClient.command_disconnect();
+    m1OrientationClient.close();
 	shutdownAudio();
 	juce::OpenGLAppComponent::shutdownOpenGL();
 }
@@ -44,9 +44,9 @@ void MainComponent::initialise()
     DBG("Opening settings file: " + settingsFile.getFullPathName().quoted());
     
     // Informs OrientationManager that this client is expected to send additional offset for the final orientation to be calculated and to count instances for error handling
-    m1OrientationOSCClient.setClientType("player"); // Needs to be set before the init() function
-    m1OrientationOSCClient.initFromSettings(settingsFile.getFullPathName().toStdString(), true);
-    m1OrientationOSCClient.setStatusCallback(std::bind(&MainComponent::setStatus, this, std::placeholders::_1, std::placeholders::_2));
+    m1OrientationClient.setClientType("player"); // Needs to be set before the init() function
+    m1OrientationClient.initFromSettings(settingsFile.getFullPathName().toStdString(), true);
+    m1OrientationClient.setStatusCallback(std::bind(&MainComponent::setStatus, this, std::placeholders::_1, std::placeholders::_2));
 
 	imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
 
@@ -117,10 +117,10 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
             
             // Mach1Decode processing loop
 			/*
-			M1OrientationYPR ypr = m1OrientationOSCClient.getOrientation().getYPR();
-			currentOrientation.x = m1OrientationOSCClient.getTrackingYawEnabled() ? ypr.yaw : 0.0f;
-			currentOrientation.y = m1OrientationOSCClient.getTrackingPitchEnabled() ? ypr.pitch : 0.0f;
-			currentOrientation.z = m1OrientationOSCClient.getTrackingRollEnabled() ? ypr.roll : 0.0f;
+			M1OrientationYPR ypr = m1OrientationClient.getOrientation().getYPR();
+			currentOrientation.x = m1OrientationClient.getTrackingYawEnabled() ? ypr.yaw : 0.0f;
+			currentOrientation.y = m1OrientationClient.getTrackingPitchEnabled() ? ypr.pitch : 0.0f;
+			currentOrientation.z = m1OrientationClient.getTrackingRollEnabled() ? ypr.roll : 0.0f;
             */
             m1Decode.setRotationDegrees({ currentOrientation.yaw, currentOrientation.pitch, currentOrientation.roll });
 
@@ -359,20 +359,20 @@ void MainComponent::draw() {
 
 	auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
 
-	if (m1OrientationOSCClient.isConnectedToServer() && m1OrientationOSCClient.client_active) {
+	if (m1OrientationClient.isConnectedToServer() && m1OrientationClient.client_active) {
         // sending un-normalized full range values in degrees
         
         // calculate normalized signed offset and send to server
         M1OrientationYPR offset;
         offset = currentOrientation - previousOrientation;
         
-        m1OrientationOSCClient.command_setOffsetYPR(m1OrientationOSCClient.client_id, offset.yaw, offset.pitch, offset.roll);
+        m1OrientationClient.command_setOffsetYPR(m1OrientationClient.client_id, offset.yaw, offset.pitch, offset.roll);
         
         // add server orientation to player
-		M1OrientationYPR ypr = m1OrientationOSCClient.getOrientation().getYPRasDegrees();
-		videoPlayerWidget.rotation.x = m1OrientationOSCClient.getTrackingYawEnabled() ? ypr.yaw : 0.0f;
-		videoPlayerWidget.rotation.y = m1OrientationOSCClient.getTrackingPitchEnabled() ? ypr.pitch : 0.0f;
-		videoPlayerWidget.rotation.z = m1OrientationOSCClient.getTrackingRollEnabled() ? ypr.roll : 0.0f;
+		M1OrientationYPR ypr = m1OrientationClient.getOrientation().getYPRasDegrees();
+		videoPlayerWidget.rotation.x = m1OrientationClient.getTrackingYawEnabled() ? ypr.yaw : 0.0f;
+		videoPlayerWidget.rotation.y = m1OrientationClient.getTrackingPitchEnabled() ? ypr.pitch : 0.0f;
+		videoPlayerWidget.rotation.z = m1OrientationClient.getTrackingRollEnabled() ? ypr.roll : 0.0f;
 	}
 
 	currentOrientation.x = videoPlayerWidget.rotationCurrent.x;
@@ -558,17 +558,17 @@ void MainComponent::draw() {
     
     // Quick mute for Yaw orientation input from device
     if (m.isKeyPressed('j')) {
-        m1OrientationOSCClient.command_setTrackingYawEnabled(!m1OrientationOSCClient.getTrackingYawEnabled());
+        m1OrientationClient.command_setTrackingYawEnabled(!m1OrientationClient.getTrackingYawEnabled());
     }
 
     // Quick mute for Pitch orientation input from device
     if (m.isKeyPressed('k')) {
-        m1OrientationOSCClient.command_setTrackingPitchEnabled(!m1OrientationOSCClient.getTrackingPitchEnabled());
+        m1OrientationClient.command_setTrackingPitchEnabled(!m1OrientationClient.getTrackingPitchEnabled());
     }
     
     // Quick mute for Roll orientation input from device
     if (m.isKeyPressed('l')) {
-        m1OrientationOSCClient.command_setTrackingRollEnabled(!m1OrientationOSCClient.getTrackingRollEnabled());
+        m1OrientationClient.command_setTrackingRollEnabled(!m1OrientationClient.getTrackingRollEnabled());
     }
     
 	if (m.eventState.isKeyPressed(' ')) {
@@ -587,7 +587,7 @@ void MainComponent::draw() {
 
 	std::vector<M1OrientationClientWindowDeviceSlot> slots;
 
-	std::vector<M1OrientationDeviceInfo> devices = m1OrientationOSCClient.getDevices();
+	std::vector<M1OrientationDeviceInfo> devices = m1OrientationClient.getDevices();
 	for (int i = 0; i < devices.size(); i++) {
 		std::string icon = "";
         if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeSerial && devices[i].getDeviceName().find("Bluetooth-Incoming-Port") != std::string::npos) {
@@ -607,9 +607,9 @@ void MainComponent::draw() {
         }
 
 		std::string name = devices[i].getDeviceName();
-		slots.push_back({ icon, name, name == m1OrientationOSCClient.getCurrentDevice().getDeviceName(), i, [&](int idx)
+		slots.push_back({ icon, name, name == m1OrientationClient.getCurrentDevice().getDeviceName(), i, [&](int idx)
 			{
-				m1OrientationOSCClient.command_startTrackingUsingDevice(devices[idx]);
+				m1OrientationClient.command_startTrackingUsingDevice(devices[idx]);
 			}
         });
 	}
@@ -617,20 +617,20 @@ void MainComponent::draw() {
 	auto& orientationControlButton = m.prepare<M1OrientationWindowToggleButton>({ m.getSize().width() - 40 - 5, 5, 40, 40 }).onClick([&](M1OrientationWindowToggleButton& b) {
 		showOrientationControlMenu = !showOrientationControlMenu;
 		})
-		.withInteractiveOrientationGimmick(m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone, m1OrientationOSCClient.getOrientation().getYPRasDegrees().yaw)
+		.withInteractiveOrientationGimmick(m1OrientationClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone, m1OrientationClient.getOrientation().getYPRasDegrees().yaw)
 			.draw();
 
     // TODO: move this to be to the left of the orientation client window button
-    if (std::holds_alternative<bool>(m1OrientationOSCClient.getCurrentDevice().batteryPercentage)) {
+    if (std::holds_alternative<bool>(m1OrientationClient.getCurrentDevice().batteryPercentage)) {
         // it's false, which means the battery percentage is unknown
     } else {
         // it has a battery percentage value
-        int battery_value = std::get<int>(m1OrientationOSCClient.getCurrentDevice().batteryPercentage);
+        int battery_value = std::get<int>(m1OrientationClient.getCurrentDevice().batteryPercentage);
         m.getCurrentFont()->drawString("Battery: " + std::to_string(battery_value), m.getWindowWidth() - 100, m.getWindowHeight() - 100);
     }
     
-    if (orientationControlButton.hovered && (m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone)) {
-        std::string deviceReportString = "CONNECTED DEVICE: " + m1OrientationOSCClient.getCurrentDevice().getDeviceName();
+    if (orientationControlButton.hovered && (m1OrientationClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone)) {
+        std::string deviceReportString = "CONNECTED DEVICE: " + m1OrientationClient.getCurrentDevice().getDeviceName();
         auto font = m.getCurrentFont();
         auto bbox = font->getStringBoundingBox(deviceReportString, 0, 0);
         //m.setColor(40, 40, 40, 200);
@@ -641,7 +641,7 @@ void MainComponent::draw() {
     }
     
     if (showOrientationControlMenu) {
-        bool showOrientationSettingsPanelInsideWindow = (m1OrientationOSCClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone);
+        bool showOrientationSettingsPanelInsideWindow = (m1OrientationClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone);
         orientationControlWindow = &(m.prepare<M1OrientationClientWindow>({ m.getSize().width() - 218 - 5 , 5, 218, 300 + 100 * showOrientationSettingsPanelInsideWindow })
             .withDeviceList(slots)
             .withSettingsPanelEnabled(showOrientationSettingsPanelInsideWindow)
@@ -654,31 +654,31 @@ void MainComponent::draw() {
             }
                 })
             .onDisconnectClicked([&]() {
-                m1OrientationOSCClient.command_disconnect();
+                m1OrientationClient.command_disconnect();
              })
             .onRefreshClicked([&]() {
-                m1OrientationOSCClient.command_refreshDevices();
+                m1OrientationClient.command_refreshDevices();
             })
             .onOscSettingsChanged([&](int port, std::string addr_pttrn) {
-                m1OrientationOSCClient.command_updateOscDevice(port, addr_pttrn);
+                m1OrientationClient.command_updateOscDevice(port, addr_pttrn);
             })
             .onYPRSwitchesClicked([&](int whichone) {
-                if (whichone == 0) m1OrientationOSCClient.command_setTrackingYawEnabled(!m1OrientationOSCClient.getTrackingYawEnabled());
-                if (whichone == 1) m1OrientationOSCClient.command_setTrackingPitchEnabled(!m1OrientationOSCClient.getTrackingPitchEnabled());
-                if (whichone == 2) m1OrientationOSCClient.command_setTrackingRollEnabled(!m1OrientationOSCClient.getTrackingRollEnabled());
+                if (whichone == 0) m1OrientationClient.command_setTrackingYawEnabled(!m1OrientationClient.getTrackingYawEnabled());
+                if (whichone == 1) m1OrientationClient.command_setTrackingPitchEnabled(!m1OrientationClient.getTrackingPitchEnabled());
+                if (whichone == 2) m1OrientationClient.command_setTrackingRollEnabled(!m1OrientationClient.getTrackingRollEnabled());
             })
             .withYPRTrackingSettings(
-                                     m1OrientationOSCClient.getTrackingYawEnabled(),
-                                     m1OrientationOSCClient.getTrackingPitchEnabled(),
-                                     m1OrientationOSCClient.getTrackingRollEnabled(),
+                                     m1OrientationClient.getTrackingYawEnabled(),
+                                     m1OrientationClient.getTrackingPitchEnabled(),
+                                     m1OrientationClient.getTrackingRollEnabled(),
                                      std::pair<int, int>(0, 180),
                                      std::pair<int, int>(0, 180),
                                      std::pair<int, int>(0, 180)
             )
             .withYPR(
-                     m1OrientationOSCClient.getOrientation().getYPRasDegrees().yaw,
-                     m1OrientationOSCClient.getOrientation().getYPRasDegrees().pitch,
-                     m1OrientationOSCClient.getOrientation().getYPRasDegrees().roll
+                     m1OrientationClient.getOrientation().getYPRasDegrees().yaw,
+                     m1OrientationClient.getOrientation().getYPRasDegrees().pitch,
+                     m1OrientationClient.getOrientation().getYPRasDegrees().roll
             ));
             orientationControlWindow->draw();
     }
