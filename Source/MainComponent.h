@@ -31,12 +31,13 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
 	MurImage imgVideo;
 
 	M1OrientationOSCClient m1OrientationOSCClient;
+    M1OrientationYPR currentOrientation; // TODO: use Orientation class instead
+    M1OrientationYPR previousOrientation;
 	M1OrientationClientWindow* orientationControlWindow;
 	bool showOrientationControlMenu = false;
 	bool showedOrientationControlBefore = false;
 
 	double currentPlayerWidgetFov = 0;
-
 	bool drawReference = false;
 
     foleys::VideoEngine videoEngine;
@@ -60,7 +61,6 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
 	juce::AudioBuffer<float> readBufferVideo;
 	int detectedNumInputChannels;
     
-	Mach1Point3D currentOrientation = { 0, 0, 0 };
     MurkaPoint lastScrollValue;
     bool bHideUI = false;
     
