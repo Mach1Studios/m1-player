@@ -655,7 +655,8 @@ void MainComponent::draw() {
             .onDisconnectClicked([&]() {
                 m1OrientationClient.command_disconnect();
              })
-            .onRefreshClicked([&]() {
+            .onRecenterClicked([&]() {
+                m1OrientationClient.command_recenter();
             })
             .onOscSettingsChanged([&](int port, std::string addr_pttrn) {
                 m1OrientationClient.command_setOscDevice(port, addr_pttrn);
