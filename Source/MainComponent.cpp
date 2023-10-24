@@ -660,7 +660,7 @@ void MainComponent::draw() {
                 m1OrientationClient.command_recenter();
             })
             .onOscSettingsChanged([&](int port, std::string addr_pttrn) {
-                m1OrientationClient.command_setOscDevice(port, addr_pttrn);
+                m1OrientationClient.command_setOscDeviceSettings(port, addr_pttrn);
             })
             .onYPRSwitchesClicked([&](int whichone) {
                 if (whichone == 0) m1OrientationClient.command_setTrackingYawEnabled(!m1OrientationClient.getTrackingYawEnabled());
