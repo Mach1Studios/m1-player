@@ -37,6 +37,8 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
 	bool showOrientationControlMenu = false;
 	bool showedOrientationControlBefore = false;
 
+	int lastUpdateForPlayer = 0;
+
 	double currentPlayerWidgetFov = 0;
 	bool drawReference = false;
 
@@ -63,9 +65,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     
     MurkaPoint lastScrollValue;
     bool bHideUI = false;
-    
-	TransportOSCServer transportOSCServer;
-
+ 
 public:
     //==============================================================================
     MainComponent();

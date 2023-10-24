@@ -49,8 +49,6 @@ void MainComponent::initialise()
     m1OrientationClient.setStatusCallback(std::bind(&MainComponent::setStatus, this, std::placeholders::_1, std::placeholders::_2));
 
 	imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
-
-	transportOSCServer.init(9001);
 } 
 
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleRate)
@@ -318,18 +316,20 @@ void MainComponent::shutdown()
 
 void MainComponent::draw() {
 	// sync playhead from monitor
-	if (transportOSCServer.isUpdated) {
+	if (m1OrientationClient.getPlayerLastUpdate() != lastUpdateForPlayer) {
+		lastUpdateForPlayer = m1OrientationClient.getPlayerLastUpdate();
 
 		float length = (std::max)(transportSourceAudio.getLengthInSeconds(), transportSourceVideo.getLengthInSeconds());
 		float pos = (std::max)(transportSourceAudio.getCurrentPosition(), transportSourceVideo.getCurrentPosition());
-		if (fabs(transportOSCServer.correctTimeInSeconds - pos) > 0.1 && transportOSCServer.correctTimeInSeconds < length) {
-			transportSourceVideo.setPosition(transportOSCServer.correctTimeInSeconds);
-			transportSourceAudio.setPosition(transportOSCServer.correctTimeInSeconds);
+		DBG(std::to_string(m1OrientationClient.getPlayerPositionInSeconds() - pos));
+		if (fabs(m1OrientationClient.getPlayerPositionInSeconds() - pos) > 0.1 && m1OrientationClient.getPlayerPositionInSeconds() < length) {
+			transportSourceVideo.setPosition(m1OrientationClient.getPlayerPositionInSeconds() + 0.05);
+			transportSourceAudio.setPosition(m1OrientationClient.getPlayerPositionInSeconds() + 0.05);
 		}
 
-		if ((clipVideo.get() != nullptr && transportOSCServer.isPlaying != transportSourceVideo.isPlaying()) || 
-			(clipAudio.get() != nullptr && transportOSCServer.isPlaying != transportSourceAudio.isPlaying())) {
-			if (transportOSCServer.isPlaying) {
+		if ((clipVideo.get() != nullptr && m1OrientationClient.getPlayerIsPlaying() != transportSourceVideo.isPlaying()) ||
+			(clipAudio.get() != nullptr && m1OrientationClient.getPlayerIsPlaying() != transportSourceAudio.isPlaying())) {
+			if (m1OrientationClient.getPlayerIsPlaying()) {
 				transportSourceVideo.start();
 				transportSourceAudio.start();
 			}
@@ -338,7 +338,6 @@ void MainComponent::draw() {
 				transportSourceAudio.stop();
 			}
 		}
-		transportOSCServer.isUpdated = false;
 	}
 
 	// update video frame
@@ -657,7 +656,6 @@ void MainComponent::draw() {
                 m1OrientationClient.command_disconnect();
              })
             .onRefreshClicked([&]() {
-                m1OrientationClient.command_refreshDevices();
             })
             .onOscSettingsChanged([&](int port, std::string addr_pttrn) {
                 m1OrientationClient.command_setOscDevice(port, addr_pttrn);
