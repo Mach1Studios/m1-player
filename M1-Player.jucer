@@ -75,7 +75,7 @@
       </MODULEPATHS>
     </XCODE_MAC>
     <VS2019 targetFolder="Builds/VisualStudio2019" smallIcon="CPRVQ8" bigIcon="CPRVQ8"
-            externalLibraries="Mach1DecodeCAPI.lib" extraDefs="&#10;MURKA_JUCE JUCE_OPENGL3">
+            externalLibraries="Mach1DecodeCAPI.lib" extraDefs="MURKA_JUCE JUCE_OPENGL3&#10;WIN32_LEAN_AND_MEAN">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" headerPath="..\..\Modules\m1-sdk\mach1spatial-libs\windows-x86_64\include"
                        libraryPath="..\..\Modules\m1-sdk\mach1spatial-libs\vs-15-2017-x86_64\lib\Static\MD\Debug\"
