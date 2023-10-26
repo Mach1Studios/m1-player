@@ -16,12 +16,7 @@
             file="Source/SphereMeshGenerator.h"/>
       <FILE id="ze5v6R" name="TransportOSCServer.h" compile="0" resource="0"
             file="Source/TransportOSCServer.h"/>
-      <GROUP id="{C0271EDF-131F-D406-0F5E-751E58189654}" name="Modules">
-        <FILE id="kLpGgb" name="Mach1Decode.cpp" compile="1" resource="0" file="Modules/m1-sdk/mach1spatial-libs/xcode/include/Mach1Decode.cpp"/>
-        <FILE id="qwS4lU" name="Mach1Decode.h" compile="0" resource="0" file="Modules/m1-sdk/mach1spatial-libs/xcode/include/Mach1Decode.h"/>
-        <FILE id="fvYml9" name="Mach1DecodeCAPI.h" compile="0" resource="0"
-              file="Modules/m1-sdk/mach1spatial-libs/xcode/include/Mach1DecodeCAPI.h"/>
-      </GROUP>
+      <GROUP id="{C0271EDF-131F-D406-0F5E-751E58189654}" name="Modules"/>
       <GROUP id="{64D4E571-DC05-ADB1-1A50-773B3C0B3F51}" name="UI">
         <FILE id="Hjehuf" name="VideoPlayerWidget.h" compile="0" resource="0"
               file="Source/UI/VideoPlayerWidget.h"/>
@@ -30,11 +25,11 @@
       </GROUP>
     </GROUP>
     <GROUP id="{BE44C3F3-D19E-4C06-B0A5-F502BE2EDC14}" name="Resources">
+      <FILE id="rP6qZS" name="InterRegular.ttf" compile="0" resource="1"
+            file="Resources/InterRegular.ttf"/>
       <FILE id="N2Cbja" name="mach1logo.png" compile="0" resource="1" file="Resources/mach1logo.png"/>
       <FILE id="dEHhBD" name="overlay.png" compile="0" resource="1" file="Resources/overlay.png"/>
       <FILE id="CPRVQ8" name="icon.png" compile="0" resource="1" file="Resources/icon.png"/>
-      <FILE id="GQ43mC" name="AileronSemiBold.ttf" compile="0" resource="1"
-            file="Resources/AileronSemiBold.ttf"/>
       <FILE id="D8yg3Z" name="bluetooth_icon.png" compile="0" resource="1"
             file="Modules/m1_orientation_client/Resources/bluetooth_icon.png"/>
       <FILE id="KhsyGc" name="camera_icon.png" compile="0" resource="1" file="Modules/m1_orientation_client/Resources/camera_icon.png"/>
