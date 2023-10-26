@@ -116,14 +116,12 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${MACH1SPATIAL_LIBS_PATH}/xcode/inc
 # TODO: fix this to not require hardcoded paths
 if(APPLE)
     target_link_directories(${CMAKE_PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg" "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg/x86_64" "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg/arm64")
-elseif(MSVC OR WIN32 OR MINGW)
-    
 else()
     target_link_directories(${CMAKE_PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg")
 endif()
 
-### setup info.plist and entitlements for macos
 if(APPLE)
+    ### setup info.plist and entitlements for macos
     set_target_properties("${CMAKE_PROJECT_NAME}" PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Resources/${CMAKE_PROJECT_NAME}-Info.plist"
@@ -133,6 +131,9 @@ if(APPLE)
         XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/Resources/${CMAKE_PROJECT_NAME}.entitlements"
         XCODE_ATTRIBUTE_INFOPLIST_KEY_LSApplicationCategoryType "public.app-category.utilities"
     )
+elseif(MSVC OR WIN32 OR MINGW)
+    message(STATUS "Adding windows OS flag for httplib")
+    add_compile_definitions(WIN32_LEAN_AND_MEAN)    
 endif()
 
 ### IDE Generator post-config ###
