@@ -45,7 +45,7 @@ void MainComponent::initialise()
     
     // Informs OrientationManager that this client is expected to send additional offset for the final orientation to be calculated and to count instances for error handling
     m1OrientationClient.setClientType("player"); // Needs to be set before the init() function
-    m1OrientationClient.initFromSettings(settingsFile.getFullPathName().toStdString(), true);
+    m1OrientationClient.initFromSettings(settingsFile.getFullPathName().toStdString());
     m1OrientationClient.setStatusCallback(std::bind(&MainComponent::setStatus, this, std::placeholders::_1, std::placeholders::_2));
 
 	imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
