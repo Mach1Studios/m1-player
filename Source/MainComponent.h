@@ -11,6 +11,7 @@
 
 #include "Mach1Decode.h"
 #include "TransportOSCServer.h"
+#include "PlayerOSC.h"
 
 #include "m1_orientation_client/UI/M1Label.h"
 #include "m1_orientation_client/UI/M1OrientationWindowToggleButton.h"
@@ -24,7 +25,8 @@
 class MainComponent : public murka::JuceMurkaBaseComponent,
     public juce::AudioAppComponent,
     public juce::FileDragAndDropTarget,
-    public foleys::TimeCodeAware::Listener
+    public foleys::TimeCodeAware::Listener,
+    public juce::Timer
 {
     //==============================================================================
 	MurImage imgLogo;
@@ -65,6 +67,10 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     
     MurkaPoint lastScrollValue;
     bool bHideUI = false;
+    
+    // Communication to Monitor and the rest of the M1SpatialSystem
+    void timerCallback() override;
+    PlayerOSC playerOSC;
  
 public:
     //==============================================================================
