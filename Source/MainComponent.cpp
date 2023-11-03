@@ -49,6 +49,22 @@ void MainComponent::initialise()
     m1OrientationClient.setStatusCallback(std::bind(&MainComponent::setStatus, this, std::placeholders::_1, std::placeholders::_2));
 
 	imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
+    
+    playerOSC.AddListener([&](juce::OSCMessage msg) {
+        if (msg.getAddressPattern() == "/m1-activate-client") {
+            DBG("[OSC] Recieved msg | Activate: "+std::to_string(msg[0].getInt32()));
+            // Capturing monitor mode
+            int active = msg[0].getInt32();
+            if (active == 1) {
+                playerOSC.setAsActivePlayer(true);
+            } else if (active == 0) {
+                playerOSC.setAsActivePlayer(false);
+            }
+        }
+    });
+
+    // playerOSC update timer loop
+    startTimer(200);
 } 
 
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleRate)
@@ -358,14 +374,14 @@ void MainComponent::draw() {
 
 	auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
 
-	if (m1OrientationClient.isConnectedToServer() && m1OrientationClient.client_active) {
+	if (playerOSC.IsConnected() && playerOSC.IsActivePlayer()) {
         // sending un-normalized full range values in degrees
         
         // calculate normalized signed offset and send to server
         M1OrientationYPR offset;
         offset = currentOrientation - previousOrientation;
         
-        m1OrientationClient.command_setOffsetYPR(m1OrientationClient.client_id, offset.yaw, offset.pitch, offset.roll);
+        playerOSC.sendPlayerYPR(offset.yaw, offset.pitch, offset.roll);
         
         // add server orientation to player
 		M1OrientationYPR ypr = m1OrientationClient.getOrientation().getYPRasDegrees();
@@ -659,8 +675,9 @@ void MainComponent::draw() {
             .onRecenterClicked([&]() {
                 m1OrientationClient.command_recenter();
             })
-            .onOscSettingsChanged([&](int port, std::string addr_pttrn) {
-                m1OrientationClient.command_setOscDeviceSettings(port, addr_pttrn);
+            .onOscSettingsChanged([&](int requested_osc_port, std::string requested_osc_msg_address) {
+                m1OrientationClient.command_setAdditionalDeviceSettings("osc_add="+requested_osc_msg_address);
+                m1OrientationClient.command_setAdditionalDeviceSettings("osc_p="+std::to_string(requested_osc_port));
             })
             .onYPRSwitchesClicked([&](int whichone) {
                 if (whichone == 0) m1OrientationClient.command_setTrackingYawEnabled(!m1OrientationClient.getTrackingYawEnabled());

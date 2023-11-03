@@ -4,6 +4,8 @@ file(GLOB source_files  Config.h
                         MainComponent.cpp
                         SphereMeshGenerator.h
                         TransportOSCServer.h
+                        PlayerOSC.h
+                        PlayerOSC.cpp
                         UI/VideoPlayerWidget.h
                         UI/RadioGroupWidget.h)
 
