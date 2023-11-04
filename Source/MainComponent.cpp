@@ -708,6 +708,12 @@ void MainComponent::draw() {
 }
 
 //==============================================================================
+void MainComponent::timerCallback() {
+    // Added if we need to move the OSC stuff from the processorblock
+    playerOSC.update(); // test for connection
+}
+
+//==============================================================================
 void MainComponent::paint (juce::Graphics& g)
 {
     // You can add your component specific drawing code here!
