@@ -49,20 +49,12 @@ void MainComponent::initialise()
     m1OrientationClient.setStatusCallback(std::bind(&MainComponent::setStatus, this, std::placeholders::_1, std::placeholders::_2));
 
 	imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
-    
-    playerOSC.AddListener([&](juce::OSCMessage msg) {
-        if (msg.getAddressPattern() == "/m1-activate-client") {
-            DBG("[OSC] Recieved msg | Activate: "+std::to_string(msg[0].getInt32()));
-            // Capturing monitor mode
-            int active = msg[0].getInt32();
-            if (active == 1) {
-                playerOSC.setAsActivePlayer(true);
-            } else if (active == 0) {
-                playerOSC.setAsActivePlayer(false);
-            }
-        }
-    });
 
+    // TODO: refactor this
+    // setup the listener
+    playerOSC.AddListener([&](juce::OSCMessage msg) {
+    });
+    
     // playerOSC update timer loop
     startTimer(200);
 } 
@@ -130,12 +122,6 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
                 readBufferAudio.clear(channel, 0, bufferToFill.numSamples);
             
             // Mach1Decode processing loop
-			/*
-			M1OrientationYPR ypr = m1OrientationClient.getOrientation().getYPR();
-			currentOrientation.x = m1OrientationClient.getTrackingYawEnabled() ? ypr.yaw : 0.0f;
-			currentOrientation.y = m1OrientationClient.getTrackingPitchEnabled() ? ypr.pitch : 0.0f;
-			currentOrientation.z = m1OrientationClient.getTrackingRollEnabled() ? ypr.roll : 0.0f;
-            */
             m1Decode.setRotationDegrees({ currentOrientation.yaw, currentOrientation.pitch, currentOrientation.roll });
 
             m1Decode.beginBuffer();
@@ -337,7 +323,7 @@ void MainComponent::draw() {
 
 		float length = (std::max)(transportSourceAudio.getLengthInSeconds(), transportSourceVideo.getLengthInSeconds());
 		float pos = (std::max)(transportSourceAudio.getCurrentPosition(), transportSourceVideo.getCurrentPosition());
-		DBG(std::to_string(m1OrientationClient.getPlayerPositionInSeconds() - pos));
+		DBG("Playhead Pos: " = std::to_string(m1OrientationClient.getPlayerPositionInSeconds() - pos));
 		if (fabs(m1OrientationClient.getPlayerPositionInSeconds() - pos) > 0.1 && m1OrientationClient.getPlayerPositionInSeconds() < length) {
 			transportSourceVideo.setPosition(m1OrientationClient.getPlayerPositionInSeconds() + 0.05);
 			transportSourceAudio.setPosition(m1OrientationClient.getPlayerPositionInSeconds() + 0.05);
@@ -373,28 +359,30 @@ void MainComponent::draw() {
 	m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 10);
 
 	auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
-
-	if (playerOSC.IsConnected() && playerOSC.IsActivePlayer()) {
-        // sending un-normalized full range values in degrees
-        
-        // calculate normalized signed offset and send to server
-        M1OrientationYPR offset;
-        offset = currentOrientation - previousOrientation;
-        
-        playerOSC.sendPlayerYPR(offset.yaw, offset.pitch, offset.roll);
-        
+    
+    currentOrientation.yaw = videoPlayerWidget.rotationCurrent.x;
+    currentOrientation.pitch = videoPlayerWidget.rotationCurrent.y;
+    currentOrientation.roll = videoPlayerWidget.rotationCurrent.z;
+    currentPlayerWidgetFov = videoPlayerWidget.fov;
+    
+    if (playerOSC.IsConnected() && playerOSC.IsActivePlayer()) {
+        // calculate normalized signed offset and send to helper
+        DBG("Player Delta: " + std::to_string(videoPlayerWidget.rotationCurrent.x - videoPlayerWidget.rotationPrevious.x));
+        if (videoPlayerWidget.rotationCurrent.x - videoPlayerWidget.rotationPrevious.x != 0 ||
+            videoPlayerWidget.rotationCurrent.y - videoPlayerWidget.rotationPrevious.y != 0 ||
+            videoPlayerWidget.rotationCurrent.z - videoPlayerWidget.rotationPrevious.z != 0) {
+            playerOSC.sendPlayerYPR(videoPlayerWidget.rotation.x - videoPlayerWidget.rotationPrevious.x, videoPlayerWidget.rotation.y - videoPlayerWidget.rotationPrevious.y, videoPlayerWidget.rotation.z - videoPlayerWidget.rotationPrevious.z);
+        }
+    }
+    
+    if (m1OrientationClient.isConnectedToServer()) {
         // add server orientation to player
-		M1OrientationYPR ypr = m1OrientationClient.getOrientation().getYPRasDegrees();
-		videoPlayerWidget.rotation.x = m1OrientationClient.getTrackingYawEnabled() ? ypr.yaw : 0.0f;
-		videoPlayerWidget.rotation.y = m1OrientationClient.getTrackingPitchEnabled() ? ypr.pitch : 0.0f;
-		videoPlayerWidget.rotation.z = m1OrientationClient.getTrackingRollEnabled() ? ypr.roll : 0.0f;
-	}
-
-	currentOrientation.yaw = videoPlayerWidget.rotationCurrent.x;
-	currentOrientation.pitch = videoPlayerWidget.rotationCurrent.y;
-	currentOrientation.roll = videoPlayerWidget.rotationCurrent.z;
-	currentPlayerWidgetFov = videoPlayerWidget.fov;
-
+        M1OrientationYPR ypr = m1OrientationClient.getOrientation().getYPRasDegrees();
+        videoPlayerWidget.rotationOffset.x += m1OrientationClient.getTrackingYawEnabled() ? ypr.yaw : 0.0f;
+        videoPlayerWidget.rotationOffset.y += m1OrientationClient.getTrackingPitchEnabled() ? ypr.pitch : 0.0f;
+        videoPlayerWidget.rotationOffset.z += m1OrientationClient.getTrackingRollEnabled() ? ypr.roll : 0.0f;
+    }
+    
 	if (clipVideo.get() != nullptr || clipAudio.get() != nullptr) {
 
 		if (clipVideo.get() != nullptr) {
@@ -702,6 +690,10 @@ void MainComponent::draw() {
     
     // update the previous orientation for calculating offset
     previousOrientation = currentOrientation;
+    videoPlayerWidget.rotationPrevious.x = videoPlayerWidget.rotationCurrent.x;
+    videoPlayerWidget.rotationPrevious.y = videoPlayerWidget.rotationCurrent.y;
+    videoPlayerWidget.rotationPrevious.z = videoPlayerWidget.rotationCurrent.z;
+    //DBG("Player Prev: " + std::to_string(videoPlayerWidget.rotationPrevious.x) + ", " + std::to_string(videoPlayerWidget.rotationPrevious.y) + ", " + std::to_string(videoPlayerWidget.rotationPrevious.z));
     
     // update the mousewheel scroll for testing
     lastScrollValue = m.mouseScroll();

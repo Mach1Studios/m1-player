@@ -9,6 +9,7 @@ class PlayerOSC : private juce::OSCSender, private juce::OSCReceiver, private ju
 	int helperPort = 0, port = 0;
 	bool isConnected = false; // used to track connection with helper utility
     bool isActivePlayer = false; // used to track if this is the primary player instance
+    int client_id;
 	std::function<void(juce::OSCMessage msg)> messageReceived;
 	void oscMessageReceived(const juce::OSCMessage& msg) override;
     juce::uint32 lastMessageTime = 0; 
@@ -24,4 +25,6 @@ public:
     void setAsActivePlayer(bool is_active);
     bool IsActivePlayer();
     bool sendPlayerYPR(float yaw, float pitch, float roll);
+    bool connectToHelper();
+    bool disconnectToHelper();
 };
