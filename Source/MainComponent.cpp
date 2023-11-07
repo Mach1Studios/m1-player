@@ -366,21 +366,21 @@ void MainComponent::draw() {
     currentPlayerWidgetFov = videoPlayerWidget.fov;
     
     if (playerOSC.IsConnected() && playerOSC.IsActivePlayer()) {
-        // calculate normalized signed offset and send to helper
-        DBG("Player Delta: " + std::to_string(videoPlayerWidget.rotationCurrent.x - videoPlayerWidget.rotationPrevious.x));
-        if (videoPlayerWidget.rotationCurrent.x - videoPlayerWidget.rotationPrevious.x != 0 ||
-            videoPlayerWidget.rotationCurrent.y - videoPlayerWidget.rotationPrevious.y != 0 ||
-            videoPlayerWidget.rotationCurrent.z - videoPlayerWidget.rotationPrevious.z != 0) {
-            playerOSC.sendPlayerYPR(videoPlayerWidget.rotation.x - videoPlayerWidget.rotationPrevious.x, videoPlayerWidget.rotation.y - videoPlayerWidget.rotationPrevious.y, videoPlayerWidget.rotation.z - videoPlayerWidget.rotationPrevious.z);
-        }
+        // calculate normalized degrees player orientation and send to helper
+        // TODO: get and send the mouseoffset rotation only
+        //playerOSC.sendPlayerYPR(std::fmod(-videoPlayerWidget.rotationCurrent.x, 360.), std::fmod(-videoPlayerWidget.rotationCurrent.y, 90.), 0);
     }
     
     if (m1OrientationClient.isConnectedToServer()) {
-        // add server orientation to player
+        // add server orientation to player via a calculated offset
         M1OrientationYPR ypr = m1OrientationClient.getOrientation().getYPRasDegrees();
-        videoPlayerWidget.rotationOffset.x += m1OrientationClient.getTrackingYawEnabled() ? ypr.yaw : 0.0f;
-        videoPlayerWidget.rotationOffset.y += m1OrientationClient.getTrackingPitchEnabled() ? ypr.pitch : 0.0f;
-        videoPlayerWidget.rotationOffset.z += m1OrientationClient.getTrackingRollEnabled() ? ypr.roll : 0.0f;
+        DBG("OM-Client:        Y=" + std::to_string(ypr.yaw) + ", P=" + std::to_string(ypr.pitch) + ", R=" + std::to_string(ypr.roll));
+        videoPlayerWidget.rotationOffset.x += m1OrientationClient.getTrackingYawEnabled() ? ypr.yaw - previousClientOrientation.yaw : 0.0f;
+        videoPlayerWidget.rotationOffset.y += m1OrientationClient.getTrackingPitchEnabled() ? ypr.pitch - previousClientOrientation.pitch : 0.0f;
+        videoPlayerWidget.rotationOffset.z += m1OrientationClient.getTrackingRollEnabled() ? ypr.roll - previousClientOrientation.roll : 0.0f;
+        DBG("OM-Client Offset: Y=" + std::to_string(ypr.yaw - previousClientOrientation.yaw) + ", P=" + std::to_string(ypr.pitch - previousClientOrientation.pitch) + ", R=" + std::to_string(ypr.roll - previousClientOrientation.roll));
+
+        previousClientOrientation = ypr; // store last input value
     }
     
 	if (clipVideo.get() != nullptr || clipAudio.get() != nullptr) {
@@ -497,19 +497,27 @@ void MainComponent::draw() {
 
 	// TODO: fix these reset keys, they are supposed to set the overal camera to front/back/left/right not the offset
 	if (m.isKeyPressed(MurkaKey::MURKA_KEY_UP)) { // up arrow
-		videoPlayerWidget.rotationOffset.x = 0;
+		videoPlayerWidget.rotationOffset.x = 0.;
+        videoPlayerWidget.rotationOffset.y = 0.;
+        videoPlayerWidget.rotationOffset.z = 0.;
 	}
 
 	if (m.isKeyPressed(MurkaKey::MURKA_KEY_DOWN)) { // down arrow
-		videoPlayerWidget.rotationOffset.x = 180;
+		videoPlayerWidget.rotationOffset.x = 180.;
+        videoPlayerWidget.rotationOffset.y = 0.;
+        videoPlayerWidget.rotationOffset.z = 0.;
 	}
 
 	if (m.isKeyPressed(MurkaKey::MURKA_KEY_RIGHT)) { // right arrow
-		videoPlayerWidget.rotationOffset.x = 90;
+		videoPlayerWidget.rotationOffset.x = 90.;
+        videoPlayerWidget.rotationOffset.y = 0;
+        videoPlayerWidget.rotationOffset.z = 0;
 	}
 
 	if (m.isKeyPressed(MurkaKey::MURKA_KEY_LEFT)) { // left arrow
-		videoPlayerWidget.rotationOffset.x = 270;
+		videoPlayerWidget.rotationOffset.x = 270.;
+        videoPlayerWidget.rotationOffset.y = 0.;
+        videoPlayerWidget.rotationOffset.z = 0.;
 	}
 
 	if (m.isKeyPressed('w') || m.mouseScroll().y > lastScrollValue.y) {
@@ -689,11 +697,9 @@ void MainComponent::draw() {
     }
     
     // update the previous orientation for calculating offset
-    previousOrientation = currentOrientation;
     videoPlayerWidget.rotationPrevious.x = videoPlayerWidget.rotationCurrent.x;
     videoPlayerWidget.rotationPrevious.y = videoPlayerWidget.rotationCurrent.y;
     videoPlayerWidget.rotationPrevious.z = videoPlayerWidget.rotationCurrent.z;
-    //DBG("Player Prev: " + std::to_string(videoPlayerWidget.rotationPrevious.x) + ", " + std::to_string(videoPlayerWidget.rotationPrevious.y) + ", " + std::to_string(videoPlayerWidget.rotationPrevious.z));
     
     // update the mousewheel scroll for testing
     lastScrollValue = m.mouseScroll();

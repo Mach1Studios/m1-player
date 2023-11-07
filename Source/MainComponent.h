@@ -34,7 +34,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
 
 	M1OrientationClient m1OrientationClient;
     M1OrientationYPR currentOrientation; // TODO: use Orientation class instead
-    M1OrientationYPR previousOrientation;
+    M1OrientationYPR previousClientOrientation;
 	M1OrientationClientWindow* orientationControlWindow;
 	bool showOrientationControlMenu = false;
 	bool showedOrientationControlBefore = false;
