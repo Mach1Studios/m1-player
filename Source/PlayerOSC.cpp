@@ -115,7 +115,7 @@ void PlayerOSC::update()
         // updates pingtime on helper tool
         juce::OSCMessage m = juce::OSCMessage(juce::OSCAddressPattern("/m1-status"));
         m.addInt32(port);  // port used for id
-        return juce::OSCSender::send(m); // check to update isConnected for error catching;
+        juce::OSCSender::send(m); // check to update isConnected for error catching;
         
         // signals disconnect if helper is not found
         juce::uint32 currentTime = juce::Time::getMillisecondCounter();
