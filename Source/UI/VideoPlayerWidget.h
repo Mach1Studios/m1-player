@@ -165,7 +165,8 @@ public:
 
     MurImage* imgVideo = nullptr;
 	MurkaPoint3D rotation = { 0, 0, 0 };
+    MurkaPoint3D rotationOffset = { 0, 0, 0 };
 	MurkaPoint3D rotationCurrent = { 0, 0, 0 };
-	MurkaPoint3D rotationOffset = { 0, 0, 0 };
-	float playheadPosition = 0.0;
+    MurkaPoint3D rotationPrevious = { 0, 0, 0 };
+    float playheadPosition = 0.0;
 };
