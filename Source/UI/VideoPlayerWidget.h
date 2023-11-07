@@ -1,12 +1,9 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-
 #include "juce_murka/Murka/MurkaBasicWidgets.h"
 #include "juce_murka/JuceMurkaBaseComponent.h"
-
 #include "../SphereMeshGenerator.h"
-
 
 class VideoPlayerSurface : public View<VideoPlayerSurface> {
     bool inited = false;
@@ -37,7 +34,6 @@ class VideoPlayerSurface : public View<VideoPlayerSurface> {
 
 public:
     void internalDraw(Murka& m) {
-
         if (!inited) {
 			imgOverlay.loadFromRawData(BinaryData::overlay_png, BinaryData::overlay_pngSize);
 
@@ -48,7 +44,6 @@ public:
 
 			videoShader.setOpenGLContext(m.getOpenGLContext());
 			videoShader.load(m.vertexShaderBase, fragmentShader);
-			
 
 			inited = true;
 		}
@@ -71,7 +66,6 @@ public:
             m.beginCamera(camera);
             m.setColor(255);
 
-
             if (imgVideo && imgVideo->isAllocated()) {
 				m.bindShader(&videoShader);
 				
@@ -80,7 +74,6 @@ public:
                 m.bind(*imgVideo);
 	            m.drawVbo(sphere, GL_TRIANGLE_STRIP, 0, sphere.getIndexes().size());
                 m.unbind(*imgVideo);
-				 
 				m.unbindShader();
 			}
 
@@ -89,21 +82,18 @@ public:
 				m.drawVbo(sphere, GL_TRIANGLE_STRIP, 0, sphere.getIndexes().size());
 				m.unbind(imgOverlay);
 			}
-
             m.endCamera(camera);
-
         }
         else {
 			if (imgVideo && imgVideo->isAllocated()) {
 				m.drawImage(*imgVideo, 0, 0, getSize().x, getSize().y);
 			}
         }
-    };
+    }
 
     MurCamera camera;
 	MurkaPoint3D rotation = { 0, 0, 0 };
 	MurkaPoint3D rotationOffset = { 0, 0, 0 };
-
 	MurkaPoint3D rotationCurrent = { 0, 0, 0 };
 	
 	bool drawFlat = false;
@@ -114,10 +104,8 @@ public:
 };
 
 class VideoPlayerPlayhead : public View<VideoPlayerPlayhead> {
-
 public:
     void internalDraw(Murka& m) {
-
         float w = getSize().x - 20;
         float h = getSize().y / 2;
 
@@ -127,9 +115,7 @@ public:
         if (inside() && mouseDownPressed(0)) {
             playheadPosition = (mousePosition().x - 10) / w;
         }
-
-    };
-
+    }
     float playheadPosition = 0.0;
 };
 
@@ -155,13 +141,13 @@ public:
 
         playheadPosition = videoPlayerPlayhead.playheadPosition;
 		rotationCurrent = videoPlayerSurface.rotationCurrent;
-    };
+    }
 
 	bool drawFlat = false;
 	bool drawOverlay = false;
 	bool cropStereoscopic = false;
 	
-	int fov = 70;
+	int fov = 40;
 
     MurImage* imgVideo = nullptr;
 	MurkaPoint3D rotation = { 0, 0, 0 };
