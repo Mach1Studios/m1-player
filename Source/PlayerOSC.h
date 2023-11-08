@@ -8,8 +8,7 @@ class PlayerOSC : private juce::OSCSender, private juce::OSCReceiver, private ju
     bool initFromSettings(std::string jsonSettingsFilePath);
 	int helperPort = 0, port = 0;
 	bool isConnected = false; // used to track connection with helper utility
-    bool isActivePlayer = false; // used to track if this is the primary player instance
-    int client_id;
+    bool isActivePlayer = true; // used to track if this is the primary player instance
 	std::function<void(juce::OSCMessage msg)> messageReceived;
 	void oscMessageReceived(const juce::OSCMessage& msg) override;
     juce::uint32 lastMessageTime = 0; 
