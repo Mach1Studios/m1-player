@@ -84,7 +84,6 @@ void PlayerOSC::oscMessageReceived(const juce::OSCMessage& msg)
 {
     if (messageReceived != nullptr) {
         if (msg.getAddressPattern() == "/connectedToServer") {
-//            client_id = msg[0].getInt32();
             isConnected = true;
         } else if (msg.getAddressPattern() == "/m1-activate-client") {
             DBG("[OSC] Recieved msg | Activate: "+std::to_string(msg[0].getInt32()));
