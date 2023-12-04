@@ -652,22 +652,36 @@ void MainComponent::draw() {
     }
     
     if (showOrientationControlMenu) {
+        // trigger a server side refresh for listed devices while menu is open
+        m1OrientationClient.command_refresh();
+        
         bool showOrientationSettingsPanelInsideWindow = (m1OrientationClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone);
         orientationControlWindow = &(m.prepare<M1OrientationClientWindow>({ m.getSize().width() - 218 - 5 , 5, 218, 300 + 100 * showOrientationSettingsPanelInsideWindow })
             .withDeviceList(slots)
             .withSettingsPanelEnabled(showOrientationSettingsPanelInsideWindow)
             .withOscSettingsEnabled((m1OrientationClient.getCurrentDevice().getDeviceType() == M1OrientationManagerDeviceTypeOSC))
+            .withSupperwareSettingsEnabled(m1OrientationClient.getCurrentDevice().getDeviceName().find("Supperware HT IMU") != std::string::npos)
             .onClickOutside([&]() {
-            if (!orientationControlButton.hovered) { // Only switch showing the orientation control if we didn't click on the button
-                showOrientationControlMenu = !showOrientationControlMenu;
-                if (showOrientationControlMenu && !showedOrientationControlBefore) {
-                    orientationControlWindow->startRefreshing();
+                if (!orientationControlButton.hovered) { // Only switch showing the orientation control if we didn't click on the button
+                    showOrientationControlMenu = !showOrientationControlMenu;
                 }
-            }
-                })
+            })
+            .onOscSettingsChanged([&](int requested_osc_port, std::string requested_osc_msg_address) {
+                m1OrientationClient.command_setAdditionalDeviceSettings("osc_add="+requested_osc_msg_address);
+                m1OrientationClient.command_setAdditionalDeviceSettings("osc_p="+std::to_string(requested_osc_port));
+            })
+            .onSupperwareSettingsChanged([&](bool isRightEarChirality) {
+                std::string chir_cmd;
+                if (isRightEarChirality) {
+                    chir_cmd = "1";
+                } else {
+                    chir_cmd = "0";
+                }
+                m1OrientationClient.command_setAdditionalDeviceSettings("sw_chir="+chir_cmd);
+            })
             .onDisconnectClicked([&]() {
                 m1OrientationClient.command_disconnect();
-             })
+            })
             .onRecenterClicked([&]() {
                 m1OrientationClient.command_recenter();
             })
