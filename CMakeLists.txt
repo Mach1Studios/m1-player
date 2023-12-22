@@ -117,7 +117,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${MACH1SPATIAL_LIBS_PATH}/xcode/inc
 if(APPLE)
     target_link_directories(${CMAKE_PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg" "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg/x86_64" "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg/arm64")
 else()
-    target_link_directories(${CMAKE_PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg")
+    target_link_directories(${CMAKE_PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/Modules/foleys_video_engine/_deps/ffmpeg-build/lib")
+    add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_BINARY_DIR}/Modules/foleys_video_engine/_deps/ffmpeg-build/bin" "${CMAKE_CURRENT_BINARY_DIR}"
+    )
 endif()
 
 if(APPLE)
