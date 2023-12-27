@@ -16,6 +16,10 @@
             file="Source/SphereMeshGenerator.h"/>
       <FILE id="ze5v6R" name="TransportOSCServer.h" compile="0" resource="0"
             file="Source/TransportOSCServer.h"/>
+      <FILE id="mK8Zn8" name="PlayerOSC.cpp" compile="1" resource="0" file="Source/PlayerOSC.cpp"/>
+      <FILE id="Lcjh0g" name="PlayerOSC.h" compile="0" resource="0" file="Source/PlayerOSC.h"/>
+      <FILE id="JrqOOs" name="Mach1Decode.cpp" compile="1" resource="0" file="../m1-sdk-dev/source/include/cpp/Mach1Decode.cpp"/>
+      <FILE id="udQBBq" name="Mach1Decode.h" compile="0" resource="0" file="../m1-sdk-dev/source/include/cpp/Mach1Decode.h"/>
       <GROUP id="{C0271EDF-131F-D406-0F5E-751E58189654}" name="Modules"/>
       <GROUP id="{64D4E571-DC05-ADB1-1A50-773B3C0B3F51}" name="UI">
         <FILE id="Hjehuf" name="VideoPlayerWidget.h" compile="0" resource="0"
