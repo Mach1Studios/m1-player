@@ -3,7 +3,7 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "juce_murka/Murka/MurkaBasicWidgets.h"
 #include "juce_murka/JuceMurkaBaseComponent.h"
-#include "../SphereMeshGenerator.h"
+#include "../MeshGenerator.h"
 
 class VideoPlayerSurface : public View<VideoPlayerSurface> {
     bool inited = false;
@@ -37,7 +37,7 @@ public:
         if (!inited) {
 			imgOverlay.loadFromRawData(BinaryData::overlay_png, BinaryData::overlay_pngSize);
 
-            sphere = SphereMeshGenerator().generateSphereMesh(1, 1, 100);
+			sphere = MeshGenerator().generateSphereMesh(1, 1, 100);
             sphere.setOpenGLContext(m.getOpenGLContext());
             sphere.setup();
             m.updateVbo(sphere);
@@ -50,7 +50,7 @@ public:
 
         if (drawFlat == false) {
             camera.setPosition(MurkaPoint3D(0, 0, 0));
-            camera.lookAt(MurkaPoint3D(0, 0, 10));
+            camera.lookAt(MurkaPoint3D(0, 0, -10));
 
             if (inside() && mouseDragged(0)) {
 				float t = mouseDelta().x;
@@ -61,7 +61,7 @@ public:
 			rotationCurrent = rotation + rotationOffsetMouse + rotationOffset;
 			
 			// - r.y, r.x, r.z
-			camera.setRotation(MurkaPoint3D{ -rotationCurrent.y, -90 - rotationCurrent.x , -rotationCurrent.z }); // YPR -> -P-Y-R 3d camera
+			camera.setRotation(MurkaPoint3D{ -rotationCurrent.y, - rotationCurrent.x , -rotationCurrent.z }); // YPR -> -P-Y-R 3d camera
 
             m.beginCamera(camera);
             m.setColor(255);
