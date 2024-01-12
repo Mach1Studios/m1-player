@@ -54,14 +54,14 @@ public:
 
             if (inside() && mouseDragged(0)) {
 				float t = mouseDelta().x;
-				rotationOffsetMouse.x -= 0.25 * mouseDelta().x;
+				rotationOffsetMouse.x += 0.25 * mouseDelta().x;
 				rotationOffsetMouse.y -= 0.25 * mouseDelta().y;
 			}
 
 			rotationCurrent = rotation + rotationOffsetMouse + rotationOffset;
 			
 			// r.y, r.x, r.z
-			camera.setRotation(MurkaPoint3D{ rotationCurrent.y, rotationCurrent.x , rotationCurrent.z }); // YPR -> PYR 3d camera
+			camera.setRotation(MurkaPoint3D{ rotationCurrent.y, -rotationCurrent.x , rotationCurrent.z }); // YPR -> +P-Y+R 3d camera
 
             m.beginCamera(camera);
             m.setColor(255);
