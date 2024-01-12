@@ -11,66 +11,65 @@
 
 class MeshGenerator {
     const float pi = 3.141592653589793238463f;
-
-    void addSphereSegmentToMesh(MurVbo& mesh, float x1, float x2, float y1, float y2, int sphereSize, int textureSizeX, int textureSizeY) {
-        float H1 = y1 * sphereSize;
-        float H2 = y2 * sphereSize;
-        float radialPhase1 = sqrt(sphereSize * H1 - pow(H1, 2)) / sphereSize;
-        float radialPhase2 = sqrt(sphereSize * H2 - pow(H2, 2)) / sphereSize;
-
-        MurkaPoint3D p1 = MurkaPoint3D(cos(x1 * pi * 2) * radialPhase1 * sphereSize,
-            y1 * sphereSize - sphereSize / 2,
-            sin(x1 * pi * 2) * radialPhase1 * sphereSize);
-
-        MurkaPoint3D p2 = MurkaPoint3D(cos(x2 * pi * 2) * radialPhase1 * sphereSize,
-            y1 * sphereSize - sphereSize / 2,
-            sin(x2 * pi * 2) * radialPhase1 * sphereSize);
-
-        MurkaPoint3D p3 = MurkaPoint3D(cos(x2 * pi * 2) * radialPhase2 * sphereSize,
-            y2 * sphereSize - sphereSize / 2,
-            sin(x2 * pi * 2) * radialPhase2 * sphereSize);
-
-        MurkaPoint3D p4 = MurkaPoint3D(cos(x1 * pi * 2) * radialPhase2 * sphereSize,
-            y2 * sphereSize - sphereSize / 2,
-            sin(x1 * pi * 2) * radialPhase2 * sphereSize);
-
-        int initialIndex = mesh.getVertices().size();
-
-        mesh.addVertex(p1);
-        mesh.addVertex(p2);
-        mesh.addVertex(p3);
-        mesh.addVertex(p4);
-
-        float offset =  -0.25f;
-        mesh.addTexCoord(MurkaPoint(fmod(x1 + offset, 1.0f), y1) * MurkaPoint(textureSizeX, textureSizeY));
-        mesh.addTexCoord(MurkaPoint(fmod(x2 + offset, 1.0f), y1) * MurkaPoint(textureSizeX, textureSizeY));
-        mesh.addTexCoord(MurkaPoint(fmod(x2 + offset, 1.0f), y2) * MurkaPoint(textureSizeX, textureSizeY));
-        mesh.addTexCoord(MurkaPoint(fmod(x1 + offset, 1.0f), y2) * MurkaPoint(textureSizeX, textureSizeY));
-
-
-        mesh.addIndex(initialIndex + 0);
-        mesh.addIndex(initialIndex + 1);
-        mesh.addIndex(initialIndex + 2);
-
-        mesh.addIndex(initialIndex + 0);
-        mesh.addIndex(initialIndex + 3);
-        mesh.addIndex(initialIndex + 2);
-    }
-
+ 
 public:
-    MeshGenerator() {
+    MeshGenerator() {}
 
-    }
-
-   MurVbo generateSphereMesh(int textureSizeX, int textureSizeY, int sphereSize = 100, int meshResolution = 64) {
+    // Generate a sphere mesh
+    // Function to generate a sphere mesh
+    MurVbo generateSphereMesh(int textureSizeX, int textureSizeY, int sphereSize = 100, int meshResolution = 64) {
         MurVbo result;
 
-        float step = 1.0 / (float)meshResolution;
-        for (int i = 0; i < meshResolution; i++) { // from -3
-            float phaseY = (float)i / (float)meshResolution;
-            for (int j = 0; j < meshResolution; j++) {
-                float phaseX = (float)j / (float)meshResolution;
-                addSphereSegmentToMesh(result, phaseX, phaseX + step, phaseY, phaseY + step, sphereSize, textureSizeX, textureSizeY);
+        float doubleRes = meshResolution * 2.f;
+        float polarInc = pi / (meshResolution); // ringAngle
+        float azimInc = 2 * pi / (doubleRes); // segAngle  
+
+        for (float i = 0; i < meshResolution + 1; i++) {
+            float tr = sin(pi - i * polarInc);
+            float ny = cos(pi - i * polarInc);
+
+            float tcoord_y = (i / meshResolution);
+
+            for (float j = 0; j <= doubleRes; j++) {
+                float nx = tr * sin(j * azimInc);
+                float nz = tr * cos(j * azimInc);
+
+                float tcoord_x = 1.0f - j / (doubleRes);
+
+                result.addVertex({ nx * sphereSize, ny * sphereSize, nz * sphereSize });
+                result.addTexCoord({ tcoord_x, tcoord_y });
+            }
+        }
+
+        int nr = doubleRes + 1;
+
+        int index1, index2, index3;
+
+        for (float iy = 0; iy < meshResolution; iy++) {
+            for (float ix = 0; ix < doubleRes; ix++) {
+
+                // first tri //
+                if (iy > 0) {
+                    index1 = (iy + 0) * (nr)+(ix + 0);
+                    index2 = (iy + 0) * (nr)+(ix + 1);
+                    index3 = (iy + 1) * (nr)+(ix + 0);
+
+                    result.addIndex(index1);
+                    result.addIndex(index3);
+                    result.addIndex(index2);
+                }
+
+                if (iy < meshResolution - 1) {
+                    // second tri //
+                    index1 = (iy + 0) * (nr)+(ix + 1);
+                    index2 = (iy + 1) * (nr)+(ix + 1);
+                    index3 = (iy + 1) * (nr)+(ix + 0);
+
+                    result.addIndex(index1);
+                    result.addIndex(index3);
+                    result.addIndex(index2);
+
+                }
             }
         }
 
