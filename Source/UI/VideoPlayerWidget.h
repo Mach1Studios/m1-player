@@ -147,7 +147,7 @@ public:
 	bool drawOverlay = false;
 	bool cropStereoscopic = false;
 	
-	int fov = 40;
+	int fov = 70;
 
     MurImage* imgVideo = nullptr;
 	MurkaPoint3D rotation = { 0, 0, 0 };
