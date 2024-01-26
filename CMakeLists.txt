@@ -116,6 +116,26 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${MACH1SPATIAL_LIBS_PATH}/xcode/inc
 # TODO: fix this to not require hardcoded paths
 if(APPLE)
     target_link_directories(${CMAKE_PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg" "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg/x86_64" "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg/arm64")
+    
+    # confim the libs, prepare to link
+    set(PLATFORM_SPECIFIC_LIBS)
+
+    find_library(CORE_MEDIA_LIBRARY CoreMedia)
+    find_library(VIDEOTOOLBOX_LIBRARY VideoToolbox)
+    find_library(ZLIB_LIBRARY z)
+    find_library(ICONV_LIBRARY iconv)
+
+    list(APPEND PLATFORM_SPECIFIC_LIBS
+         ${CORE_MEDIA_LIBRARY}
+         ${VIDEOTOOLBOX_LIBRARY}
+         ${ZLIB_LIBRARY}
+         ${ICONV_LIBRARY}
+    )
+
+    foreach(platform_lib ${PLATFORM_SPECIFIC_LIBS})
+        target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC ${platform_lib})
+    endforeach()
+
 else()
     target_link_directories(${CMAKE_PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/Modules/foleys_video_engine/_deps/ffmpeg-build/lib")
     add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
