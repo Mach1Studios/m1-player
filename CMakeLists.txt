@@ -107,6 +107,8 @@ set(JucePlugin_Desc ${CMAKE_PROJECT_NAME})
 
 # download and link m1-sdk
 include(cmake/fetchM1SDK.cmake)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${MACH1ENCODE_LIBRARY})
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${MACH1SPATIAL_LIBS_PATH}/xcode/include/Mach1Encode.cpp)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${MACH1DECODE_LIBRARY})
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${MACH1SPATIAL_LIBS_PATH}/xcode/include/Mach1Decode.cpp)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${MACH1TRANSCODE_LIBRARY})

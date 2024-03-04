@@ -12,14 +12,17 @@
       <FILE id="eWudXl" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
       <FILE id="LNSQ4b" name="MainComponent.cpp" compile="1" resource="0"
             file="Source/MainComponent.cpp"/>
-      <FILE id="K7eCxc" name="SphereMeshGenerator.h" compile="0" resource="0"
-            file="Source/SphereMeshGenerator.h"/>
+      <FILE id="Jz2XUb" name="TypesForDataExchange.h" compile="0" resource="0"
+            file="Source/TypesForDataExchange.h"/>
+      <FILE id="aLvb7L" name="MeshGenerator.h" compile="0" resource="0" file="Source/MeshGenerator.h"/>
       <FILE id="ze5v6R" name="TransportOSCServer.h" compile="0" resource="0"
             file="Source/TransportOSCServer.h"/>
       <FILE id="mK8Zn8" name="PlayerOSC.cpp" compile="1" resource="0" file="Source/PlayerOSC.cpp"/>
       <FILE id="Lcjh0g" name="PlayerOSC.h" compile="0" resource="0" file="Source/PlayerOSC.h"/>
       <FILE id="JrqOOs" name="Mach1Decode.cpp" compile="1" resource="0" file="../m1-sdk-dev/source/include/cpp/Mach1Decode.cpp"/>
       <FILE id="udQBBq" name="Mach1Decode.h" compile="0" resource="0" file="../m1-sdk-dev/source/include/cpp/Mach1Decode.h"/>
+      <FILE id="" name="Mach1Encode.cpp" compile="1" resource="0" file="../m1-sdk-dev/source/include/cpp/Mach1Encode.cpp"/>
+      <FILE id="" name="Mach1Encode.h" compile="0" resource="0" file="../m1-sdk-dev/source/include/cpp/Mach1Encode.h"/>
       <GROUP id="{C0271EDF-131F-D406-0F5E-751E58189654}" name="Modules"/>
       <GROUP id="{64D4E571-DC05-ADB1-1A50-773B3C0B3F51}" name="UI">
         <FILE id="Hjehuf" name="VideoPlayerWidget.h" compile="0" resource="0"
@@ -45,7 +48,7 @@
   </MAINGROUP>
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX" bigIcon="CPRVQ8" smallIcon="CPRVQ8"
-               cameraPermissionNeeded="1" externalLibraries="Mach1DecodeCAPI"
+               cameraPermissionNeeded="1" externalLibraries="Mach1DecodeCAPI&#10;Mach1EncodeCAPI"
                extraDefs="&#10;MURKA_JUCE JUCE_OPENGL3">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" optimisation="1" osxCompatibility="10.9 SDK"
@@ -79,7 +82,8 @@
       </MODULEPATHS>
     </XCODE_MAC>
     <VS2019 targetFolder="Builds/VisualStudio2019" smallIcon="CPRVQ8" bigIcon="CPRVQ8"
-            externalLibraries="Mach1DecodeCAPI.lib" extraDefs="MURKA_JUCE JUCE_OPENGL3&#10;WIN32_LEAN_AND_MEAN">
+            externalLibraries="Mach1DecodeCAPI.lib&#10;Mach1EncodeCAPI.lib"
+            extraDefs="MURKA_JUCE JUCE_OPENGL3&#10;WIN32_LEAN_AND_MEAN">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" headerPath="..\..\Modules\m1-sdk\mach1spatial-libs\windows-x86_64\include"
                        libraryPath="..\..\Modules\m1-sdk\mach1spatial-libs\vs-15-2017-x86_64\lib\Static\MD\Debug\"

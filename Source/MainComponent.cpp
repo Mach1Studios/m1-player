@@ -50,12 +50,89 @@ void MainComponent::initialise()
 
 	imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
 
-    // TODO: refactor this
     // setup the listener
     playerOSC.AddListener([&](juce::OSCMessage msg) {
+        // got an relayed settings update of a panner plugin
+        if (msg.getAddressPattern() == "/panner-settings") {
+            
+            // if incoming panner port does not currently exist add it
+            int plugin_port;
+            if (msg[0].isInt32()) {
+                plugin_port = msg[0].getInt32();
+            }
+            int input_mode;
+            float azi; float ele; float div; float gain;
+            bool found = false;
+            
+            if (msg.size() >= 6) {
+                input_mode = msg[1].getInt32();
+                azi = msg[2].getFloat32();
+                ele = msg[3].getFloat32();
+                div = msg[4].getFloat32();
+                gain = msg[5].getFloat32();
+            }
+
+            for (auto& panner : panners) {
+                if (panner.port == plugin_port) {
+                    found = true;
+                    
+                    // update existing found panner obj
+                    if (input_mode == -1) { // remove panner if panner was deleted
+                        auto iter = std::find_if(panners.begin(), panners.end(), find_plugin(plugin_port));
+                        if (iter != panners.end()) {
+                            // if panner found, delete it
+                            panners.erase(iter);
+                        }
+                    } else {
+                        // update found panner object
+                        panner.displayName = std::to_string(plugin_port); // TODO: update this to pass string name
+                        panner.m1Encode.setInputMode((Mach1EncodeInputModeType)input_mode);
+                        panner.m1Encode.setAzimuth(azi);
+                        panner.m1Encode.setElevation(ele);
+                        panner.m1Encode.setDiverge(div);
+                        panner.m1Encode.setOutputGain(gain, true);
+                        panner.azimuth = azi; // TODO: remove these?
+                        panner.elevation = ele; // TODO: remove these?
+                        panner.diverge = div; // TODO: remove these?
+                        panner.gain = gain; // TODO: remove these?
+                        DBG("[OSC] Panner: port="+std::to_string(plugin_port)+", in="+std::to_string(input_mode)+", az="+std::to_string(azi)+", el="+std::to_string(ele)+", di="+std::to_string(div)+", gain="+std::to_string(gain));
+                    }
+                }
+            }
+
+            if (!found) {
+                PannerSettings panner;
+                panner.port = plugin_port;
+                panner.displayName = std::to_string(plugin_port); // TODO: update this to pass string name
+                // update the current settings from the incoming osc messsage
+                panner.m1Encode.setInputMode((Mach1EncodeInputModeType)input_mode);
+                panner.m1Encode.setAzimuth(azi);
+                panner.m1Encode.setElevation(ele);
+                panner.m1Encode.setDiverge(div);
+                panner.m1Encode.setOutputGain(gain, true);
+                panner.azimuth = azi; // TODO: remove these?
+                panner.elevation = ele; // TODO: remove these?
+                panner.diverge = div; // TODO: remove these?
+                panner.gain = gain; // TODO: remove these?
+                panners.push_back(panner);
+                DBG("[OSC] Panner: port="+std::to_string(plugin_port)+", in="+std::to_string(input_mode)+", az="+std::to_string(azi)+", el="+std::to_string(ele)+", di="+std::to_string(div)+", gain="+std::to_string(gain));
+            }
+        } else {
+            // display a captured unexpected osc message
+            if (msg.size() > 0) {
+                DBG("[OSC] Recieved unexpected msg | " + msg.getAddressPattern().toString());
+                if (msg[0].isFloat32()) {
+                    DBG("[OSC] Recieved unexpected msg | " + msg.getAddressPattern().toString() + ", " + std::to_string(msg[0].getFloat32()));
+                } else if (msg[0].isInt32()) {
+                    DBG("[OSC] Recieved unexpected msg | " + msg.getAddressPattern().toString() + ", " + std::to_string(msg[0].getInt32()));
+                } else if (msg[0].isString()) {
+                    DBG("[OSC] Recieved unexpected msg | " + msg.getAddressPattern().toString() + ", " + msg[0].getString());
+                }
+            }
+        }
     });
     
-    // playerOSC update timer loop
+    // playerOSC update timer loop (only used for checking the connection)
     startTimer(200);
 } 
 
@@ -324,7 +401,7 @@ void MainComponent::draw() {
 		float length = (std::max)(transportSourceAudio.getLengthInSeconds(), transportSourceVideo.getLengthInSeconds());
 		float pos = (std::max)(transportSourceAudio.getCurrentPosition(), transportSourceVideo.getCurrentPosition());
 		DBG("Playhead Pos: " = std::to_string(m1OrientationClient.getPlayerPositionInSeconds() - pos));
-		if (fabs(m1OrientationClient.getPlayerPositionInSeconds() - pos) > 0.1 && m1OrientationClient.getPlayerPositionInSeconds() < length) {
+		if (std::fabs(m1OrientationClient.getPlayerPositionInSeconds() - pos) > 0.1 && m1OrientationClient.getPlayerPositionInSeconds() < length) {
 			transportSourceVideo.setPosition(m1OrientationClient.getPlayerPositionInSeconds() + 0.05);
 			transportSourceAudio.setPosition(m1OrientationClient.getPlayerPositionInSeconds() + 0.05);
 		}
@@ -366,21 +443,33 @@ void MainComponent::draw() {
     currentPlayerWidgetFov = videoPlayerWidget.fov;
     
     if (playerOSC.IsConnected() && playerOSC.IsActivePlayer()) {
-        // calculate normalized degrees player orientation and send to helper
-        // TODO: get and send the mouseoffset rotation only
-        //playerOSC.sendPlayerYPR(std::fmod(-videoPlayerWidget.rotationCurrent.x, 360.), std::fmod(-videoPlayerWidget.rotationCurrent.y, 90.), 0);
+        // TODO: Send the current orientation of player instead of delta to let monitor pick up on player's orientation and avoid resets
+        // send mouse offset of player orientation and send to helper
+        if (videoPlayerWidget.rotationOffsetMouse.x != prev_mouse_offset.x || videoPlayerWidget.rotationOffsetMouse.y != prev_mouse_offset.y) {
+            // normalize the mouse offset and then get the delta
+            float norm_yaw_delta = (std::fmod(prev_mouse_offset.x, 360.) - std::fmod(videoPlayerWidget.rotationOffsetMouse.x, 360.)) / (360.);
+            float norm_pitch_delta = (std::fmod(prev_mouse_offset.y, 180.) - std::fmod(videoPlayerWidget.rotationOffsetMouse.y, 180.)) / 180.;
+            playerOSC.sendPlayerYPR(-norm_yaw_delta, -norm_pitch_delta, 0);
+        }
+        prev_mouse_offset = videoPlayerWidget.rotationOffsetMouse;
     }
     
     if (m1OrientationClient.isConnectedToServer()) {
         // add server orientation to player via a calculated offset
         M1OrientationYPR ypr = m1OrientationClient.getOrientation().getYPRasDegrees();
-        DBG("OM-Client:        Y=" + std::to_string(ypr.yaw) + ", P=" + std::to_string(ypr.pitch) + ", R=" + std::to_string(ypr.roll));
-        videoPlayerWidget.rotationOffset.x += m1OrientationClient.getTrackingYawEnabled() ? ypr.yaw - previousClientOrientation.yaw : 0.0f;
-        videoPlayerWidget.rotationOffset.y += m1OrientationClient.getTrackingPitchEnabled() ? ypr.pitch - previousClientOrientation.pitch : 0.0f;
-        videoPlayerWidget.rotationOffset.z += m1OrientationClient.getTrackingRollEnabled() ? ypr.roll - previousClientOrientation.roll : 0.0f;
-        DBG("OM-Client Offset: Y=" + std::to_string(ypr.yaw - previousClientOrientation.yaw) + ", P=" + std::to_string(ypr.pitch - previousClientOrientation.pitch) + ", R=" + std::to_string(ypr.roll - previousClientOrientation.roll));
-
-        previousClientOrientation = ypr; // store last input value
+        if (ypr == previousClientOrientation) {
+            // skip the update since there is no change
+        } else {
+            // update the player orientation
+            DBG("OM-Client:        Y=" + std::to_string(ypr.yaw) + ", P=" + std::to_string(ypr.pitch) + ", R=" + std::to_string(ypr.roll));
+            videoPlayerWidget.rotationOffset.x += m1OrientationClient.getTrackingYawEnabled() ? ypr.yaw - previousClientOrientation.yaw : 0.0f;
+            videoPlayerWidget.rotationOffset.y += m1OrientationClient.getTrackingPitchEnabled() ? ypr.pitch - previousClientOrientation.pitch : 0.0f;
+            videoPlayerWidget.rotationOffset.z += m1OrientationClient.getTrackingRollEnabled() ? ypr.roll - previousClientOrientation.roll : 0.0f;
+            DBG("OM-Client Offset: Y=" + std::to_string(ypr.yaw - previousClientOrientation.yaw) + ", P=" + std::to_string(ypr.pitch - previousClientOrientation.pitch) + ", R=" + std::to_string(ypr.roll - previousClientOrientation.roll));
+            
+            // store last input value
+            previousClientOrientation = ypr;
+        }
     }
     
 	if (clipVideo.get() != nullptr || clipAudio.get() != nullptr) {
@@ -494,12 +583,12 @@ void MainComponent::draw() {
 		m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).draw();
 	}
 
-
 	if (m.isKeyPressed('z')) {
 		videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
 	}
 
 	// TODO: fix these reset keys, they are supposed to set the overal camera to front/back/left/right not the offset
+    // TODO: ensure these offsets are also applied or captured via `sendPlayerYPR()`
 	if (m.isKeyPressed(MurkaKey::MURKA_KEY_UP)) { // up arrow
 		videoPlayerWidget.rotationOffset.x = 0.;
         videoPlayerWidget.rotationOffset.y = 0.;
@@ -548,7 +637,6 @@ void MainComponent::draw() {
 	if (m.isKeyPressed('h')) {
 		bHideUI = !bHideUI;
 	}
-
 
 	if (m.isKeyHeld('q')) {
 		m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);

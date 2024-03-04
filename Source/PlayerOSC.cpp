@@ -83,9 +83,8 @@ PlayerOSC::PlayerOSC()
 void PlayerOSC::oscMessageReceived(const juce::OSCMessage& msg)
 {
     if (messageReceived != nullptr) {
-
-        DBG("getAddressPattern: " + msg.getAddressPattern().toString());
-
+        //DBG("getAddressPattern: " + msg.getAddressPattern().toString());
+        
         if (msg.getAddressPattern() == "/connectedToServer") {
             isConnected = true;
         } else if (msg.getAddressPattern() == "/m1-activate-client") {
@@ -110,7 +109,20 @@ void PlayerOSC::oscMessageReceived(const juce::OSCMessage& msg)
                     auto div = msg[4].getFloat32();
                     auto gain = msg[5].getFloat32();
 
-                    M1PannerSettings panner { plugin_port, input_mode, azi, ele, div, gain };
+                    PannerSettings panner;
+                    panner.port = plugin_port;
+                    if (panner.displayName == "") {
+                        // TODO: Add string names nicely if the host supports
+                        panner.displayName = std::to_string(plugin_port);
+                    }
+                    panner.m1Encode.setInputMode((Mach1EncodeInputModeType)input_mode);
+                    panner.m1Encode.setAzimuth(azi);
+                    panner.azimuth = azi;
+                    panner.m1Encode.setElevation(ele);
+                    panner.elevation = ele;
+                    panner.m1Encode.setDiverge(div);
+                    panner.diverge = div;
+                    panner.m1Encode.setOutputGain(gain, false);
 
                     auto iter = std::find_if(pannerSettings.begin(), pannerSettings.end(), find_panner(plugin_port));
                     if (iter != pannerSettings.end()) {
@@ -119,9 +131,7 @@ void PlayerOSC::oscMessageReceived(const juce::OSCMessage& msg)
                     else {
                         pannerSettings.push_back(panner);
                     }
-
                     //DBG("[OSC] Panner: port=" + std::to_string(plugin_port) + ", in=" + std::to_string(input_mode) + ", az=" + std::to_string(azi) + ", el=" + std::to_string(ele) + ", di=" + std::to_string(div) + ", gain=" + std::to_string(gain));
-                    
                 }
             }
             else {
@@ -198,7 +208,7 @@ void PlayerOSC::setAsActivePlayer(bool is_active)
 
 bool PlayerOSC::sendPlayerYPR(float yaw, float pitch, float roll)
 {
-    if (port > 0) {
+    if (port > 0) { // check we have assigned a client port number
         juce::OSCMessage m = juce::OSCMessage(juce::OSCAddressPattern("/setPlayerYPR"));
         m.addFloat32(yaw);   // expected degrees -180->180
         m.addFloat32(pitch); // expected degrees -90->90
@@ -244,7 +254,7 @@ bool PlayerOSC::disconnectToHelper()
     }
 }
 
-std::vector<M1PannerSettings> PlayerOSC::getPannerSettings()
+std::vector<PannerSettings> PlayerOSC::getPannerSettings()
 {
     return pannerSettings;
 }
