@@ -6,12 +6,14 @@
 #include "juce_murka/JuceMurkaBaseComponent.h"
 
 #include "Config.h"
-#include "UI/VideoPlayerWidget.h"
-#include "UI/RadioGroupWidget.h"
-
 #include "Mach1Decode.h"
+#include "Mach1Encode.h"
+#include "TypesForDataExchange.h"
 #include "TransportOSCServer.h"
 #include "PlayerOSC.h"
+
+#include "UI/VideoPlayerWidget.h"
+#include "UI/RadioGroupWidget.h"
 
 #include "m1_orientation_client/UI/M1Label.h"
 #include "m1_orientation_client/UI/M1OrientationWindowToggleButton.h"
@@ -29,41 +31,56 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     public juce::Timer
 {
     //==============================================================================
-	MurImage imgLogo;
-	MurImage imgVideo;
+    MurImage imgLogo;
+    MurImage imgVideo;
 
-	M1OrientationClient m1OrientationClient;
+    M1OrientationClient m1OrientationClient;
     M1OrientationYPR currentOrientation; // TODO: use Orientation class instead
     M1OrientationYPR previousClientOrientation;
-	M1OrientationClientWindow* orientationControlWindow;
-	bool showOrientationControlMenu = false;
-	bool showedOrientationControlBefore = false;
+    MurkaPoint3D prev_mouse_offset = { 0, 0, 0 }; // used to track if the player mouse offset has a new value
+    M1OrientationClientWindow* orientationControlWindow;
+    bool showOrientationControlMenu = false;
+    bool showedOrientationControlBefore = false;
+    
+    // collect existing local panners for display
+    std::vector<PannerSettings> panners;
+    
+    // search plugin by registered port number
+    // TODO: potentially improve this with uuid concept
+    struct find_plugin {
+        int port;
+        find_plugin(int port) : port(port) {}
+        bool operator () ( const PannerSettings& p ) const
+        {
+            return p.port == port;
+        }
+    };
 
-	int lastUpdateForPlayer = 0;
+    int lastUpdateForPlayer = 0;
 
-	double currentPlayerWidgetFov = 0;
-	bool drawReference = false;
+    double currentPlayerWidgetFov = 0;
+    bool drawReference = false;
 
     foleys::VideoEngine videoEngine;
 
-	std::shared_ptr<foleys::AVClip> clipVideo;
-	std::shared_ptr<foleys::AVClip> clipAudio;
+    std::shared_ptr<foleys::AVClip> clipVideo;
+    std::shared_ptr<foleys::AVClip> clipAudio;
 
-	juce::AudioBuffer<float> tempBuffer;
+    juce::AudioBuffer<float> tempBuffer;
 
-	juce::AudioTransportSource  transportSourceVideo;
-	juce::AudioTransportSource  transportSourceAudio;
+    juce::AudioTransportSource  transportSourceVideo;
+    juce::AudioTransportSource  transportSourceAudio;
 
-	double                      sampleRate = 0.0;
+    double                      sampleRate = 0.0;
     int                         blockSize = 0;
     int                         ffwdSpeed = 2;
 
     Mach1Decode m1Decode;
     std::vector<float> spatialMixerCoeffs;
     std::vector<juce::LinearSmoothedValue<float>> smoothedChannelCoeffs;
-	juce::AudioBuffer<float> readBufferAudio;
-	juce::AudioBuffer<float> readBufferVideo;
-	int detectedNumInputChannels;
+    juce::AudioBuffer<float> readBufferAudio;
+    juce::AudioBuffer<float> readBufferVideo;
+    int detectedNumInputChannels;
     
     MurkaPoint lastScrollValue;
     bool bHideUI = false;
@@ -75,19 +92,19 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
 public:
     //==============================================================================
     MainComponent();
-	virtual ~MainComponent();
+    virtual ~MainComponent();
 
     //==============================================================================
     void initialise() override;
     void shutdown() override;
-	void draw();
+    void draw();
 
     //==============================================================================
     void paint (juce::Graphics& g) override;
     void resized() override;
 
     void openFile(juce::File filepath);
-	void setStatus(bool success, std::string message);
+    void setStatus(bool success, std::string message);
 
     //==============================================================================
     void prepareToPlay(int samplesPerBlockExpected, double newSampleRate) override;

@@ -28,8 +28,6 @@ public:
 	bool isUpdated = false;
 
 	TransportOSCServer() {
-
-
 	}
 
 	bool init(int serverPort) {

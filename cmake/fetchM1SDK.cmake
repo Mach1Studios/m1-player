@@ -32,6 +32,18 @@ if(WIN32 OR MSVC OR MINGW)
     add_compile_definitions(M1_STATIC)
     message(STATUS "Adding windows OS flags")
 
+    find_library(MACH1ENCODE_LIBRARY_RELEASE
+        NAMES Mach1EncodeCAPI
+        PATHS ${MACH1SPATIAL_LIBS_PATH}/vs-15-2017-x86_64/lib/Static/MD/Release
+    )
+    find_library(MACH1ENCODE_LIBRARY_DEBUG
+        NAMES Mach1EncodeCAPId
+        PATHS ${MACH1SPATIAL_LIBS_PATH}/vs-15-2017-x86_64/lib/Static/MD/Debug
+    )
+    SET(MACH1ENCODE_LIBRARY
+        debug ${MACH1ENCODE_LIBRARY_DEBUG}
+        optimized ${MACH1ENCODE_LIBRARY_RELEASE}
+    )
     find_library(MACH1DECODE_LIBRARY_RELEASE
         NAMES Mach1DecodeCAPI
         PATHS ${MACH1SPATIAL_LIBS_PATH}/vs-15-2017-x86_64/lib/Static/MD/Release
@@ -57,6 +69,10 @@ if(WIN32 OR MSVC OR MINGW)
         optimized ${MACH1TRANSCODE_LIBRARY_RELEASE}
     )
 else()
+    find_library(MACH1ENCODE_LIBRARY 
+        NAMES Mach1EncodeCAPI
+        PATHS ${MACH1SPATIAL_LIBS_UNIX_PATH}/lib
+    )
     find_library(MACH1DECODE_LIBRARY 
         NAMES Mach1DecodeCAPI
         PATHS ${MACH1SPATIAL_LIBS_UNIX_PATH}/lib
