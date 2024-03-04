@@ -5,9 +5,11 @@
 #include "juce_murka/JuceMurkaBaseComponent.h"
 #include "../MeshGenerator.h"
 
+#include "M1PannerSettings.h"
+
 class VideoPlayerSurface : public View<VideoPlayerSurface> {
     bool inited = false;
-    MurVbo sphere;
+    MurVbo sphere, circle;
 	MurkaPoint3D rotationOffsetMouse = { 0, 0, 0 };
 	MurImage imgOverlay;
 	MurShader videoShader;
@@ -32,6 +34,28 @@ class VideoPlayerSurface : public View<VideoPlayerSurface> {
 		}
 	)";
 
+	void drawCircle(Murka& m, float radius, int segments = 32) {
+		const float tau = 2.0f * M_PI;
+		float theta = 0.0f;
+		float thetaStep = tau / static_cast<float>(segments);
+
+		float prevX = radius;
+		float prevY = 0;
+
+		for (int i = 0; i <= segments; ++i) {
+			float curX = radius * std::cos(theta);
+			float curY =  radius * std::sin(theta);
+
+			if (i > 0) {
+				m.drawLine(prevX, prevY,curX, curY);
+			}
+
+			prevX = curX;
+			prevY = curY;
+			theta += thetaStep;
+		}
+	}
+ 
 public:
     void internalDraw(Murka& m) {
         if (!inited) {
@@ -44,6 +68,11 @@ public:
 
 			videoShader.setOpenGLContext(m.getOpenGLContext());
 			videoShader.load(m.vertexShaderBase, fragmentShader);
+
+			circle = MeshGenerator().generateCircleMesh(15, 25);
+			circle.setOpenGLContext(m.getOpenGLContext());
+			circle.setup();
+			m.updateVbo(circle);
 
 			inited = true;
 		}
@@ -66,7 +95,7 @@ public:
             m.beginCamera(camera);
             m.setColor(255);
 
-            if (imgVideo && imgVideo->isAllocated()) {
+			if (imgVideo && imgVideo->isAllocated()) {
 				m.bindShader(&videoShader);
 				
 				videoShader.setUniform1i("cropStereoscopic", cropStereoscopic);
@@ -82,8 +111,43 @@ public:
 				m.drawVbo(sphere, GL_TRIANGLE_STRIP, 0, sphere.getIndexes().size());
 				m.unbind(imgOverlay);
 			}
+
             m.endCamera(camera);
-        }
+
+
+			// draw panners as circles
+			m.pushStyle();
+			for (int i = 0; i < pannerSettings.size(); i++) {
+				// convert azimuth and elevation to cartesian coordinates
+				float azi = -pannerSettings[i].azi * M_PI / 180;
+				float ele = pannerSettings[i].ele * M_PI / 180;
+
+				float x = sin(azi) * cos(ele);
+				float y = sin(ele);
+				float z = cos(azi) * cos(ele);
+
+				// draw the panner circle
+				MurkaPoint p = m.getScreenPoint(camera, { x, y, z });
+
+				float circleRadius = 15;
+				std::string pannerName = "PANNER";
+				juceFontStash::Rectangle rect = m.getCurrentFont()->getStringBoundingBox(pannerName, 0, 0);
+				float rectHeight = m.getCurrentFont()->getLineHeight() + 4;
+				float rectX = circleRadius * 2 / 3;
+
+				m.pushMatrix();
+				m.translate(p.x, p.y, 0);
+				m.setLineWidth(3);
+				m.setColor(0, 0, 255);
+				m.drawVbo(circle, GL_TRIANGLE_STRIP, 0, circle.getVertices().size());
+				m.drawRectangle(rectX, -rectHeight / 2, rect.width + 8, rectHeight);
+
+				m.setColor(255, 255, 255);
+				m.drawString(pannerName, rectX + 4, -m.getCurrentFont()->getLineHeight() / 2);
+				m.popMatrix();
+			}
+			m.popStyle();
+		}
         else {
 			if (imgVideo && imgVideo->isAllocated()) {
 				m.drawImage(*imgVideo, 0, 0, getSize().x, getSize().y);
@@ -96,6 +160,8 @@ public:
 	MurkaPoint3D rotationOffset = { 0, 0, 0 };
 	MurkaPoint3D rotationCurrent = { 0, 0, 0 };
 	
+	std::vector<M1PannerSettings> pannerSettings;
+
 	bool drawFlat = false;
 	bool drawOverlay = false;
 	bool cropStereoscopic = false;
@@ -133,6 +199,7 @@ public:
 		videoPlayerSurface.rotation = rotation;
 		videoPlayerSurface.rotationOffset = rotationOffset;
 		videoPlayerSurface.camera.setFov(fov);
+		videoPlayerSurface.pannerSettings = pannerSettings;
         videoPlayerSurface.draw();
 
         auto& videoPlayerPlayhead = m.prepare<VideoPlayerPlayhead>({ 0, getSize().y - playheadHeight, getSize().x, playheadHeight });
@@ -148,6 +215,8 @@ public:
 	bool cropStereoscopic = false;
 	
 	int fov = 40;
+
+	std::vector<M1PannerSettings> pannerSettings;
 
     MurImage* imgVideo = nullptr;
 	MurkaPoint3D rotation = { 0, 0, 0 };

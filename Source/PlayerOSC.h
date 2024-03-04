@@ -2,6 +2,8 @@
 
 #include <JuceHeader.h>
 
+#include "M1PannerSettings.h"
+
 class PlayerOSC : private juce::OSCSender, private juce::OSCReceiver, private juce::OSCReceiver::Listener<juce::OSCReceiver::MessageLoopCallback>
 {
     bool init(int helperPort);
@@ -12,6 +14,8 @@ class PlayerOSC : private juce::OSCSender, private juce::OSCReceiver, private ju
 	std::function<void(juce::OSCMessage msg)> messageReceived;
 	void oscMessageReceived(const juce::OSCMessage& msg) override;
     juce::uint32 lastMessageTime = 0; 
+
+    std::vector<M1PannerSettings> pannerSettings;
 
 public:
     PlayerOSC();
@@ -26,4 +30,6 @@ public:
     bool sendPlayerYPR(float yaw, float pitch, float roll);
     bool connectToHelper();
     bool disconnectToHelper();
+
+    std::vector<M1PannerSettings> getPannerSettings();
 };
