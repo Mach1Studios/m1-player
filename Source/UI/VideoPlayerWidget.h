@@ -214,7 +214,7 @@ public:
 	bool drawOverlay = false;
 	bool cropStereoscopic = false;
 	
-	int fov = 40;
+	int fov = 70;
 
 	std::vector<M1PannerSettings> pannerSettings;
 
