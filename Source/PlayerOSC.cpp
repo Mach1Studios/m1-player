@@ -83,6 +83,9 @@ PlayerOSC::PlayerOSC()
 void PlayerOSC::oscMessageReceived(const juce::OSCMessage& msg)
 {
     if (messageReceived != nullptr) {
+
+        DBG("getAddressPattern: " + msg.getAddressPattern().toString());
+
         if (msg.getAddressPattern() == "/connectedToServer") {
             isConnected = true;
         } else if (msg.getAddressPattern() == "/m1-activate-client") {
@@ -97,7 +100,35 @@ void PlayerOSC::oscMessageReceived(const juce::OSCMessage& msg)
         } else if (msg.getAddressPattern() == "/m1-reconnect-req") {
             disconnectToHelper();
             isConnected = false;
-        } else {
+        } else if (msg.getAddressPattern() == "/panner-settings") {
+            if (msg.size() > 0) { // check msg size
+                auto plugin_port = msg[0].getInt32();
+                if (msg.size() >= 6) {
+                    auto input_mode = msg[1].getInt32();
+                    auto azi = msg[2].getFloat32();
+                    auto ele = msg[3].getFloat32();
+                    auto div = msg[4].getFloat32();
+                    auto gain = msg[5].getFloat32();
+
+                    M1PannerSettings panner { plugin_port, input_mode, azi, ele, div, gain };
+
+                    auto iter = std::find_if(pannerSettings.begin(), pannerSettings.end(), find_panner(plugin_port));
+                    if (iter != pannerSettings.end()) {
+                        *iter = panner;
+                    }
+                    else {
+                        pannerSettings.push_back(panner);
+                    }
+
+                    //DBG("[OSC] Panner: port=" + std::to_string(plugin_port) + ", in=" + std::to_string(input_mode) + ", az=" + std::to_string(azi) + ", el=" + std::to_string(ele) + ", di=" + std::to_string(div) + ", gain=" + std::to_string(gain));
+                    
+                }
+            }
+            else {
+                // port not found, error here
+            }
+        }
+        else {
             messageReceived(msg);
         }
     }
@@ -211,4 +242,9 @@ bool PlayerOSC::disconnectToHelper()
     } else {
         return false;
     }
+}
+
+std::vector<M1PannerSettings> PlayerOSC::getPannerSettings()
+{
+    return pannerSettings;
 }

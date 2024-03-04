@@ -76,6 +76,40 @@ public:
         return result;
     }
 
+    // Generate a circle
+    MurVbo generateCircleMesh(float radius, float width, int segments = 32) {
+        MurVbo vbo;
+        std::vector<MurkaPoint3D> circleVerts;
+        circleVerts.reserve(segments * 4);
+
+        const float tau = 2.0f * M_PI;
+        const float halfWidth = width * 0.5f;
+
+        for (int i = 0; i < segments; ++i) {
+            float theta = i * tau / segments;
+            float nextTheta = (i + 1) * tau / segments;
+
+            float x1 = radius * std::cos(theta);
+            float y1 = radius * std::sin(theta);
+            float x2 = radius * std::cos(nextTheta);
+            float y2 = radius * std::sin(nextTheta);
+
+            MurkaPoint3D p1(x1 + halfWidth * std::cos(theta + M_PI / 2.0f), y1 + halfWidth * std::sin(theta + M_PI / 2.0f), 0.0f);
+            MurkaPoint3D p2(x1 - halfWidth * std::cos(theta + M_PI / 2.0f), y1 - halfWidth * std::sin(theta + M_PI / 2.0f), 0.0f);
+            MurkaPoint3D p3(x2 - halfWidth * std::cos(nextTheta + M_PI / 2.0f), y2 - halfWidth * std::sin(nextTheta + M_PI / 2.0f), 0.0f);
+            MurkaPoint3D p4(x2 + halfWidth * std::cos(nextTheta + M_PI / 2.0f), y2 + halfWidth * std::sin(nextTheta + M_PI / 2.0f), 0.0f);
+
+            circleVerts.emplace_back(p1);
+            circleVerts.emplace_back(p2);
+            circleVerts.emplace_back(p3);
+            circleVerts.emplace_back(p4);
+        }
+
+        vbo.setVertexData(circleVerts.data(), circleVerts.size());
+        return vbo;
+    }
+
+
     // Generates a box mesh
     MurVbo generateBoxMesh(float width, float height, float depth) {
         MurVbo mesh;

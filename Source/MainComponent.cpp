@@ -409,6 +409,10 @@ void MainComponent::draw() {
 	if (clipVideo.get() == nullptr) {
 		videoPlayerWidget.drawOverlay = true;
 	}
+
+	// draw panners
+	videoPlayerWidget.pannerSettings = playerOSC.getPannerSettings();
+
 	videoPlayerWidget.draw();
 	
 	// draw reference
