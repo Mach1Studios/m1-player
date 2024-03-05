@@ -70,47 +70,10 @@ public:
     bool cropStereoscopic = false;
 
     MurImage* imgVideo = nullptr;
-
-    void drawReticle(float x, float y, std::string label, bool reticleHovered, Murka& m) {
-        float realx = x;
-        float realy = y;
-
-        m.setColor(M1_ACTION_YELLOW);
-        m.disableFill();
-        m.drawCircle(realx - 1, realy - 1, (10 + 3 * A(reticleHovered)));
-
-        if (realx + 14 > getSize().x) {
-            //draw rollover shape on left side
-            float left_rollover = (realx + 14) - getSize().x;
-            m.drawCircle(left_rollover - 14, realy + 5, (10 + 3 * A(reticleHovered)));
-        }
-        if (realx - 14 < 0) {
-            //draw rollover shape on right side
-            float right_rollover = abs(realx - 14);
-            m.drawCircle(getSize().x - right_rollover + 14, realy + 5, (10 + 3 * A(reticleHovered)));
-        }
-
-        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, (10 + 2 * A(reticleHovered)));
-        m.setColor(M1_ACTION_YELLOW);
-        m.disableFill();
-        M1Label& l = m.prepare<M1Label>(MurkaShape(realx - 9, realy - 7 - 2 * A(reticleHovered), 50, 50)).text(label.c_str()).draw();
-
-        if (realx + 20 > getSize().x) {
-            //draw rollover shape on left side
-            float left_rollover = (realx + 8) - getSize().x;
-            m.prepare<M1Label>(MurkaShape(left_rollover - 16, realy - 2 - 2 * A(reticleHovered), 50, 50)).text(label.c_str()).draw();
-        }
-        if (realx - 20 < 0) {
-            //draw rollover shape on right side
-            float right_rollover = abs(realx - 8);
-            m.prepare<M1Label>(MurkaShape(getSize().x - right_rollover, realy - 2 - 2 * A(reticleHovered), 50, 50)).text(label.c_str()).draw();
-        }
-    }
-
-    void drawReticle(Murka& m, MurkaPoint p, std::string name) {
+    
+    void drawReticle(Murka& m, MurkaPoint p, std::string name, PannerSettings::Color color) {
         float circleRadius = 15;
-        std::string pannerName = name;
-        juceFontStash::Rectangle rect = m.getCurrentFont()->getStringBoundingBox(pannerName, 0, 0);
+        juceFontStash::Rectangle rect = m.getCurrentFont()->getStringBoundingBox(name, 0, 0);
         float rectHeight = m.getCurrentFont()->getLineHeight() + 4;
         float rectX = 14;
 
@@ -119,12 +82,12 @@ public:
 
         m.translate(p.x, p.y, 0);
         m.setLineWidth(3);
-        m.setColor(255, 198, 30);
+        m.setColor((int)color.r, (int)color.g, (int)color.b);
         m.drawVbo(circle, GL_TRIANGLE_STRIP, 0, circle.getVertices().size());
         m.drawRectangle(rectX, -rectHeight / 2, rect.width + 12, rectHeight);
 
         m.setColor(0, 0, 0);
-        m.drawString(pannerName, rectX + 6, -m.getCurrentFont()->getLineHeight() / 2);
+        m.drawString(name, rectX + 6, -m.getCurrentFont()->getLineHeight() / 2);
 
         m.popMatrix();
         m.popStyle();
@@ -137,8 +100,7 @@ public:
         // Convert spherical coordinates to 2D coordinates
         float x = (azimuth + M_PI) / (2 * M_PI); // Normalize azimuth to [0, 1]
         float y = 0.5 - elevation / M_PI; // Normalize elevation to [0, 1]
-
-        DBG(">>" + std::to_string(azimuth) + " , " + std::to_string(elevation) + " , " + std::to_string(point3D.z) + " , " + std::to_string(point3D.x));
+        //DBG(">>" + std::to_string(azimuth) + " , " + std::to_string(elevation) + " , " + std::to_string(point3D.z) + " , " + std::to_string(point3D.x));
 
         MurkaPoint projectedPoint;
         projectedPoint.x = getSize().x * x;
@@ -213,7 +175,7 @@ public:
 
                 for (int j = 0; j < pannerSettings[i].m1Encode.getPointsCount(); j++) {
                     MurkaPoint p = m.getScreenPoint(camera, { -points[j].z, points[j].y, points[j].x });
-                    drawReticle(m, p, pointsNames[j]);// pannerSettings[i].displayName);
+                    drawReticle(m, p, pannerSettings[i].displayName + ": " + pointsNames[j], pannerSettings[i].color);
                 }
             }
         }
@@ -232,7 +194,7 @@ public:
 
                 for (int j = 0; j < pannerSettings[i].m1Encode.getPointsCount(); j++) {
                     MurkaPoint p = project3DToFlat({ -points[j].z, points[j].y, points[j].x });
-                    drawReticle(m, p, pointsNames[j]);// pannerSettings[i].displayName);
+                    drawReticle(m, p, pannerSettings[i].displayName + ": " + pointsNames[j], pannerSettings[i].color);
                 }
 
             }

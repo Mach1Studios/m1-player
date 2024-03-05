@@ -6,6 +6,13 @@ struct PannerSettings {
     int port = 0;
     std::string displayName = "";
     
+    struct Color {
+        uint8 r = 0;
+        uint8 g = 0;
+        uint8 b = 0;
+        uint8 a = 0;
+    } color;
+    
     /// This object contains:
     /// - `Mach1EncodeInputModeType`
     /// - `Mach1EncodeOutputModeType`
