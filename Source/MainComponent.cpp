@@ -359,20 +359,6 @@ void MainComponent::openFile(juce::File filepath)
 			else if (detectedNumInputChannels == 14) {
 				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
 			}
-			/*
-			else if (detectedNumInputChannels == 32) {
-				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_32);
-			}
-			else if (detectedNumInputChannels == 36) {
-				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_36);
-			}
-			else if (detectedNumInputChannels == 48) {
-				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_48);
-			}
-			else if (detectedNumInputChannels == 60) {
-				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_60);
-			}
-			*/
 			transportSourceAudio.setSource(newClip.get(), 0, nullptr);
 
 			clipAudio = newClip;
