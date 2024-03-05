@@ -99,45 +99,7 @@ void PlayerOSC::oscMessageReceived(const juce::OSCMessage& msg)
         } else if (msg.getAddressPattern() == "/m1-reconnect-req") {
             disconnectToHelper();
             isConnected = false;
-        } else if (msg.getAddressPattern() == "/panner-settings") {
-            if (msg.size() > 0) { // check msg size
-                auto plugin_port = msg[0].getInt32();
-                if (msg.size() >= 6) {
-                    auto input_mode = msg[1].getInt32();
-                    auto azi = msg[2].getFloat32();
-                    auto ele = msg[3].getFloat32();
-                    auto div = msg[4].getFloat32();
-                    auto gain = msg[5].getFloat32();
-
-                    PannerSettings panner;
-                    panner.port = plugin_port;
-                    if (panner.displayName == "") {
-                        // TODO: Add string names nicely if the host supports
-                        panner.displayName = std::to_string(plugin_port);
-                    }
-                    panner.m1Encode.setInputMode((Mach1EncodeInputModeType)input_mode);
-                    panner.m1Encode.setAzimuth(azi);
-                    panner.azimuth = azi;
-                    panner.m1Encode.setElevation(ele);
-                    panner.elevation = ele;
-                    panner.m1Encode.setDiverge(div);
-                    panner.diverge = div;
-                    panner.m1Encode.setOutputGain(gain, false);
-
-                    auto iter = std::find_if(pannerSettings.begin(), pannerSettings.end(), find_panner(plugin_port));
-                    if (iter != pannerSettings.end()) {
-                        *iter = panner;
-                    }
-                    else {
-                        pannerSettings.push_back(panner);
-                    }
-                    //DBG("[OSC] Panner: port=" + std::to_string(plugin_port) + ", in=" + std::to_string(input_mode) + ", az=" + std::to_string(azi) + ", el=" + std::to_string(ele) + ", di=" + std::to_string(div) + ", gain=" + std::to_string(gain));
-                }
-            }
-            else {
-                // port not found, error here
-            }
-        }
+        } 
         else {
             messageReceived(msg);
         }
@@ -252,9 +214,4 @@ bool PlayerOSC::disconnectToHelper()
     } else {
         return false;
     }
-}
-
-std::vector<PannerSettings> PlayerOSC::getPannerSettings()
-{
-    return pannerSettings;
 }

@@ -87,8 +87,8 @@ void MainComponent::initialise()
                         // update found panner object
                         panner.displayName = std::to_string(plugin_port); // TODO: update this to pass string name
                         panner.m1Encode.setInputMode((Mach1EncodeInputModeType)input_mode);
-                        panner.m1Encode.setAzimuth(azi);
-                        panner.m1Encode.setElevation(ele);
+                        panner.m1Encode.setAzimuthDegrees(azi);
+                        panner.m1Encode.setElevationDegrees(ele);
                         panner.m1Encode.setDiverge(div);
                         panner.m1Encode.setOutputGain(gain, true);
                         panner.azimuth = azi; // TODO: remove these?
@@ -106,8 +106,8 @@ void MainComponent::initialise()
                 panner.displayName = std::to_string(plugin_port); // TODO: update this to pass string name
                 // update the current settings from the incoming osc messsage
                 panner.m1Encode.setInputMode((Mach1EncodeInputModeType)input_mode);
-                panner.m1Encode.setAzimuth(azi);
-                panner.m1Encode.setElevation(ele);
+                panner.m1Encode.setAzimuthDegrees(azi);
+                panner.m1Encode.setElevationDegrees(ele);
                 panner.m1Encode.setDiverge(div);
                 panner.m1Encode.setOutputGain(gain, true);
                 panner.azimuth = azi; // TODO: remove these?
@@ -359,6 +359,7 @@ void MainComponent::openFile(juce::File filepath)
 			else if (detectedNumInputChannels == 14) {
 				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
 			}
+			/*
 			else if (detectedNumInputChannels == 32) {
 				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_32);
 			}
@@ -371,7 +372,7 @@ void MainComponent::openFile(juce::File filepath)
 			else if (detectedNumInputChannels == 60) {
 				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_60);
 			}
-			 
+			*/
 			transportSourceAudio.setSource(newClip.get(), 0, nullptr);
 
 			clipAudio = newClip;
@@ -500,7 +501,7 @@ void MainComponent::draw() {
 	}
 
 	// draw panners
-	videoPlayerWidget.pannerSettings = playerOSC.getPannerSettings();
+	videoPlayerWidget.pannerSettings = panners;
 
 	videoPlayerWidget.draw();
 	

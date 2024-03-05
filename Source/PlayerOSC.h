@@ -15,8 +15,6 @@ class PlayerOSC : private juce::OSCSender, private juce::OSCReceiver, private ju
     void oscMessageReceived(const juce::OSCMessage& msg) override;
     juce::uint32 lastMessageTime = 0; 
 
-    std::vector<PannerSettings> pannerSettings;
-
 public:
     PlayerOSC();
     ~PlayerOSC();
@@ -30,6 +28,4 @@ public:
     bool sendPlayerYPR(float yaw, float pitch, float roll);
     bool connectToHelper();
     bool disconnectToHelper();
-
-    std::vector<PannerSettings> getPannerSettings();
 };
