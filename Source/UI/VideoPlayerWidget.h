@@ -119,11 +119,11 @@ public:
 
         m.translate(p.x, p.y, 0);
         m.setLineWidth(3);
-        m.setColor(0, 0, 255);
+        m.setColor(255, 198, 30);
         m.drawVbo(circle, GL_TRIANGLE_STRIP, 0, circle.getVertices().size());
         m.drawRectangle(rectX, -rectHeight / 2, rect.width + 12, rectHeight);
 
-        m.setColor(255, 255, 255);
+        m.setColor(0, 0, 0);
         m.drawString(pannerName, rectX + 6, -m.getCurrentFont()->getLineHeight() / 2);
 
         m.popMatrix();
@@ -203,6 +203,7 @@ public:
             }
 
             m.endCamera(camera);
+
             // draw panners
             for (int i = 0; i < pannerSettings.size(); i++) {
                 pannerSettings[i].m1Encode.generatePointResults();
