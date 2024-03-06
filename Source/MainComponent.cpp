@@ -106,13 +106,16 @@ void MainComponent::initialise()
                                     panner.color.g = msg[7].getColour().green;
                                     panner.color.b = msg[7].getColour().blue;
                                     panner.color.a = msg[7].getColour().alpha;
-                                } else {
-                                    // randomize a color
-                                    panner.color.r = Random().nextInt(255);
-                                    panner.color.g = Random().nextInt(255);
-                                    panner.color.b = Random().nextInt(255);
-                                    panner.color.a = 255;
                                 }
+                            }
+                            
+                            // randomize the color if one isnt assigned yet
+                            if (panner.color.a == 0) {
+                                // randomize a color
+                                panner.color.r = Random().nextInt(255);
+                                panner.color.g = Random().nextInt(255);
+                                panner.color.b = Random().nextInt(255);
+                                panner.color.a = 255;
                             }
                             
                             DBG("[OSC] Panner: port="+std::to_string(plugin_port)+", in="+std::to_string(input_mode)+", az="+std::to_string(azi)+", el="+std::to_string(ele)+", di="+std::to_string(div)+", gain="+std::to_string(gain));
@@ -154,8 +157,14 @@ void MainComponent::initialise()
                         panner.color.b = Random().nextInt(255);
                         panner.color.a = 255;
                     }
+                } else {
+                    // randomize a color
+                    panner.color.r = Random().nextInt(255);
+                    panner.color.g = Random().nextInt(255);
+                    panner.color.b = Random().nextInt(255);
+                    panner.color.a = 255;
                 }
-                
+                                
                 panners.push_back(panner);
                 DBG("[OSC] Panner: port="+std::to_string(plugin_port)+", in="+std::to_string(input_mode)+", az="+std::to_string(azi)+", el="+std::to_string(ele)+", di="+std::to_string(div)+", gain="+std::to_string(gain));
             }

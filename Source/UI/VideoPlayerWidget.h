@@ -82,7 +82,7 @@ public:
 
         m.translate(p.x, p.y, 0);
         m.setLineWidth(3);
-        m.setColor((int)color.r, (int)color.g, (int)color.b);
+        m.setColor(color.r, color.g, color.b);
         m.drawVbo(circle, GL_TRIANGLE_STRIP, 0, circle.getVertices().size());
         m.drawRectangle(rectX, -rectHeight / 2, rect.width + 12, rectHeight);
 
