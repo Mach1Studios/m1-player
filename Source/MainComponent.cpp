@@ -61,18 +61,43 @@ void MainComponent::initialise()
                 plugin_port = msg[0].getInt32();
             }
             
+            int state;
+            if (msg.size() >= 2 && msg[1].isInt32()) {
+                state = msg[1].getInt32();
+            }
+
             int input_mode;
-            bool found = false;
             float azi; float ele; float div; float gain;
-            if (msg.size() >= 6) {
-                azi = msg[2].getFloat32();
-                ele = msg[3].getFloat32();
-                div = msg[4].getFloat32();
-                gain = msg[5].getFloat32();
+            float st_azi, st_spr;
+            bool found = false;
+            if (msg.size() >= 8) {
+                if (msg[4].isInt32()) {
+                    input_mode = msg[4].getInt32();
+                }
+                if (msg[5].isFloat32()) {
+                    azi = msg[5].getFloat32();
+                }
+                if (msg[6].isFloat32()) {
+                    ele = msg[6].getFloat32();
+                }
+                if (msg[7].isFloat32()) {
+                    div = msg[7].getFloat32();
+                }
+                if (msg[8].isFloat32()) {
+                    gain = msg[8].getFloat32();
+                }
+            }
+            if (msg.size() >= 10) {
+                if (msg[9].isFloat32()) {
+                    st_azi = msg[9].getFloat32();
+                }
+                if (msg[10].isFloat32()) {
+                    st_spr = msg[10].getFloat32();
+                }
             }
             
-            if (msg.size() >= 2) {
-                input_mode = msg[1].getInt32();
+            if (msg.size() >= 1) {
+                state = msg[1].getInt32();
 
                 // update to panner
                 for (auto& panner : panners) {
@@ -80,38 +105,28 @@ void MainComponent::initialise()
                         found = true;
         
                         // update existing found panner obj
-                        if (input_mode == -1) { // remove panner if panner was deleted
+                        if (state == -1) { // remove panner if panner was deleted
                             auto iter = std::find_if(panners.begin(), panners.end(), find_plugin(plugin_port));
                             if (iter != panners.end()) {
                                 // if panner found, delete it
                                 panners.erase(iter);
                                 DBG("[OSC] Panner: port="+std::to_string(plugin_port)+", disconnected!");
                             }
-                        } else {
-                            if (msg.size() >= 6) {
+                        }
+                        else {
+                            // update state of panner
+                            panner.state = state;
+                            
+                            if (msg.size() >= 8) {
                                 // update found panner object
-                                panner.m1Encode.setInputMode((Mach1EncodeInputModeType)input_mode);
-                                panner.m1Encode.setAzimuthDegrees(azi);
-                                panner.m1Encode.setElevationDegrees(ele);
-                                panner.m1Encode.setDiverge(div);
-                                panner.m1Encode.setOutputGain(gain, true);
-                                panner.azimuth = azi; // TODO: remove these?
-                                panner.elevation = ele; // TODO: remove these?
-                                panner.diverge = div; // TODO: remove these?
-                                panner.gain = gain; // TODO: remove these?
-                                
                                 // check for a display name or otherwise use the port
-                                if (msg.size() >= 7) {
-                                    (msg[6].isString() && msg[6].getString() != "") ? panner.displayName = msg[6].getString().toStdString() : panner.displayName = std::to_string(plugin_port);
-                                }
-                                // check for a color or otherwise randomize a color
-                                if (msg.size() >= 8) {
-                                    if (msg[7].isColour() && msg[7].getColour().alpha != 0) {
-                                        panner.color.r = msg[7].getColour().red;
-                                        panner.color.g = msg[7].getColour().green;
-                                        panner.color.b = msg[7].getColour().blue;
-                                        panner.color.a = msg[7].getColour().alpha;
-                                    }
+                                (msg[2].isString() && msg[2].getString() != "") ? panner.displayName = msg[2].getString().toStdString() : panner.displayName = std::to_string(plugin_port);
+                                // check for a color
+                                if (msg[3].isColour() && msg[3].getColour().alpha != 0) {
+                                    panner.color.r = msg[3].getColour().red;
+                                    panner.color.g = msg[3].getColour().green;
+                                    panner.color.b = msg[3].getColour().blue;
+                                    panner.color.a = msg[3].getColour().alpha;
                                 }
                                 
                                 // randomize the color if one isnt assigned yet
@@ -123,6 +138,23 @@ void MainComponent::initialise()
                                     panner.color.a = 255;
                                 }
                                 
+                                panner.m1Encode.setInputMode((Mach1EncodeInputModeType)input_mode);
+                                panner.m1Encode.setAzimuthDegrees(azi);
+                                panner.m1Encode.setElevationDegrees(ele);
+                                panner.m1Encode.setDiverge(div);
+                                panner.m1Encode.setOutputGain(gain, true);
+                                panner.azimuth = azi; // TODO: remove these?
+                                panner.elevation = ele; // TODO: remove these?
+                                panner.diverge = div; // TODO: remove these?
+                                panner.gain = gain; // TODO: remove these?
+                                
+                                if (input_mode == 1 && msg.size() >= 10) {
+                                    panner.m1Encode.setOrbitRotationDegrees(st_azi);
+                                    panner.m1Encode.setStereoSpread(st_spr/100.); // normalize
+                                    panner.stereoOrbitAzimuth = st_azi; // TODO: remove these?
+                                    panner.stereoSpread = st_spr/100.; // TODO: remove these?
+                                }
+                                
                                 DBG("[OSC] Panner: port="+std::to_string(plugin_port)+", in="+std::to_string(input_mode)+", az="+std::to_string(azi)+", el="+std::to_string(ele)+", di="+std::to_string(div)+", gain="+std::to_string(gain));
                             }
                         }
@@ -131,10 +163,31 @@ void MainComponent::initialise()
             }
 
             if (!found) {
-                if (msg.size() >= 6) {
+                if (msg.size() >= 8) {
+                    // update the current settings from the incoming osc messsage
                     PannerSettings panner;
                     panner.port = plugin_port;
-                    // update the current settings from the incoming osc messsage
+                    panner.state = state;
+                    
+                    // check for a display name or otherwise use the port
+                    (msg[2].isString() && msg[2].getString() != "") ? panner.displayName = msg[2].getString().toStdString() : panner.displayName = std::to_string(plugin_port);
+                    // check for a color
+                    if (msg[3].isColour() && msg[3].getColour().alpha != 0) {
+                        panner.color.r = msg[3].getColour().red;
+                        panner.color.g = msg[3].getColour().green;
+                        panner.color.b = msg[3].getColour().blue;
+                        panner.color.a = msg[3].getColour().alpha;
+                    }
+                    
+                    // randomize the color if one isnt assigned yet
+                    if (panner.color.a == 0) {
+                        // randomize a color
+                        panner.color.r = Random().nextInt(255);
+                        panner.color.g = Random().nextInt(255);
+                        panner.color.b = Random().nextInt(255);
+                        panner.color.a = 255;
+                    }
+                    
                     panner.m1Encode.setInputMode((Mach1EncodeInputModeType)input_mode);
                     panner.m1Encode.setAzimuthDegrees(azi);
                     panner.m1Encode.setElevationDegrees(ele);
@@ -145,32 +198,13 @@ void MainComponent::initialise()
                     panner.diverge = div; // TODO: remove these?
                     panner.gain = gain; // TODO: remove these?
                     
-                    // check for a display name or otherwise use the port
-                    if (msg.size() >= 7) {
-                        (msg[6].isString() && msg[6].getString() != "") ? panner.displayName = msg[6].getString().toStdString() : panner.displayName = std::to_string(plugin_port);
+                    if (input_mode == 1 && msg.size() >= 10) {
+                        panner.m1Encode.setOrbitRotationDegrees(st_azi);
+                        panner.m1Encode.setStereoSpread(st_spr/100.); // normalize
+                        panner.stereoOrbitAzimuth = st_azi; // TODO: remove these?
+                        panner.stereoSpread = st_spr/100.; // TODO: remove these?
                     }
-                    // check for a color or otherwise randomize a color
-                    if (msg.size() >= 8) {
-                        if (msg[7].isColour() && msg[7].getColour().alpha != 0) {
-                            panner.color.r = msg[7].getColour().red;
-                            panner.color.g = msg[7].getColour().green;
-                            panner.color.b = msg[7].getColour().blue;
-                            panner.color.a = msg[7].getColour().alpha;
-                        } else {
-                            // randomize a color
-                            panner.color.r = Random().nextInt(255);
-                            panner.color.g = Random().nextInt(255);
-                            panner.color.b = Random().nextInt(255);
-                            panner.color.a = 255;
-                        }
-                    } else {
-                        // randomize a color
-                        panner.color.r = Random().nextInt(255);
-                        panner.color.g = Random().nextInt(255);
-                        panner.color.b = Random().nextInt(255);
-                        panner.color.a = 255;
-                    }
-                    
+
                     panners.push_back(panner);
                     DBG("[OSC] Panner: port="+std::to_string(plugin_port)+", in="+std::to_string(input_mode)+", az="+std::to_string(azi)+", el="+std::to_string(ele)+", di="+std::to_string(div)+", gain="+std::to_string(gain));
                 }
