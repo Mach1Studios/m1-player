@@ -93,7 +93,7 @@ public:
         m.popStyle();
     }
 
-    MurkaPoint project3DToFlat(const MurkaPoint3D& point3D) {
+    MurkaPoint project3DToFlat2D(const MurkaPoint3D& point3D) {
         float azimuth = atan2(-point3D.x, point3D.z); // Calculate azimuth angle (swapped x and z)
         float elevation = asin(point3D.y / sqrt(point3D.x * point3D.x + point3D.y * point3D.y + point3D.z * point3D.z)); // Calculate elevation angle (using vector length)
 
@@ -193,7 +193,7 @@ public:
                 std::vector<Mach1Point3D> points = pannerSettings[i].m1Encode.getPoints();
 
                 for (int j = 0; j < pannerSettings[i].m1Encode.getPointsCount(); j++) {
-                    MurkaPoint p = project3DToFlat({ -points[j].z, points[j].y, points[j].x });
+                    MurkaPoint p = project3DToFlat2D({ -points[j].z, points[j].y, points[j].x });
                     drawReticle(m, p, pannerSettings[i].displayName + ": " + pointsNames[j], pannerSettings[i].color);
                 }
 
