@@ -14,10 +14,10 @@ struct PannerSettings {
     int state = 0;
     
     struct Color {
-        uint8 r = 0;
-        uint8 g = 0;
-        uint8 b = 0;
-        uint8 a = 0;
+        std::uint8_t r = 0;
+        std::uint8_t g = 0;
+        std::uint8_t b = 0;
+        std::uint8_t a = 0;
     } color;
     
     /// This object contains:
