@@ -175,7 +175,9 @@ public:
 
                 for (int j = 0; j < pannerSettings[i].m1Encode.getPointsCount(); j++) {
                     MurkaPoint p = m.getScreenPoint(camera, { -points[j].z, points[j].y, points[j].x });
-                    drawReticle(m, p, pannerSettings[i].displayName + ": " + pointsNames[j], pannerSettings[i].color);
+                    if (p.x >= 0 && p.y >= 0) {
+                        drawReticle(m, p, pannerSettings[i].displayName + ": " + pointsNames[j], pannerSettings[i].color);
+                    }
                 }
             }
         }

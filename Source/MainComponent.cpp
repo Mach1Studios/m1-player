@@ -132,9 +132,9 @@ void MainComponent::initialise()
                                 // randomize the color if one isnt assigned yet
                                 if (panner.color.a == 0) {
                                     // randomize a color
-                                    panner.color.r = Random().nextInt(255);
-                                    panner.color.g = Random().nextInt(255);
-                                    panner.color.b = Random().nextInt(255);
+                                    panner.color.r = juce::Random().nextInt(255);
+                                    panner.color.g = juce::Random().nextInt(255);
+                                    panner.color.b = juce::Random().nextInt(255);
                                     panner.color.a = 255;
                                 }
                                 
@@ -182,9 +182,9 @@ void MainComponent::initialise()
                     // randomize the color if one isnt assigned yet
                     if (panner.color.a == 0) {
                         // randomize a color
-                        panner.color.r = Random().nextInt(255);
-                        panner.color.g = Random().nextInt(255);
-                        panner.color.b = Random().nextInt(255);
+                        panner.color.r = juce::Random().nextInt(255);
+                        panner.color.g = juce::Random().nextInt(255);
+                        panner.color.b = juce::Random().nextInt(255);
                         panner.color.a = 255;
                     }
                     
