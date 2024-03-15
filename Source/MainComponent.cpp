@@ -69,8 +69,10 @@ void MainComponent::initialise()
             int input_mode;
             float azi; float ele; float div; float gain;
             float st_azi, st_spr;
+            int panner_mode;
+            bool auto_orbit;
             bool found = false;
-            if (msg.size() >= 8) {
+            if (msg.size() >= 10) {
                 if (msg[4].isInt32()) {
                     input_mode = msg[4].getInt32();
                 }
@@ -86,13 +88,19 @@ void MainComponent::initialise()
                 if (msg[8].isFloat32()) {
                     gain = msg[8].getFloat32();
                 }
-            }
-            if (msg.size() >= 10) {
-                if (msg[9].isFloat32()) {
-                    st_azi = msg[9].getFloat32();
+                if (msg[9].isInt32()) {
+                    panner_mode = msg[9].getInt32();
                 }
-                if (msg[10].isFloat32()) {
-                    st_spr = msg[10].getFloat32();
+                if (msg[10].isInt32()) {
+                    auto_orbit = msg[10].getInt32();
+                }
+            }
+            if (msg.size() >= 12) {
+                if (msg[11].isFloat32()) {
+                    st_azi = msg[11].getFloat32();
+                }
+                if (msg[12].isFloat32()) {
+                    st_spr = msg[12].getFloat32();
                 }
             }
             
@@ -117,7 +125,7 @@ void MainComponent::initialise()
                             // update state of panner
                             panner.state = state;
                             
-                            if (msg.size() >= 8) {
+                            if (msg.size() >= 10) {
                                 // update found panner object
                                 // check for a display name or otherwise use the port
                                 (msg[2].isString() && msg[2].getString() != "") ? panner.displayName = msg[2].getString().toStdString() : panner.displayName = std::to_string(plugin_port);
@@ -143,12 +151,15 @@ void MainComponent::initialise()
                                 panner.m1Encode.setElevationDegrees(ele);
                                 panner.m1Encode.setDiverge(div);
                                 panner.m1Encode.setOutputGain(gain, true);
+                                panner.m1Encode.setPannerMode((Mach1EncodePannerModeType)panner_mode);
+                                panner.m1Encode.setAutoOrbit(auto_orbit); 
                                 panner.azimuth = azi; // TODO: remove these?
                                 panner.elevation = ele; // TODO: remove these?
                                 panner.diverge = div; // TODO: remove these?
                                 panner.gain = gain; // TODO: remove these?
-                                
-                                if (input_mode == 1 && msg.size() >= 10) {
+                                panner.autoOrbit = auto_orbit; // TODO: remove these?
+
+                                if (input_mode == 1 && msg.size() >= 12) {
                                     panner.m1Encode.setOrbitRotationDegrees(st_azi);
                                     panner.m1Encode.setStereoSpread(st_spr/100.); // normalize
                                     panner.stereoOrbitAzimuth = st_azi; // TODO: remove these?
@@ -163,7 +174,7 @@ void MainComponent::initialise()
             }
 
             if (!found) {
-                if (msg.size() >= 8) {
+                if (msg.size() >= 10) {
                     // update the current settings from the incoming osc messsage
                     PannerSettings panner;
                     panner.port = plugin_port;
@@ -193,12 +204,15 @@ void MainComponent::initialise()
                     panner.m1Encode.setElevationDegrees(ele);
                     panner.m1Encode.setDiverge(div);
                     panner.m1Encode.setOutputGain(gain, true);
+                    panner.m1Encode.setPannerMode((Mach1EncodePannerModeType)panner_mode);
+                    panner.m1Encode.setAutoOrbit(auto_orbit);
                     panner.azimuth = azi; // TODO: remove these?
                     panner.elevation = ele; // TODO: remove these?
                     panner.diverge = div; // TODO: remove these?
                     panner.gain = gain; // TODO: remove these?
-                    
-                    if (input_mode == 1 && msg.size() >= 10) {
+                    panner.autoOrbit = auto_orbit; // TODO: remove these?
+                     
+                    if (input_mode == 1 && msg.size() >= 12) {
                         panner.m1Encode.setOrbitRotationDegrees(st_azi);
                         panner.m1Encode.setStereoSpread(st_spr/100.); // normalize
                         panner.stereoOrbitAzimuth = st_azi; // TODO: remove these?
