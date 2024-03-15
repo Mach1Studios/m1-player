@@ -8,7 +8,7 @@ include(FetchContent)
 # Fetch the latest pre-built libs
 FetchContent_Declare(
   m1-sdk
-  URL      https://github.com/Mach1Studios/m1-sdk/releases/download/6487994/mach1spatial-libs.zip
+  URL      https://github.com/Mach1Studios/m1-sdk/releases/download/5505f0b/mach1spatial-libs.zip
 )
 
 FetchContent_GetProperties(m1-sdk)
