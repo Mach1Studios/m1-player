@@ -91,11 +91,11 @@ void MainComponent::initialise()
                 if (msg[9].isInt32()) {
                     panner_mode = msg[9].getInt32();
                 }
+            }
+            if (msg.size() >= 13) {
                 if (msg[10].isInt32()) {
                     auto_orbit = msg[10].getInt32();
                 }
-            }
-            if (msg.size() >= 12) {
                 if (msg[11].isFloat32()) {
                     st_azi = msg[11].getFloat32();
                 }
@@ -152,16 +152,16 @@ void MainComponent::initialise()
                                 panner.m1Encode.setDiverge(div);
                                 panner.m1Encode.setOutputGain(gain, true);
                                 panner.m1Encode.setPannerMode((Mach1EncodePannerModeType)panner_mode);
-                                panner.m1Encode.setAutoOrbit(auto_orbit); 
                                 panner.azimuth = azi; // TODO: remove these?
                                 panner.elevation = ele; // TODO: remove these?
                                 panner.diverge = div; // TODO: remove these?
                                 panner.gain = gain; // TODO: remove these?
-                                panner.autoOrbit = auto_orbit; // TODO: remove these?
 
-                                if (input_mode == 1 && msg.size() >= 12) {
+                                if (input_mode == 1 && msg.size() >= 13) {
+                                    panner.m1Encode.setAutoOrbit(auto_orbit);
                                     panner.m1Encode.setOrbitRotationDegrees(st_azi);
                                     panner.m1Encode.setStereoSpread(st_spr/100.); // normalize
+                                    panner.autoOrbit = auto_orbit; // TODO: remove these?
                                     panner.stereoOrbitAzimuth = st_azi; // TODO: remove these?
                                     panner.stereoSpread = st_spr/100.; // TODO: remove these?
                                 }
@@ -205,16 +205,16 @@ void MainComponent::initialise()
                     panner.m1Encode.setDiverge(div);
                     panner.m1Encode.setOutputGain(gain, true);
                     panner.m1Encode.setPannerMode((Mach1EncodePannerModeType)panner_mode);
-                    panner.m1Encode.setAutoOrbit(auto_orbit);
                     panner.azimuth = azi; // TODO: remove these?
                     panner.elevation = ele; // TODO: remove these?
                     panner.diverge = div; // TODO: remove these?
                     panner.gain = gain; // TODO: remove these?
-                    panner.autoOrbit = auto_orbit; // TODO: remove these?
                      
-                    if (input_mode == 1 && msg.size() >= 12) {
+                    if (input_mode == 1 && msg.size() >= 13) {
+                        panner.m1Encode.setAutoOrbit(auto_orbit);
                         panner.m1Encode.setOrbitRotationDegrees(st_azi);
                         panner.m1Encode.setStereoSpread(st_spr/100.); // normalize
+                        panner.autoOrbit = auto_orbit; // TODO: remove these?
                         panner.stereoOrbitAzimuth = st_azi; // TODO: remove these?
                         panner.stereoSpread = st_spr/100.; // TODO: remove these?
                     }
