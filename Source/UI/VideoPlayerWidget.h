@@ -176,7 +176,17 @@ public:
                 for (int j = 0; j < pannerSettings[i].m1Encode.getPointsCount(); j++) {
                     MurkaPoint p = m.getScreenPoint(camera, { -points[j].z, points[j].y, points[j].x });
                     if (p.x >= 0 && p.y >= 0) {
-                        drawReticle(m, p, pannerSettings[i].displayName + ": " + pointsNames[j], pannerSettings[i].color);
+                        if (pointsNames[j] == "LFE" || pointsNames[j] == "W" || pointsNames[j] == "1" || pointsNames[j] == "-1" || pointsNames[j] == "2" || pointsNames[j] == "-2" || pointsNames[j] == "Y" || pointsNames[j] == "-Y" || pointsNames[j] == "Z" || pointsNames[j] == "-Z") {
+                            // skip drawing certain non-positional points
+                        } else if (pointsNames[j] == "3" || pointsNames[j] == "X") {
+                            // convert point name to something more helpful to the user
+                            drawReticle(m, p, pannerSettings[i].displayName + ": " + "FRONT", pannerSettings[i].color);
+                        } else if (pointsNames[j] == "-3" || pointsNames[j] == "-X") {
+                            // convert point name to something more helpful to the user
+                            drawReticle(m, p, pannerSettings[i].displayName + ": " + "BACK", pannerSettings[i].color);
+                        } else {
+                            drawReticle(m, p, pannerSettings[i].displayName + ": " + pointsNames[j], pannerSettings[i].color);
+                        }
                     }
                 }
             }
