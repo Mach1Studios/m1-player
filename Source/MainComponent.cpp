@@ -664,7 +664,7 @@ void MainComponent::draw() {
 		}
 
 		auto& cropStereoscopicCheckbox = m.prepare<murka::Checkbox>({ 20, 80, 130, 30 });
-		cropStereoscopicCheckbox.dataToControl = &(videoPlayerWidget.cropStereoscopic);
+		cropStereoscopicCheckbox.dataToControl = &(videoPlayerWidget.crop_Stereoscopic_TopBottom);
 		cropStereoscopicCheckbox.label = "CROP STEREOSCOPIC";
 		if (!bHideUI) {
 			cropStereoscopicCheckbox.draw();
@@ -723,7 +723,7 @@ void MainComponent::draw() {
 	}
 
 	if (m.isKeyPressed('d')) {
-		videoPlayerWidget.cropStereoscopic = !videoPlayerWidget.cropStereoscopic;
+		videoPlayerWidget.crop_Stereoscopic_TopBottom = !videoPlayerWidget.crop_Stereoscopic_TopBottom;
 	}
 
 	// toggles hiding the UI for better video review
