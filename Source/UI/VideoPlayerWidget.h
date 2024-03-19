@@ -67,7 +67,7 @@ public:
 
     bool drawFlat = false;
     bool drawOverlay = false;
-    bool cropStereoscopic = false;
+    bool crop_Stereoscopic_TopBottom = false;
 
     MurImage* imgVideo = nullptr;
     
@@ -150,7 +150,7 @@ public:
             if (imgVideo && imgVideo->isAllocated()) {
                 m.bindShader(&videoShader);
 
-                videoShader.setUniform1i("cropStereoscopic", cropStereoscopic);
+                videoShader.setUniform1i("cropStereoscopic", crop_Stereoscopic_TopBottom);
 
                 m.bind(*imgVideo);
                 m.drawVbo(sphere, GL_TRIANGLE_STRIP, 0, sphere.getIndexes().size());
@@ -194,7 +194,11 @@ public:
         else {
             // draw flat
             if (imgVideo && imgVideo->isAllocated()) {
-                m.drawImage(*imgVideo, 0, 0, getSize().x, getSize().y);
+                if (crop_Stereoscopic_TopBottom) {
+                    m.drawImage(*imgVideo, 0, 0, getSize().x, getSize().y * 2);
+                } else {
+                    m.drawImage(*imgVideo, 0, 0, getSize().x, getSize().y);
+                }
             }
 
             // draw panners
@@ -239,7 +243,7 @@ public:
         videoPlayerSurface.imgVideo = imgVideo;
         videoPlayerSurface.drawFlat = drawFlat;
         videoPlayerSurface.drawOverlay = drawOverlay;
-        videoPlayerSurface.cropStereoscopic = cropStereoscopic;
+        videoPlayerSurface.crop_Stereoscopic_TopBottom = crop_Stereoscopic_TopBottom;
         videoPlayerSurface.rotation = rotation;
         videoPlayerSurface.rotationOffset = rotationOffset;
         videoPlayerSurface.camera.setFov(fov);
@@ -257,7 +261,7 @@ public:
 
     bool drawFlat = false;
     bool drawOverlay = false;
-    bool cropStereoscopic = false;
+    bool crop_Stereoscopic_TopBottom = false;
 
     int fov = 70;
 
