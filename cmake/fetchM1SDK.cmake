@@ -3,22 +3,29 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
 	cmake_policy(SET CMP0135 NEW)
 endif()
 
-include(FetchContent)
+if(EXTERNAL_M1SDK_PATH) 
+    message(STATUS "Using an external M1SDK Path: ${EXTERNAL_M1SDK_PATH}")
+    set(MACH1SPATIAL_LIBS_PATH ${EXTERNAL_M1SDK_PATH}/mach1spatial-libs)
+else()
+    message(STATUS "Downloading and linking to the tagged release M1-SDK")
 
-# Fetch the latest pre-built libs
-FetchContent_Declare(
-  m1-sdk
-  URL      https://github.com/Mach1Studios/m1-sdk/releases/download/5505f0b/mach1spatial-libs.zip
-)
+    include(FetchContent)
 
-FetchContent_GetProperties(m1-sdk)
+    # Fetch the latest pre-built libs
+    FetchContent_Declare(
+      m1-sdk
+      URL      https://github.com/Mach1Studios/m1-sdk/releases/download/5505f0b/mach1spatial-libs.zip
+    )
 
-if (NOT m1-sdk_POPULATED)
-    FetchContent_Populate(m1-sdk)
+    FetchContent_GetProperties(m1-sdk)
 
-    # Perform arbitrary actions on the m1-sdk project
-    # Avoid `add_subdirectory()` until a CMakeFile.txt is added to this directory
-    set(MACH1SPATIAL_LIBS_PATH "${m1-sdk_SOURCE_DIR}")
+    if (NOT m1-sdk_POPULATED)
+        FetchContent_Populate(m1-sdk)
+
+        # Perform arbitrary actions on the m1-sdk project
+        # Avoid `add_subdirectory()` until a CMakeFile.txt is added to this directory
+        set(MACH1SPATIAL_LIBS_PATH "${m1-sdk_SOURCE_DIR}")
+    endif()
 endif()
 
 if(APPLE)
