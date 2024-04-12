@@ -62,6 +62,7 @@ public:
     MurkaPoint3D rotationOffsetMouse = { 0, 0, 0 };
     MurkaPoint3D rotationOffset = { 0, 0, 0 };
     MurkaPoint3D rotationCurrent = { 0, 0, 0 };
+    bool isUpdatedRotation = false;
 
     std::vector<PannerSettings> pannerSettings;
 
@@ -129,6 +130,10 @@ public:
             inited = true;
         }
 
+        MurkaPoint3D rot = rotation + rotationOffsetMouse + rotationOffset;
+        isUpdatedRotation = (rotationCurrent != rot);
+        rotationCurrent = rot;
+        
         if (drawFlat == false) {
             camera.setPosition(MurkaPoint3D(0, 0, 0));
             camera.lookAt(MurkaPoint3D(0, 0, -10));
@@ -138,8 +143,6 @@ public:
                 rotationOffsetMouse.x += 0.25 * mouseDelta().x;
                 rotationOffsetMouse.y -= 0.25 * mouseDelta().y;
             }
-
-            rotationCurrent = rotation + rotationOffsetMouse + rotationOffset;
 
             // r.y, r.x, r.z
             camera.setRotation(MurkaPoint3D{ rotationCurrent.y, -rotationCurrent.x , rotationCurrent.z }); // YPR -> +P-Y+R 3d camera
@@ -257,6 +260,8 @@ public:
         playheadPosition = videoPlayerPlayhead.playheadPosition;
         rotationCurrent = videoPlayerSurface.rotationCurrent;
         rotationOffsetMouse = videoPlayerSurface.rotationOffsetMouse;
+
+        isUpdatedRotation = videoPlayerSurface.isUpdatedRotation;
     }
 
     bool drawFlat = false;
@@ -274,5 +279,7 @@ public:
     MurkaPoint3D rotationOffsetMouse = { 0, 0, 0 };
     MurkaPoint3D rotationCurrent = { 0, 0, 0 };
     MurkaPoint3D rotationPrevious = { 0, 0, 0 };
+
+    bool isUpdatedRotation = false;
     float playheadPosition = 0.0;
 };

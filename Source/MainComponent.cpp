@@ -536,13 +536,10 @@ void MainComponent::draw() {
     currentPlayerWidgetFov = videoPlayerWidget.fov;
     
     if (playerOSC.IsConnected() && playerOSC.IsActivePlayer()) {
-        // TODO: Send the current orientation of player instead of delta to let monitor pick up on player's orientation and avoid resets
+        // send the current orientation of player instead 
         // send mouse offset of player orientation and send to helper
-        if (videoPlayerWidget.rotationOffsetMouse.x != prev_mouse_offset.x || videoPlayerWidget.rotationOffsetMouse.y != prev_mouse_offset.y) {
-            // normalize the mouse offset and then get the delta
-            float norm_yaw_delta = (std::fmod(prev_mouse_offset.x, 360.) - std::fmod(videoPlayerWidget.rotationOffsetMouse.x, 360.)) / (360.);
-            float norm_pitch_delta = (std::fmod(prev_mouse_offset.y, 180.) - std::fmod(videoPlayerWidget.rotationOffsetMouse.y, 180.)) / 180.;
-            playerOSC.sendPlayerYPR(-norm_yaw_delta, -norm_pitch_delta, 0);
+        if (videoPlayerWidget.isUpdatedRotation) {
+            playerOSC.sendPlayerYPR(currentOrientation.yaw, currentOrientation.pitch, currentOrientation.roll);
         }
         prev_mouse_offset = videoPlayerWidget.rotationOffsetMouse;
     }
@@ -680,30 +677,33 @@ void MainComponent::draw() {
 		videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
 	}
 
-	// TODO: fix these reset keys, they are supposed to set the overal camera to front/back/left/right not the offset
-    // TODO: ensure these offsets are also applied or captured via `sendPlayerYPR()`
+	// these reset keys 
 	if (m.isKeyPressed(MurkaKey::MURKA_KEY_UP)) { // up arrow
-		videoPlayerWidget.rotationOffset.x = 0.;
-        videoPlayerWidget.rotationOffset.y = 0.;
-        videoPlayerWidget.rotationOffset.z = 0.;
+        videoPlayerWidget.rotationOffsetMouse = { 0, 0, 0 };
+		videoPlayerWidget.rotation.x = 0.;
+        videoPlayerWidget.rotation.y = 0.;
+        videoPlayerWidget.rotation.z = 0.;
 	}
 
 	if (m.isKeyPressed(MurkaKey::MURKA_KEY_DOWN)) { // down arrow
-		videoPlayerWidget.rotationOffset.x = 180.;
-        videoPlayerWidget.rotationOffset.y = 0.;
-        videoPlayerWidget.rotationOffset.z = 0.;
+        videoPlayerWidget.rotationOffsetMouse = { 0, 0, 0 };
+		videoPlayerWidget.rotation.x = 180.;
+        videoPlayerWidget.rotation.y = 0.;
+        videoPlayerWidget.rotation.z = 0.;
 	}
 
 	if (m.isKeyPressed(MurkaKey::MURKA_KEY_RIGHT)) { // right arrow
-		videoPlayerWidget.rotationOffset.x = 90.;
-        videoPlayerWidget.rotationOffset.y = 0;
-        videoPlayerWidget.rotationOffset.z = 0;
+        videoPlayerWidget.rotationOffsetMouse = { 0, 0, 0 };
+		videoPlayerWidget.rotation.x = 90.;
+        videoPlayerWidget.rotation.y = 0;
+        videoPlayerWidget.rotation.z = 0;
 	}
 
 	if (m.isKeyPressed(MurkaKey::MURKA_KEY_LEFT)) { // left arrow
-		videoPlayerWidget.rotationOffset.x = 270.;
-        videoPlayerWidget.rotationOffset.y = 0.;
-        videoPlayerWidget.rotationOffset.z = 0.;
+        videoPlayerWidget.rotationOffsetMouse = { 0, 0, 0 };
+		videoPlayerWidget.rotation.x = 270.;
+        videoPlayerWidget.rotation.y = 0.;
+        videoPlayerWidget.rotation.z = 0.;
 	}
 
 	if (m.isKeyPressed('w') || m.mouseScroll().y > lastScrollValue.y) {
