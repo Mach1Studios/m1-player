@@ -486,31 +486,47 @@ void MainComponent::shutdown()
 	murka::JuceMurkaBaseComponent::shutdown();
 }
 
+void MainComponent::syncWithOrientationClientPlayhead() {
+    if (std::abs(m1OrientationClient.getPlayerLastUpdate() - lastUpdateForPlayer) < 0.001f) {
+        return;
+    }
+
+    lastUpdateForPlayer = m1OrientationClient.getPlayerLastUpdate();
+
+    auto length = (std::max)(transportSourceAudio.getLengthInSeconds(), transportSourceVideo.getLengthInSeconds());
+    auto pos = (std::max)(transportSourceAudio.getCurrentPosition(), transportSourceVideo.getCurrentPosition());
+    float playhead_pos = m1OrientationClient.getPlayerPositionInSeconds();
+    bool end_reached = playhead_pos >= length;
+
+    // If we've reached the end, and neither transport is playing, then there's nothing left to be done.
+    if (end_reached && !(transportSourceAudio.isPlaying() || transportSourceVideo.isPlaying())) {
+        return;
+    }
+
+    auto playback_delta = static_cast<float>(playhead_pos - pos);
+    DBG("Playhead Pos: " = std::to_string(playback_delta));
+    if (std::fabs(playback_delta) > 0.1 && !end_reached) {
+        transportSourceVideo.setPosition(playhead_pos + 0.05);
+        transportSourceAudio.setPosition(playhead_pos + 0.05);
+    }
+
+    bool playhead_is_playing = m1OrientationClient.getPlayerIsPlaying();
+    bool video_not_synced = (clipVideo != nullptr && playhead_is_playing != transportSourceVideo.isPlaying());
+    bool audio_not_synced = (clipAudio != nullptr && playhead_is_playing != transportSourceAudio.isPlaying());
+    if (video_not_synced || audio_not_synced) {
+        if (playhead_is_playing) {
+            transportSourceVideo.start();
+            transportSourceAudio.start();
+        }
+        else {
+            transportSourceVideo.stop();
+            transportSourceAudio.stop();
+        }
+    }
+}
+
 void MainComponent::draw() {
-	// sync playhead from monitor
-	if (m1OrientationClient.getPlayerLastUpdate() != lastUpdateForPlayer) {
-		lastUpdateForPlayer = m1OrientationClient.getPlayerLastUpdate();
-
-		float length = (std::max)(transportSourceAudio.getLengthInSeconds(), transportSourceVideo.getLengthInSeconds());
-		float pos = (std::max)(transportSourceAudio.getCurrentPosition(), transportSourceVideo.getCurrentPosition());
-		DBG("Playhead Pos: " = std::to_string(m1OrientationClient.getPlayerPositionInSeconds() - pos));
-		if (std::fabs(m1OrientationClient.getPlayerPositionInSeconds() - pos) > 0.1 && m1OrientationClient.getPlayerPositionInSeconds() < length) {
-			transportSourceVideo.setPosition(m1OrientationClient.getPlayerPositionInSeconds() + 0.05);
-			transportSourceAudio.setPosition(m1OrientationClient.getPlayerPositionInSeconds() + 0.05);
-		}
-
-		if ((clipVideo.get() != nullptr && m1OrientationClient.getPlayerIsPlaying() != transportSourceVideo.isPlaying()) ||
-			(clipAudio.get() != nullptr && m1OrientationClient.getPlayerIsPlaying() != transportSourceAudio.isPlaying())) {
-			if (m1OrientationClient.getPlayerIsPlaying()) {
-				transportSourceVideo.start();
-				transportSourceAudio.start();
-			}
-			else {
-				transportSourceVideo.stop();
-				transportSourceAudio.stop();
-			}
-		}
-	}
+    syncWithOrientationClientPlayhead();
 
 	// update video frame
 	if (clipVideo.get() != nullptr) {
