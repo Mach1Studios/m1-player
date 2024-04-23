@@ -56,7 +56,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
         }
     };
 
-    int lastUpdateForPlayer = 0;
+    float lastUpdateForPlayer = 0.0f;
 
     double currentPlayerWidgetFov = 0;
     bool drawReference = false;
@@ -115,6 +115,10 @@ public:
     //==============================================================================
     bool isInterestedInFileDrag(const juce::StringArray&) override;
     void filesDropped(const juce::StringArray& files, int, int) override;
+
+protected:
+
+    void syncWithOrientationClientPlayhead();
 
 private:
     //==============================================================================
