@@ -98,7 +98,7 @@ void PlayerOSC::oscMessageReceived(const juce::OSCMessage& msg)
             }
         } else if (msg.getAddressPattern() == "/m1-reconnect-req") {
             disconnectToHelper();
-            isConnected = false;
+            isConnected = false; // when false the update loop will trigger connectToHelper()
         } 
         else {
             messageReceived(msg);
