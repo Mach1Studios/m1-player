@@ -35,8 +35,8 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     MurImage imgVideo;
 
     M1OrientationClient m1OrientationClient;
-    M1OrientationYPR currentOrientation; // TODO: use Orientation class instead
-    M1OrientationYPR previousClientOrientation;
+    Mach1::Orientation currentOrientation;
+    Mach1::Orientation previousClientOrientation;
     MurkaPoint3D prev_mouse_offset = { 0, 0, 0 }; // used to track if the player mouse offset has a new value
     M1OrientationClientWindow* orientationControlWindow;
     bool showOrientationControlMenu = false;
