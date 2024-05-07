@@ -170,7 +170,7 @@ void PlayerOSC::setAsActivePlayer(bool is_active)
 
 bool PlayerOSC::sendPlayerYPR(float yaw, float pitch, float roll)
 {
-    if (port > 0) { // check we have assigned a client port number
+    if (isConnected && port > 0) { // check we have assigned a client port number
         juce::OSCMessage m = juce::OSCMessage(juce::OSCAddressPattern("/setPlayerYPR"));
         m.addFloat32(yaw);   // expected degrees -180->180
         m.addFloat32(pitch); // expected degrees -90->90

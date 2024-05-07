@@ -23,6 +23,10 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # IDEs:  Create a folder in the IDE with the JUCE Module code.
 option(JUCE_ENABLE_MODULE_SOURCE_GROUPS "Show all module sources in IDE projects" ON)
 
+# Adds the Mach1 math
+# (Please ensure this is added before the `m1_orientation_client` JUCE module)
+add_subdirectory(Modules/m1_orientation_client/libs/m1-mathematics)
+
 # add JUCE
 add_subdirectory(JUCE)
 # add custom modules
@@ -97,7 +101,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         juce::juce_opengl 
         juce::juce_osc 
         juce_murka 
-        m1_orientation_client 
+        m1_orientation_client
+        m1_mathematics
         foleys_video_engine
         )
 
