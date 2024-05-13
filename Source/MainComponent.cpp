@@ -500,6 +500,7 @@ void MainComponent::syncWithOrientationClientPlayhead() {
 
     // If we've reached the end, and neither transport is playing, then there's nothing left to be done.
     if (end_reached && !(transportSourceAudio.isPlaying() || transportSourceVideo.isPlaying())) {
+        DBG("[Playhead] Reached end of video length.");
         return;
     }
 
@@ -604,7 +605,6 @@ void MainComponent::draw() {
 
 	// draw panners
 	videoPlayerWidget.pannerSettings = panners;
-
 	videoPlayerWidget.draw();
 	
 	// draw reference

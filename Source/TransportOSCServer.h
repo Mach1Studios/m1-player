@@ -17,15 +17,20 @@ class TransportOSCServer : private juce::OSCReceiver::Listener<juce::OSCReceiver
 		if (message.getAddressPattern() == "/transport") {
 			correctTimeInSeconds = message[0].getFloat32();
 			isPlaying = message[1].getInt32();
-
-			isUpdated = true;
+            
+            if (isPlaying != wasPlaying) {
+                DBG("[Playhead] isPlaying=" + std::to_string(isPlaying) + " , at " + std::to_string(correctTimeInSeconds) + " seconds");
+            }
+            
+            // Update for debug messaging
+            wasPlaying = isPlaying;
 		}
 	}
 
 public:
 	float correctTimeInSeconds = false;
-	bool isPlaying = true;
-	bool isUpdated = false;
+	bool isPlaying = false;
+    bool wasPlaying = false;
 
 	TransportOSCServer() {
 	}
