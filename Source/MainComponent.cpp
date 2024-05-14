@@ -499,29 +499,29 @@ void MainComponent::syncWithDAWPlayhead() {
     bool end_reached = playhead_pos >= length;
 
     // If we've reached the end, and neither transport is playing, then there's nothing left to be done.
-    if (end_reached && !(transportSourceAudio.isPlaying() || transportSourceVideo.isPlaying())) {
+    if (clipVideo.get() != nullptr && end_reached && !(transportSourceVideo.isPlaying())) {
         DBG("[Playhead] Reached end of video length.");
         return;
     }
 
+    // seek sync
+    // TODO: improve this to be frame accurate
+    // TODO: seeking seems to play a little loop
     auto playback_delta = static_cast<float>(playhead_pos - pos);
     DBG("Playhead Pos: " = std::to_string(playback_delta));
-    if (std::fabs(playback_delta) > 0.1 && !end_reached) {
-        transportSourceVideo.setPosition(playhead_pos + 0.05);
-        transportSourceAudio.setPosition(playhead_pos + 0.05);
+    if (std::fabs(playback_delta) > 0.05 && !end_reached) {
+        transportSourceVideo.setPosition(playhead_pos);
     }
 
+    // play / stop sync
     bool playhead_is_playing = m1OrientationClient.getPlayerIsPlaying();
     bool video_not_synced = (clipVideo != nullptr && playhead_is_playing != transportSourceVideo.isPlaying());
-    bool audio_not_synced = (clipAudio != nullptr && playhead_is_playing != transportSourceAudio.isPlaying());
-    if (video_not_synced || audio_not_synced) {
+    if (video_not_synced) {
         if (playhead_is_playing) {
             transportSourceVideo.start();
-            transportSourceAudio.start();
         }
         else {
             transportSourceVideo.stop();
-            transportSourceAudio.stop();
         }
     }
 }
@@ -529,11 +529,13 @@ void MainComponent::syncWithDAWPlayhead() {
 void MainComponent::draw() {
     
     if (b_standalone_mode) {
-        
+        // TODO: Allow playhead control
+        // TODO: Audio/Video Sync
     } else {
         // check for monitor discovery to get DAW playhead pos
         // sync with DAW
         syncWithDAWPlayhead();
+        // TODO: Disable interaction on play/stop controls in UI
     }
 
 	// update video frame
@@ -594,15 +596,8 @@ void MainComponent::draw() {
 		else if (clipVideo.get() != nullptr) length = transportSourceVideo.getLengthInSeconds();
 		else if (clipAudio.get() != nullptr) length = transportSourceAudio.getLengthInSeconds();
 
-		float playheadPosition = transportSourceAudio.getCurrentPosition() / length;
-
+		float playheadPosition = transportSourceVideo.getCurrentPosition() / length;
 		videoPlayerWidget.playheadPosition = playheadPosition;
-
-		if (videoPlayerWidget.playheadPosition != playheadPosition) {
-			float pos = videoPlayerWidget.playheadPosition * length;
-			transportSourceVideo.setPosition(pos);
-			transportSourceAudio.setPosition(pos);
-		}
 	}
 	
 	// draw overlay if video empty
