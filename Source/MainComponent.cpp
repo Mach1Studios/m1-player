@@ -514,10 +514,9 @@ void MainComponent::syncWithDAWPlayhead() {
     }
 
     // play / stop sync
-    bool playhead_is_playing = m1OrientationClient.getPlayerIsPlaying();
-    bool video_not_synced = (clipVideo != nullptr && playhead_is_playing != transportSourceVideo.isPlaying());
+    bool video_not_synced = (clipVideo != nullptr && m1OrientationClient.getPlayerIsPlaying() != transportSourceVideo.isPlaying());
     if (video_not_synced) {
-        if (playhead_is_playing) {
+        if (m1OrientationClient.getPlayerIsPlaying()) {
             transportSourceVideo.start();
         }
         else {
@@ -615,16 +614,19 @@ void MainComponent::draw() {
 		{
 			bool isPlaying = (transportSourceVideo.isPlaying() || transportSourceAudio.isPlaying());
 			auto& playButton = m.prepare<murka::Button>({ 10, m.getWindowHeight() - 100, 60, 30 }).text(!isPlaying ? "play" : "pause").draw();
-			if (playButton.pressed) {
-				if (isPlaying) {
-					transportSourceVideo.stop();
-					transportSourceAudio.stop();
-				}
-				else {
-					transportSourceVideo.start();
-					transportSourceAudio.start();
-				}
-			}
+            
+            if (b_standalone_mode) { // block interaction unless in standalone mode
+                if (playButton.pressed) {
+                    if (isPlaying) {
+                        transportSourceVideo.stop();
+                        transportSourceAudio.stop();
+                    }
+                    else {
+                        transportSourceVideo.start();
+                        transportSourceAudio.start();
+                    }
+                }
+            }
 		}
 
 		// stop button
@@ -782,16 +784,18 @@ void MainComponent::draw() {
         m1OrientationClient.command_setTrackingRollEnabled(!m1OrientationClient.getTrackingRollEnabled());
     }
     
-	if (m.eventState.isKeyPressed(' ')) {
-		if (transportSourceVideo.isPlaying() || transportSourceAudio.isPlaying()) {
-			transportSourceVideo.stop();
-			transportSourceAudio.stop();
-		}
-		else {
-			transportSourceVideo.start();
-			transportSourceAudio.start();
-		}
-	}
+    if (b_standalone_mode) { // block interaction unless in standalone mode
+        if (m.eventState.isKeyPressed(' ')) {
+            if (transportSourceVideo.isPlaying() || transportSourceAudio.isPlaying()) {
+                transportSourceVideo.stop();
+                transportSourceAudio.stop();
+            }
+            else {
+                transportSourceVideo.start();
+                transportSourceAudio.start();
+            }
+        }
+    }
 
 	// draw m1 logo
 	m.drawImage(imgLogo, m.getWindowWidth() - imgLogo.getWidth()*0.3 - 10, m.getWindowHeight() - imgLogo.getHeight()*0.3 - 10, imgLogo.getWidth() * 0.3, imgLogo.getHeight() * 0.3);
