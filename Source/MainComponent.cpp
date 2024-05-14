@@ -486,7 +486,7 @@ void MainComponent::shutdown()
 	murka::JuceMurkaBaseComponent::shutdown();
 }
 
-void MainComponent::syncWithOrientationClientPlayhead() {
+void MainComponent::syncWithDAWPlayhead() {
     if (std::abs(m1OrientationClient.getPlayerLastUpdate() - lastUpdateForPlayer) < 0.001f) {
         return;
     }
@@ -527,7 +527,14 @@ void MainComponent::syncWithOrientationClientPlayhead() {
 }
 
 void MainComponent::draw() {
-    syncWithOrientationClientPlayhead();
+    
+    if (b_standalone_mode) {
+        
+    } else {
+        // check for monitor discovery to get DAW playhead pos
+        // sync with DAW
+        syncWithDAWPlayhead();
+    }
 
 	// update video frame
 	if (clipVideo.get() != nullptr) {
