@@ -62,6 +62,9 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     bool drawReference = false;
 
     foleys::VideoEngine videoEngine;
+    
+    // TODO: make a check that changes this flag
+    bool b_standalone_mode = false;
 
     std::shared_ptr<foleys::AVClip> clipVideo;
     std::shared_ptr<foleys::AVClip> clipAudio;
@@ -118,7 +121,7 @@ public:
 
 protected:
 
-    void syncWithOrientationClientPlayhead();
+    void syncWithDAWPlayhead();
 
 private:
     //==============================================================================
