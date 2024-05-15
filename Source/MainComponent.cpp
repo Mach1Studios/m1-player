@@ -489,31 +489,36 @@ void MainComponent::shutdown()
 }
 
 void MainComponent::syncWithDAWPlayhead() {
-    if (std::abs(m1OrientationClient.getPlayerLastUpdate() - lastUpdateForPlayer) < 0.001f) {
+    if (std::fabs(m1OrientationClient.getPlayerLastUpdate() - lastUpdateForPlayer) < 0.001f) {
+        // Sync already established
+        return;
+    }
+    
+    if (clipVideo.get() == nullptr) {
+        // no video loaded yet so no reason to sync in this mode
         return;
     }
 
     lastUpdateForPlayer = m1OrientationClient.getPlayerLastUpdate();
 
     auto length = (std::max)(transportSourceAudio.getLengthInSeconds(), transportSourceVideo.getLengthInSeconds());
-    auto pos = (std::max)(transportSourceAudio.getCurrentPosition(), transportSourceVideo.getCurrentPosition());
-    float playhead_pos = m1OrientationClient.getPlayerPositionInSeconds();
-    bool end_reached = playhead_pos >= length;
+    auto player_ph_pos = (std::max)(transportSourceAudio.getCurrentPosition(), transportSourceVideo.getCurrentPosition());
+    float daw_ph_pos = m1OrientationClient.getPlayerPositionInSeconds(); // this incorporates the offset (daw_ph - offset)
+    bool end_reached = daw_ph_pos >= length;
 
     // If we've reached the end, and neither transport is playing, then there's nothing left to be done.
-    if (clipVideo.get() != nullptr && end_reached && !(transportSourceVideo.isPlaying())) {
+    if (end_reached && !(transportSourceVideo.isPlaying())) {
         DBG("[Playhead] Reached end of video length.");
         return;
     }
 
     // seek sync
-    // TODO: improve this to be frame accurate
-    // TODO: seeking seems to play a little loop
-    auto playback_delta = static_cast<float>(playhead_pos - pos);
+    auto playback_delta = static_cast<float>(daw_ph_pos - player_ph_pos);
     DBG("Playhead Pos: " = std::to_string(playback_delta));
     if (std::fabs(playback_delta) > 0.05 && !end_reached) {
         if (clipVideo != nullptr) {
-            clipVideo->setNextReadPosition(juce::int64(playhead_pos * sampleRate));
+            //clipVideo->setNextReadPosition(juce::int64(daw_ph_pos * sampleRate));
+            transportSourceVideo.setPosition(daw_ph_pos); // in seconds
         }
     }
 

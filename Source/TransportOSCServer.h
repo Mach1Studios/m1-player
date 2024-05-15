@@ -14,7 +14,8 @@ class TransportOSCServer : private juce::OSCReceiver::Listener<juce::OSCReceiver
 	int serverPort = 0;
 
 	void oscMessageReceived(const juce::OSCMessage& message) override {
-		if (message.getAddressPattern() == "/transport") {
+        // TODO: Remove this, we get transport updates from orientationClient not here
+        if (message.getAddressPattern() == "/transport") {
 			correctTimeInSeconds = message[0].getFloat32();
 			isPlaying = message[1].getInt32();
             
