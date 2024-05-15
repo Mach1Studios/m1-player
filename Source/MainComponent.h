@@ -71,8 +71,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
 
     juce::AudioBuffer<float> tempBuffer;
 
-    juce::AudioTransportSource  transportSourceVideo;
-    juce::AudioTransportSource  transportSourceAudio;
+    juce::AudioTransportSource  transportSource;
 
     double                      sampleRate = 0.0;
     int                         blockSize = 0;
@@ -120,7 +119,6 @@ public:
     void filesDropped(const juce::StringArray& files, int, int) override;
 
 protected:
-
     void syncWithDAWPlayhead();
 
 private:
