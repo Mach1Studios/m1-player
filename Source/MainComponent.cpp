@@ -377,6 +377,7 @@ void MainComponent::releaseResources()
 
 void MainComponent::timecodeChanged(int64_t, double seconds)
 {
+    // Use this to update the seekbar location
 }
 
 //==============================================================================
@@ -424,10 +425,11 @@ void MainComponent::openFile(juce::File filepath)
 			}
 
 			newClip->addTimecodeListener(this);
-		
+
 			transportSourceVideo.setSource(newClip.get(), 0, nullptr);
 
 			clipVideo = newClip;
+            clipVideo->setLooping(false); // TODO: change this for standalone mode with exposed setting
 		}
 	}
 
@@ -510,7 +512,9 @@ void MainComponent::syncWithDAWPlayhead() {
     auto playback_delta = static_cast<float>(playhead_pos - pos);
     DBG("Playhead Pos: " = std::to_string(playback_delta));
     if (std::fabs(playback_delta) > 0.05 && !end_reached) {
-        transportSourceVideo.setPosition(playhead_pos);
+        if (clipVideo != nullptr) {
+            clipVideo->setNextReadPosition(juce::int64(playhead_pos * sampleRate));
+        }
     }
 
     // play / stop sync
