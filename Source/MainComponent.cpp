@@ -249,6 +249,12 @@ void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleR
 	sampleRate = newSampleRate;
 	blockSize = samplesPerBlockExpected;
 
+    if (clipVideo != nullptr || clipAudio != nullptr) {
+        std::shared_ptr<foleys::AVClip> clip = (clipAudio.get() != nullptr) ? clipAudio : clipVideo;
+        clip->prepareToPlay(blockSize, sampleRate);
+        transportSource.prepareToPlay(blockSize, sampleRate);
+    }
+        
     // Setup for Mach1Decode
     smoothedChannelCoeffs.resize(m1Decode.getFormatCoeffCount());
     spatialMixerCoeffs.resize(m1Decode.getFormatCoeffCount());
@@ -256,21 +262,27 @@ void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleR
         smoothedChannelCoeffs[input_channel * 2].reset(sampleRate, (double)0.01);
         smoothedChannelCoeffs[input_channel * 2 + 1].reset(sampleRate, (double)0.01);
     }
+    
+    readBuffer.setSize(m1Decode.getFormatCoeffCount(), blockSize);
 }
 
 void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
-	std::shared_ptr<foleys::AVClip> clip = (clipAudio.get() != nullptr) ? clipAudio : clipVideo;
+	std::shared_ptr<foleys::AVClip> clip = (clipVideo.get() != nullptr) ? clipVideo : clipAudio;
 
     if (clip){
         // the TransportSource takes care of start, stop and resample
-		 
+        juce::AudioSourceChannelInfo info (&readBuffer,
+                                           bufferToFill.startSample,
+                                           bufferToFill.numSamples);
+        transportSource.getNextAudioBlock(info);
+        
 		// first read video source
 		if (clipVideo.get() != nullptr && clipVideo != clipAudio) {
-			readBufferVideo.setSize(clipVideo->getNumChannels(), bufferToFill.numSamples);
-			readBufferVideo.clear();
+			readBuffer.setSize(clipVideo->getNumChannels(), bufferToFill.numSamples);
+			readBuffer.clear();
 
-			juce::AudioSourceChannelInfo info(&readBufferVideo,
+			juce::AudioSourceChannelInfo info(&readBuffer,
 				bufferToFill.startSample,
 				bufferToFill.numSamples);
 
@@ -279,10 +291,10 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
             // then read audio source
             detectedNumInputChannels = clip->getNumChannels();
 
-            readBufferAudio.setSize(detectedNumInputChannels, bufferToFill.numSamples);
-            readBufferAudio.clear();
+            readBuffer.setSize(detectedNumInputChannels, bufferToFill.numSamples);
+            readBuffer.clear();
 
-            juce::AudioSourceChannelInfo info(&readBufferAudio,
+            juce::AudioSourceChannelInfo info(&readBuffer,
                 bufferToFill.startSample,
                 bufferToFill.numSamples);
 
@@ -301,7 +313,7 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
 
                 // if you've got more output channels than input clears extra outputs
                 for (auto channel = detectedNumInputChannels; channel < 2 && channel < detectedNumInputChannels; ++channel)
-                    readBufferAudio.clear(channel, 0, bufferToFill.numSamples);
+                    readBuffer.clear(channel, 0, bufferToFill.numSamples);
                 
                 // Mach1Decode processing loop
                 m1Decode.setRotationDegrees({ currentOrientation.GetGlobalRotationAsEulerDegrees().GetYaw(), currentOrientation.GetGlobalRotationAsEulerDegrees().GetPitch(), currentOrientation.GetGlobalRotationAsEulerDegrees().GetRoll() });
@@ -322,10 +334,10 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
 
                 if (detectedNumInputChannels == m1Decode.getFormatChannelCount()){ // dumb safety check, TODO: do better i/o error handling
                                     
-                    // copy from readBufferAudio for doubled channels
+                    // copy from readBuffer for doubled channels
                     for (auto channel = 0; channel < detectedNumInputChannels; ++channel){
-                        tempBuffer.copyFrom(channel * 2 + 0, 0, readBufferAudio, channel, 0, bufferToFill.numSamples);
-                        tempBuffer.copyFrom(channel * 2 + 1, 0, readBufferAudio, channel, 0, bufferToFill.numSamples);
+                        tempBuffer.copyFrom(channel * 2 + 0, 0, readBuffer, channel, 0, bufferToFill.numSamples);
+                        tempBuffer.copyFrom(channel * 2 + 1, 0, readBuffer, channel, 0, bufferToFill.numSamples);
                     }
                 
                     for (int sample = 0; sample < info.numSamples; sample++) {
@@ -336,13 +348,13 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
                     }
                 } else if (detectedNumInputChannels == 1) {
                     // mono
-                    bufferToFill.buffer->copyFrom(0, 0, readBufferAudio, 0, 0, info.numSamples);
-                    bufferToFill.buffer->copyFrom(1, 0, readBufferAudio, 0, 0, info.numSamples);
+                    bufferToFill.buffer->copyFrom(0, 0, readBuffer, 0, 0, info.numSamples);
+                    bufferToFill.buffer->copyFrom(1, 0, readBuffer, 0, 0, info.numSamples);
                 }
                 else if (detectedNumInputChannels == 2) {
                     // stereo
-                    bufferToFill.buffer->copyFrom(0, 0, readBufferAudio, 0, 0, info.numSamples);
-                    bufferToFill.buffer->copyFrom(1, 0, readBufferAudio, 1, 0, info.numSamples);
+                    bufferToFill.buffer->copyFrom(0, 0, readBuffer, 0, 0, info.numSamples);
+                    bufferToFill.buffer->copyFrom(1, 0, readBuffer, 1, 0, info.numSamples);
                 }
                 else {
                     // Invalid Decode I/O; clear buffers
@@ -352,12 +364,13 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
                 
                 // clear remaining input channels
                 for (auto channel = 2; channel < detectedNumInputChannels; ++channel)
-                    readBufferAudio.clear(channel, 0, bufferToFill.numSamples);
+                    readBuffer.clear(channel, 0, bufferToFill.numSamples);
                 
             } else {
                 bufferToFill.clearActiveBufferRegion();
             }
         }
+        bufferToFill.clearActiveBufferRegion();
     } else {
         detectedNumInputChannels = 0;
     }
@@ -388,11 +401,14 @@ bool MainComponent::isInterestedInFileDrag(const juce::StringArray&)
 
 void MainComponent::filesDropped(const juce::StringArray& files, int, int)
 {
+    // TODO: test new dropped files first before clearing
+    transportSource.stop();
+    transportSource.setSource(nullptr);
+    
 	for (int i = 0; i < files.size(); ++i) {
 		const juce::String& currentFile = files[i];
 		
 		openFile(currentFile);
-        transportSource.stop();
 
 		if (clipVideo.get() != nullptr) {
 			clipVideo->setNextReadPosition(0);
@@ -416,33 +432,40 @@ void MainComponent::openFile(juce::File filepath)
 
 		/// Video Setup
 		if (newClip->hasVideo()) {
+            // clear the old clip
+            if (clipVideo.get() != nullptr) {
+                clipVideo->removeTimecodeListener(this);
+            }
+            
 			newClip->prepareToPlay(blockSize, sampleRate);
-
-			if (clipVideo.get() != nullptr) {
-				clipVideo->removeTimecodeListener(this);
-			}
-
-			newClip->addTimecodeListener(this);
-
-			transportSource.setSource(newClip.get(), 0, nullptr);
-
-			clipVideo = newClip;
+            clipVideo = newClip;
             clipVideo->setLooping(false); // TODO: change this for standalone mode with exposed setting
+			clipVideo->addTimecodeListener(this);
+            transportSource.setSource(clipVideo.get(), 0, nullptr);
 		}
 	}
 
     // Audio Setup
+    // TODO: make clearer logic to when we should get the audioClip assigned to the transport
+    if (b_standalone_mode)
 	{
 		std::shared_ptr<foleys::AVClip> newClip = videoEngine.createClipFromFile(juce::URL(filepath));
 
 		if (newClip.get() == nullptr)
 			return;
 
-		if (newClip->hasAudio())
-		{
+		if (newClip->hasAudio()) {
+            // clear the old clip
+            if (clipAudio.get() != nullptr) {
+                clipAudio->removeTimecodeListener(this);
+            }
+            
 			newClip->prepareToPlay(blockSize, sampleRate);
-
-			detectedNumInputChannels = newClip.get()->getNumChannels();
+            clipAudio = newClip;
+            clipAudio->addTimecodeListener(this);
+            transportSource.setSource(clipAudio.get(), 0, nullptr);
+            
+			detectedNumInputChannels = clipAudio->getNumChannels();
 
 			// Setup for Mach1Decode API
 			m1Decode.setPlatformType(Mach1PlatformDefault);
@@ -465,9 +488,6 @@ void MainComponent::openFile(juce::File filepath)
 			else if (detectedNumInputChannels == 14) {
 				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
 			}
-			transportSource.setSource(newClip.get(), 0, nullptr);
-
-			clipAudio = newClip;
 		}
 	}
 }
@@ -504,7 +524,7 @@ void MainComponent::syncWithDAWPlayhead() {
     float daw_ph_pos = m1OrientationClient.getPlayerPositionInSeconds(); // this incorporates the offset (daw_ph - offset)
     bool end_reached = daw_ph_pos >= length;
 
-    // If we've reached the end, and neither transport is playing, then there's nothing left to be done.
+    // Prevent playback from continuing if we reached the end of the loaded video clip's length
     if (end_reached && !(transportSource.isPlaying())) {
         DBG("[Playhead] Reached end of video length.");
         return;
@@ -512,11 +532,12 @@ void MainComponent::syncWithDAWPlayhead() {
 
     // seek sync
     auto playback_delta = static_cast<float>(daw_ph_pos - player_ph_pos);
-    DBG("Playhead Pos: " = std::to_string(playback_delta));
+    //DBG("Playhead Pos: "+std::to_string(playback_delta));
     if (std::fabs(playback_delta) > 0.05 && !end_reached) {
         if (clipVideo != nullptr) {
             //clipVideo->setNextReadPosition(juce::int64(daw_ph_pos * sampleRate));
-            transportSource.setPosition(daw_ph_pos); // in seconds
+            transportSource.setNextReadPosition(daw_ph_pos * sampleRate);
+            //transportSource.setPosition(daw_ph_pos); // in seconds
         }
     }
 
@@ -547,6 +568,7 @@ void MainComponent::draw() {
 	// update video frame
 	if (clipVideo.get() != nullptr) {
 		foleys::VideoFrame& frame = clipVideo->getFrame(clipVideo->getCurrentTimeInSeconds());
+        DBG("[Video] Time: "+std::to_string(clipVideo->getCurrentTimeInSeconds())+", Block:"+std::to_string(clipVideo->getNextReadPosition()));
 		if (frame.image.getWidth() > 0 && frame.image.getHeight() > 0) {
 			if (imgVideo.getWidth() != frame.image.getWidth() || imgVideo.getHeight() != frame.image.getHeight()) {
 				imgVideo.allocate(frame.image.getWidth(), frame.image.getHeight());
