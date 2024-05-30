@@ -275,9 +275,8 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
         juce::AudioSourceChannelInfo info (&readBuffer,
                                            bufferToFill.startSample,
                                            bufferToFill.numSamples);
-        transportSource.getNextAudioBlock(info);
-        
-		// first read video source
+      
+		// first read video 
 		if (clipVideo.get() != nullptr && clipVideo != clipAudio) {
 			readBuffer.setSize(clipVideo->getNumChannels(), bufferToFill.numSamples);
 			readBuffer.clear();
@@ -520,7 +519,7 @@ void MainComponent::syncWithDAWPlayhead() {
     lastUpdateForPlayer = m1OrientationClient.getPlayerLastUpdate();
 
     auto length = transportSource.getLengthInSeconds();
-    auto player_ph_pos = transportSource.getCurrentPosition();
+    auto player_ph_pos = clipVideo->getNextReadPosition() / clipVideo->getSampleRate();
     float daw_ph_pos = m1OrientationClient.getPlayerPositionInSeconds(); // this incorporates the offset (daw_ph - offset)
     bool end_reached = daw_ph_pos >= length;
 
@@ -529,15 +528,13 @@ void MainComponent::syncWithDAWPlayhead() {
         DBG("[Playhead] Reached end of video length.");
         return;
     }
-
+     
     // seek sync
     auto playback_delta = static_cast<float>(daw_ph_pos - player_ph_pos);
     //DBG("Playhead Pos: "+std::to_string(playback_delta));
     if (std::fabs(playback_delta) > 0.05 && !end_reached) {
         if (clipVideo != nullptr) {
-            //clipVideo->setNextReadPosition(juce::int64(daw_ph_pos * sampleRate));
-            transportSource.setNextReadPosition(daw_ph_pos * sampleRate);
-            //transportSource.setPosition(daw_ph_pos); // in seconds
+            clipVideo->setNextReadPosition(static_cast<juce::int64>(daw_ph_pos * clipVideo->getSampleRate()));
         }
     }
 
