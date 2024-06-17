@@ -315,7 +315,8 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
                     readBuffer.clear(channel, 0, bufferToFill.numSamples);
                 
                 // Mach1Decode processing loop
-                m1Decode.setRotationDegrees({ currentOrientation.GetGlobalRotationAsEulerDegrees().GetYaw(), currentOrientation.GetGlobalRotationAsEulerDegrees().GetPitch(), currentOrientation.GetGlobalRotationAsEulerDegrees().GetRoll() });
+                auto ori_deg = currentOrientation.GetGlobalRotationAsEulerDegrees();
+                m1Decode.setRotationDegrees({ ori_deg.GetYaw(), ori_deg.GetPitch(), ori_deg.GetRoll() });
 
                 m1Decode.beginBuffer();
                 spatialMixerCoeffs = m1Decode.decodeCoeffs();
@@ -580,14 +581,16 @@ void MainComponent::draw() {
 	m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 10);
 
 	auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
-    
-    currentOrientation.SetRotation({ videoPlayerWidget.rotationCurrent.y, videoPlayerWidget.rotationCurrent.x, videoPlayerWidget.rotationCurrent.z });
+
+    auto vid_rot = Mach1::Float3{ videoPlayerWidget.rotationCurrent.y, videoPlayerWidget.rotationCurrent.x, videoPlayerWidget.rotationCurrent.z }.EulerRadians();
+    currentOrientation.SetRotation(vid_rot);
     
     if (playerOSC.IsConnected() && playerOSC.IsActivePlayer()) {
         // send the current orientation of player instead 
         // send mouse offset of player orientation and send to helper
         if (videoPlayerWidget.isUpdatedRotation) {
-            playerOSC.sendPlayerYPR(currentOrientation.GetGlobalRotationAsEulerDegrees().GetYaw(), currentOrientation.GetGlobalRotationAsEulerDegrees().GetPitch(), currentOrientation.GetGlobalRotationAsEulerDegrees().GetRoll());
+            auto ori_deg = currentOrientation.GetGlobalRotationAsEulerDegrees();
+            playerOSC.sendPlayerYPR(ori_deg.GetYaw(), ori_deg.GetPitch(), ori_deg.GetRoll());
         }
         prev_mouse_offset = videoPlayerWidget.rotationOffsetMouse;
     }
@@ -595,15 +598,21 @@ void MainComponent::draw() {
     if (m1OrientationClient.isConnectedToServer()) {
         // add server orientation to player via a calculated offset
         Mach1::Orientation ypr = m1OrientationClient.getOrientation();
-        if (ypr.GetGlobalRotationAsQuaternion() == previousClientOrientation.GetGlobalRotationAsQuaternion()) {
-            // skip the update since there is no change
-        } else {
+
+        Mach1::Quaternion ori_quat = ypr.GetGlobalRotationAsQuaternion();
+        Mach1::Float3 ori_vec_deg = ypr.GetGlobalRotationAsEulerDegrees();
+
+        Mach1::Quaternion last_quat = previousClientOrientation.GetGlobalRotationAsQuaternion();
+
+        if (!ori_quat.IsApproximatelyEqual(last_quat)) {
+            Mach1::Float3 last_vec_deg = previousClientOrientation.GetGlobalRotationAsEulerDegrees();
+
             // update the player orientation
-            DBG("OM-Client:        Y=" + std::to_string(ypr.GetGlobalRotationAsEulerDegrees().GetYaw()) + ", P=" + std::to_string(ypr.GetGlobalRotationAsEulerDegrees().GetPitch()) + ", R=" + std::to_string(ypr.GetGlobalRotationAsEulerDegrees().GetRoll()));
-            videoPlayerWidget.rotationOffset.x += m1OrientationClient.getTrackingYawEnabled() ? ypr.GetGlobalRotationAsEulerDegrees().GetYaw() - previousClientOrientation.GetGlobalRotationAsEulerDegrees().GetYaw() : 0.0f;
-            videoPlayerWidget.rotationOffset.y += m1OrientationClient.getTrackingPitchEnabled() ? ypr.GetGlobalRotationAsEulerDegrees().GetPitch() - previousClientOrientation.GetGlobalRotationAsEulerDegrees().GetPitch() : 0.0f;
-            videoPlayerWidget.rotationOffset.z += m1OrientationClient.getTrackingRollEnabled() ? ypr.GetGlobalRotationAsEulerDegrees().GetRoll() - previousClientOrientation.GetGlobalRotationAsEulerDegrees().GetRoll() : 0.0f;
-            DBG("OM-Client Offset: Y=" + std::to_string(ypr.GetGlobalRotationAsEulerDegrees().GetYaw() - previousClientOrientation.GetGlobalRotationAsEulerDegrees().GetYaw()) + ", P=" + std::to_string(ypr.GetGlobalRotationAsEulerDegrees().GetPitch() - previousClientOrientation.GetGlobalRotationAsEulerDegrees().GetPitch()) + ", R=" + std::to_string(ypr.GetGlobalRotationAsEulerDegrees().GetRoll() - previousClientOrientation.GetGlobalRotationAsEulerDegrees().GetRoll()));
+            DBG("OM-Client:        Y=" + std::to_string(ori_vec_deg.GetYaw()) + ", P=" + std::to_string(ori_vec_deg.GetPitch()) + ", R=" + std::to_string(ori_vec_deg.GetRoll()));
+            videoPlayerWidget.rotationOffset.x += m1OrientationClient.getTrackingYawEnabled() ? ori_vec_deg.GetYaw() - last_vec_deg.GetYaw() : 0.0f;
+            videoPlayerWidget.rotationOffset.y += m1OrientationClient.getTrackingPitchEnabled() ? ori_vec_deg.GetPitch() - last_vec_deg.GetPitch() : 0.0f;
+            videoPlayerWidget.rotationOffset.z += m1OrientationClient.getTrackingRollEnabled() ? ori_vec_deg.GetRoll() - last_vec_deg.GetRoll() : 0.0f;
+            DBG("OM-Client Offset: Y=" + std::to_string(ori_vec_deg.GetYaw() - last_vec_deg.GetYaw()) + ", P=" + std::to_string(ori_vec_deg.GetPitch() - last_vec_deg.GetPitch()) + ", R=" + std::to_string(ori_vec_deg.GetRoll() - last_vec_deg.GetRoll()));
             
             // store last input value
             previousClientOrientation = ypr;
@@ -782,10 +791,11 @@ void MainComponent::draw() {
         m.getCurrentFont()->drawString("[h] - Hide UI", 10, 270);
 		m.getCurrentFont()->drawString("[Arrow Keys] - Orientation Resets", 10, 290);
 
+        auto ori_deg = currentOrientation.GetGlobalRotationAsEulerDegrees();
 		m.getCurrentFont()->drawString("OverlayCoords:", 10, 350);
-        m.getCurrentFont()->drawString("Y: " + std::to_string(currentOrientation.GetGlobalRotationAsEulerDegrees().GetYaw()), 10, 370);
-        m.getCurrentFont()->drawString("P: " + std::to_string(currentOrientation.GetGlobalRotationAsEulerDegrees().GetPitch()), 10, 390);
-        m.getCurrentFont()->drawString("R: " + std::to_string(currentOrientation.GetGlobalRotationAsEulerDegrees().GetRoll()), 10, 410);
+        m.getCurrentFont()->drawString("Y: " + std::to_string(ori_deg.GetYaw()), 10, 370);
+        m.getCurrentFont()->drawString("P: " + std::to_string(ori_deg.GetPitch()), 10, 390);
+        m.getCurrentFont()->drawString("R: " + std::to_string(ori_deg.GetRoll()), 10, 410);
 	}
     
     // Quick mute for Yaw orientation input from device
@@ -883,7 +893,8 @@ void MainComponent::draw() {
     if (showOrientationControlMenu) {
         // trigger a server side refresh for listed devices while menu is open
         m1OrientationClient.command_refresh();
-        
+
+        auto rot_deg = m1OrientationClient.getOrientation().GetGlobalRotationAsEulerDegrees();
         bool showOrientationSettingsPanelInsideWindow = (m1OrientationClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone);
         orientationControlWindow = &(m.prepare<M1OrientationClientWindow>({ m.getSize().width() - 218 - 5 , 5, 218, 300 + 100 * showOrientationSettingsPanelInsideWindow })
             .withDeviceList(slots)
@@ -931,11 +942,7 @@ void MainComponent::draw() {
                                      std::pair<int, int>(0, 180),
                                      std::pair<int, int>(0, 180)
             )
-            .withYPR(
-                     m1OrientationClient.getOrientation().GetGlobalRotationAsEulerDegrees().GetYaw(),
-                     m1OrientationClient.getOrientation().GetGlobalRotationAsEulerDegrees().GetPitch(),
-                     m1OrientationClient.getOrientation().GetGlobalRotationAsEulerDegrees().GetRoll()
-            ));
+            .withYPR(rot_deg.GetYaw(), rot_deg.GetPitch(), rot_deg.GetRoll()));
             orientationControlWindow->draw();
     }
     
