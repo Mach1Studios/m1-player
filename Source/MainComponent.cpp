@@ -597,10 +597,10 @@ void MainComponent::draw() {
     
     if (m1OrientationClient.isConnectedToServer()) {
         // add server orientation to player via a calculated offset
-        Mach1::Orientation ypr = m1OrientationClient.getOrientation();
+        Mach1::Orientation oc_orientation = m1OrientationClient.getOrientation();
 
-        Mach1::Quaternion ori_quat = ypr.GetGlobalRotationAsQuaternion();
-        Mach1::Float3 ori_vec_deg = ypr.GetGlobalRotationAsEulerDegrees();
+        Mach1::Quaternion ori_quat = oc_orientation.GetGlobalRotationAsQuaternion();
+        Mach1::Float3 ori_vec_deg = oc_orientation.GetGlobalRotationAsEulerDegrees();
 
         Mach1::Quaternion last_quat = previousClientOrientation.GetGlobalRotationAsQuaternion();
 
@@ -615,7 +615,7 @@ void MainComponent::draw() {
             DBG("OM-Client Offset: Y=" + std::to_string(ori_vec_deg.GetYaw() - last_vec_deg.GetYaw()) + ", P=" + std::to_string(ori_vec_deg.GetPitch() - last_vec_deg.GetPitch()) + ", R=" + std::to_string(ori_vec_deg.GetRoll() - last_vec_deg.GetRoll()));
             
             // store last input value
-            previousClientOrientation = ypr;
+            previousClientOrientation = oc_orientation;
         }
     }
     
