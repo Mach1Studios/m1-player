@@ -638,40 +638,55 @@ void MainComponent::draw() {
 	// draw panners
 	videoPlayerWidget.pannerSettings = panners;
 	videoPlayerWidget.draw();
+    
+    // volume slider
+    // TODO: Add an image for the label
+    auto& volumeSlider = m.prepare<M1Slider>({ 160, m.getWindowHeight() - 80, 100, 30 }).withLabel("")
+        .hasMovingLabel(false)
+        .drawHorizontal(true);
+    volumeSlider.rangeFrom = 0.0;
+    volumeSlider.rangeTo = 1.0;
+    volumeSlider.defaultValue = 1.0;
+    volumeSlider.dataToControl = &mediaVolume;
+    if (b_standalone_mode) {
+        volumeSlider.enabled = true;
+    } else {
+        volumeSlider.enabled = false;
+    }
+    volumeSlider.draw();
 	
 	// draw reference
 	if (clipVideo.get() != nullptr || clipAudio.get() != nullptr) {
 		// play button
-		{
-			bool isPlaying = transportSource.isPlaying();
-			auto& playButton = m.prepare<murka::Button>({ 10, m.getWindowHeight() - 100, 60, 30 }).text(!isPlaying ? "play" : "pause").draw();
+        bool isPlaying = transportSource.isPlaying();
+        auto& playButton = m.prepare<murka::Button>({ 10, m.getWindowHeight() - 100, 60, 30 }).text(!isPlaying ? "play" : "pause").draw();
+        
+        if (b_standalone_mode) { // block interaction unless in standalone mode
+            // update gain of media
+            transportSource.setGain(mediaVolume);
             
-            if (b_standalone_mode) { // block interaction unless in standalone mode
-                if (playButton.pressed) {
-                    if (isPlaying) {
-                        transportSource.stop();
-                    }
-                    else {
-                        transportSource.start();
-                    }
+            if (playButton.pressed) {
+                if (isPlaying) {
+                    transportSource.stop();
+                }
+                else {
+                    transportSource.start();
                 }
             }
-		}
+        }
 
 		// stop button
-		{
-			auto& stopButton = m.prepare<murka::Button>({ 80, m.getWindowHeight() - 100, 60, 30 }).text("stop").draw();
-			if (stopButton.pressed) {
-				if (clipVideo.get() != nullptr) {
-					clipVideo->setNextReadPosition(0);
-				}
+        auto& stopButton = m.prepare<murka::Button>({ 80, m.getWindowHeight() - 100, 60, 30 }).text("stop").draw();
+        if (stopButton.pressed) {
+            if (clipVideo.get() != nullptr) {
+                clipVideo->setNextReadPosition(0);
+            }
 
-				if (clipAudio.get() != nullptr) {
-					clipAudio->setNextReadPosition(0);
-				}
-				transportSource.stop();
-			}
-		}
+            if (clipAudio.get() != nullptr) {
+                clipAudio->setNextReadPosition(0);
+            }
+            transportSource.stop();
+        }
 
 		if (drawReference) {
 			m.drawImage(imgVideo, 0, 0, imgVideo.getWidth() * 0.3, imgVideo.getHeight() * 0.3);
