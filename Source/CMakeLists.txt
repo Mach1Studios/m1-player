@@ -7,6 +7,7 @@ file(GLOB source_files  Config.h
                         TransportOSCServer.h
                         PlayerOSC.h
                         PlayerOSC.cpp
+                        UI/M1Slider.h
                         UI/VideoPlayerWidget.h
                         UI/RadioGroupWidget.h)
 

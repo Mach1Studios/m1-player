@@ -12,6 +12,7 @@
 #include "TransportOSCServer.h"
 #include "PlayerOSC.h"
 
+#include "UI/M1Slider.h"
 #include "UI/VideoPlayerWidget.h"
 #include "UI/RadioGroupWidget.h"
 
@@ -60,6 +61,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
 
     double currentPlayerWidgetFov = 0;
     bool drawReference = false;
+    float mediaVolume = 1.0;
 
     foleys::VideoEngine videoEngine;
     

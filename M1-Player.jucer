@@ -19,12 +19,9 @@
             file="Source/TransportOSCServer.h"/>
       <FILE id="mK8Zn8" name="PlayerOSC.cpp" compile="1" resource="0" file="Source/PlayerOSC.cpp"/>
       <FILE id="Lcjh0g" name="PlayerOSC.h" compile="0" resource="0" file="Source/PlayerOSC.h"/>
-      <FILE id="JrqOOs" name="Mach1Decode.cpp" compile="1" resource="0" file="../m1-sdk-dev/source/include/cpp/Mach1Decode.cpp"/>
-      <FILE id="udQBBq" name="Mach1Decode.h" compile="0" resource="0" file="../m1-sdk-dev/source/include/cpp/Mach1Decode.h"/>
-      <FILE id="" name="Mach1Encode.cpp" compile="1" resource="0" file="../m1-sdk-dev/source/include/cpp/Mach1Encode.cpp"/>
-      <FILE id="" name="Mach1Encode.h" compile="0" resource="0" file="../m1-sdk-dev/source/include/cpp/Mach1Encode.h"/>
       <GROUP id="{C0271EDF-131F-D406-0F5E-751E58189654}" name="Modules"/>
       <GROUP id="{64D4E571-DC05-ADB1-1A50-773B3C0B3F51}" name="UI">
+        <FILE id="Y8VSUo" name="M1Slider.h" compile="0" resource="0" file="Source/UI/M1Slider.h"/>
         <FILE id="Hjehuf" name="VideoPlayerWidget.h" compile="0" resource="0"
               file="Source/UI/VideoPlayerWidget.h"/>
         <FILE id="lHK7wE" name="RadioGroupWidget.h" compile="0" resource="0"
