@@ -740,30 +740,22 @@ void MainComponent::draw() {
 	// these reset keys 
 	if (m.isKeyPressed(MurkaKey::MURKA_KEY_UP)) { // up arrow
         videoPlayerWidget.rotationOffsetMouse = { 0, 0, 0 };
-		videoPlayerWidget.rotation.x = 0.;
-        videoPlayerWidget.rotation.y = 0.;
-        videoPlayerWidget.rotation.z = 0.;
+        videoPlayerWidget.rotation = { 0, 0, 0 };
 	}
 
 	if (m.isKeyPressed(MurkaKey::MURKA_KEY_DOWN)) { // down arrow
         videoPlayerWidget.rotationOffsetMouse = { 0, 0, 0 };
-		videoPlayerWidget.rotation.x = 180.;
-        videoPlayerWidget.rotation.y = 0.;
-        videoPlayerWidget.rotation.z = 0.;
+        videoPlayerWidget.rotation = { 180., 0, 0 };
 	}
 
 	if (m.isKeyPressed(MurkaKey::MURKA_KEY_RIGHT)) { // right arrow
         videoPlayerWidget.rotationOffsetMouse = { 0, 0, 0 };
-		videoPlayerWidget.rotation.x = 90.;
-        videoPlayerWidget.rotation.y = 0;
-        videoPlayerWidget.rotation.z = 0;
+        videoPlayerWidget.rotation = { 90., 0, 0 };
 	}
 
 	if (m.isKeyPressed(MurkaKey::MURKA_KEY_LEFT)) { // left arrow
         videoPlayerWidget.rotationOffsetMouse = { 0, 0, 0 };
-		videoPlayerWidget.rotation.x = 270.;
-        videoPlayerWidget.rotation.y = 0.;
-        videoPlayerWidget.rotation.z = 0.;
+        videoPlayerWidget.rotation = { 270., 0, 0 };
 	}
 
 	if (m.isKeyPressed('w') || m.mouseScroll().y > lastScrollValue.y) {
@@ -962,9 +954,7 @@ void MainComponent::draw() {
     }
     
     // update the previous orientation for calculating offset
-    videoPlayerWidget.rotationPrevious.x = videoPlayerWidget.rotationCurrent.x;
-    videoPlayerWidget.rotationPrevious.y = videoPlayerWidget.rotationCurrent.y;
-    videoPlayerWidget.rotationPrevious.z = videoPlayerWidget.rotationCurrent.z;
+    videoPlayerWidget.rotationPrevious = videoPlayerWidget.rotationCurrent;
     
     // update the mousewheel scroll for testing
     lastScrollValue = m.mouseScroll();
