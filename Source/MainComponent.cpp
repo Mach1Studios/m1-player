@@ -657,6 +657,8 @@ void MainComponent::draw() {
 	
 	// draw reference
 	if (clipVideo.get() != nullptr || clipAudio.get() != nullptr) {
+        
+        /*
 		// play button
         bool isPlaying = transportSource.isPlaying();
         auto& playButton = m.prepare<murka::Button>({ 10, m.getWindowHeight() - 100, 60, 30 }).text(!isPlaying ? "play" : "pause").draw();
@@ -687,6 +689,23 @@ void MainComponent::draw() {
             }
             transportSource.stop();
         }
+         
+         */
+        
+        m.prepare<M1PlayerControls>({m.getSize().width() / 2 - 150,
+                                     m.getSize().height() / 2 - 50,
+                                     300,
+                                     100})
+            .withPlayerData("00:00", "22:22",
+                            true, // showPositionReticle
+                            0.5, // currentPosition
+                            [&](double newPositionNormalised) {
+                                // refreshing player position
+                            })
+            .withVolumeData(0.5,
+                            [&](double newVolume){
+                                // refreshing the volume
+            }).draw();
 
 		if (drawReference) {
 			m.drawImage(imgVideo, 0, 0, imgVideo.getWidth() * 0.3, imgVideo.getHeight() * 0.3);
@@ -842,6 +861,7 @@ void MainComponent::draw() {
 	// draw m1 logo
 	m.drawImage(imgLogo, m.getWindowWidth() - imgLogo.getWidth()*0.3 - 10, m.getWindowHeight() - imgLogo.getHeight()*0.3 - 10, imgLogo.getWidth() * 0.3, imgLogo.getHeight() * 0.3);
 
+    /*
 	std::vector<M1OrientationClientWindowDeviceSlot> slots;
 
 	std::vector<M1OrientationDeviceInfo> devices = m1OrientationClient.getDevices();
@@ -892,9 +912,9 @@ void MainComponent::draw() {
         auto bbox = font->getStringBoundingBox(deviceReportString, 0, 0);
         //m.setColor(40, 40, 40, 200);
         // TODO: fix this bounding box (doesnt draw the same place despite matching settings with Label.draw
-        //m.drawRectangle(     m.getSize().width() - 40 - 10 /* padding */ - bbox.width - 5, 5, bbox.width + 10, 40);
+        //m.drawRectangle(     m.getSize().width() - 40 - 10 - bbox.width - 5, 5, bbox.width + 10, 40);
         m.setColor(230, 230, 230);
-        m.prepare<M1Label>({ m.getSize().width() - 40 - 10 /* padding */ - bbox.width - 5, 5 + 10, bbox.width + 10, 40 }).text(deviceReportString).withTextAlignment(TEXT_CENTER).draw();
+        m.prepare<M1Label>({ m.getSize().width() - 40 - 10 - bbox.width - 5, 5 + 10, bbox.width + 10, 40 }).text(deviceReportString).withTextAlignment(TEXT_CENTER).draw();
     }
     
     if (showOrientationControlMenu) {
@@ -952,6 +972,8 @@ void MainComponent::draw() {
             .withYPR(rot_deg.GetYaw(), rot_deg.GetPitch(), rot_deg.GetRoll()));
             orientationControlWindow->draw();
     }
+    
+    */
     
     // update the previous orientation for calculating offset
     videoPlayerWidget.rotationPrevious = videoPlayerWidget.rotationCurrent;
