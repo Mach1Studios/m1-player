@@ -9,6 +9,7 @@ MainComponent::MainComponent()
 
 	// specify the number of input and output channels that we want to open
 	setAudioChannels(0, 2);
+    
 }
 
 MainComponent::~MainComponent()
@@ -240,7 +241,12 @@ void MainComponent::initialise()
     
     // playerOSC update timer loop (only used for checking the connection)
     startTimer(200);
-} 
+    
+    // Debug video
+    const juce::String& currentFile = "/Users/zebra/Downloads/testvideo.mp4";
+    openFile(currentFile);
+
+}
 
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleRate)
 {
@@ -639,21 +645,21 @@ void MainComponent::draw() {
 	videoPlayerWidget.pannerSettings = panners;
 	videoPlayerWidget.draw();
     
-    // volume slider
-    // TODO: Add an image for the label
-    auto& volumeSlider = m.prepare<M1Slider>({ 160, m.getWindowHeight() - 80, 100, 30 }).withLabel("")
-        .hasMovingLabel(false)
-        .drawHorizontal(true);
-    volumeSlider.rangeFrom = 0.0;
-    volumeSlider.rangeTo = 1.0;
-    volumeSlider.defaultValue = 1.0;
-    volumeSlider.dataToControl = &mediaVolume;
-    if (b_standalone_mode) {
-        volumeSlider.enabled = true;
-    } else {
-        volumeSlider.enabled = false;
-    }
-    volumeSlider.draw();
+//    // volume slider
+//    // TODO: Add an image for the label
+//    auto& volumeSlider = m.prepare<M1Slider>({ 160, m.getWindowHeight() - 80, 100, 30 }).withLabel("")
+//        .hasMovingLabel(false)
+//        .drawHorizontal(true);
+//    volumeSlider.rangeFrom = 0.0;
+//    volumeSlider.rangeTo = 1.0;
+//    volumeSlider.defaultValue = 1.0;
+//    volumeSlider.dataToControl = &mediaVolume;
+//    if (b_standalone_mode) {
+//        volumeSlider.enabled = true;
+//    } else {
+//        volumeSlider.enabled = false;
+//    }
+//    volumeSlider.draw();
 	
 	// draw reference
 	if (clipVideo.get() != nullptr || clipAudio.get() != nullptr) {
@@ -692,8 +698,9 @@ void MainComponent::draw() {
          
          */
         
-        m.prepare<M1PlayerControls>({m.getSize().width() / 2 - 150,
-                                     m.getSize().height() / 2 - 50,
+
+        auto& playerControls = m.prepare<M1PlayerControls>({m.getWindowWidth() / 2 - 150,
+                                     m.getWindowHeight() / 2 - 50,
                                      300,
                                      100})
             .withPlayerData("00:00", "22:22",
@@ -705,7 +712,17 @@ void MainComponent::draw() {
             .withVolumeData(0.5,
                             [&](double newVolume){
                                 // refreshing the volume
-            }).draw();
+            })            
+            .withStandaloneMode(b_standalone_mode);
+        
+        m.setColor(20, 20, 20, 200 * (1 - playerControls.bypassingBecauseofInactivity));
+        m.drawRectangle(m.getWindowWidth() / 2 - 150,
+                        m.getWindowHeight() / 2 - 50,
+                        300,
+                        100);
+
+        playerControls.draw();
+        
 
 		if (drawReference) {
 			m.drawImage(imgVideo, 0, 0, imgVideo.getWidth() * 0.3, imgVideo.getHeight() * 0.3);
