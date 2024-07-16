@@ -22,6 +22,8 @@
       <GROUP id="{C0271EDF-131F-D406-0F5E-751E58189654}" name="Modules"/>
       <GROUP id="{64D4E571-DC05-ADB1-1A50-773B3C0B3F51}" name="UI">
         <FILE id="Y8VSUo" name="M1Slider.h" compile="0" resource="0" file="Source/UI/M1Slider.h"/>
+        <FILE id="a0bHRh" name="M1PlayerControls.h" compile="0" resource="0"
+              file="Source/UI/M1PlayerControls.h"/>
         <FILE id="Hjehuf" name="VideoPlayerWidget.h" compile="0" resource="0"
               file="Source/UI/VideoPlayerWidget.h"/>
         <FILE id="lHK7wE" name="RadioGroupWidget.h" compile="0" resource="0"

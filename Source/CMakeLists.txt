@@ -9,6 +9,7 @@ file(GLOB source_files  Config.h
                         PlayerOSC.cpp
                         UI/M1Slider.h
                         UI/VideoPlayerWidget.h
-                        UI/RadioGroupWidget.h)
+                        UI/RadioGroupWidget.h
+                        UI/M1PlayerControls.h)
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${source_files})
