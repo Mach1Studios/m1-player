@@ -10,7 +10,6 @@
 #include "M1PlayerControlButton.h"
 #include "M1Slider.h"
 
-
 using namespace murka;
 
 class M1PlayerControls : public murka::View<M1PlayerControls>, public juce::Timer {
@@ -19,11 +18,14 @@ public:
         startTimerHz(1);
         playIcon.loadFromRawData(BinaryData::play_png, BinaryData::play_pngSize);
         stopIcon.loadFromRawData(BinaryData::stop_png, BinaryData::stop_pngSize);
-    };
+        indicatorIcon.loadFromRawData(BinaryData::indicator_png, BinaryData::indicator_pngSize); // TODO: change to drawLine()
+        playIndicatorIcon.loadFromRawData(BinaryData::playing_indicator_png, BinaryData::playing_indicator_pngSize); // TODO: change to drawLine()
+        deviceOrientationIcon.loadFromRawData(BinaryData::device_orientation_png, BinaryData::device_orientation_pngSize);
+    }
     
     int secondsWithoutMouseMove = 0;
     
-    MurImage playIcon, stopIcon;
+    MurImage playIcon, stopIcon, indicatorIcon, playIndicatorIcon, deviceOrientationIcon;
     
     // Timer callback for resizing
     void timerCallback() override {
@@ -33,7 +35,6 @@ public:
     bool bypassingBecauseofInactivity = false;
     
     void internalDraw(Murka & m) {
-        
         if ((m.mouseDelta().x != 0) || (m.mouseDelta().y != 0)) {
             secondsWithoutMouseMove = 0;
         }
@@ -52,7 +53,6 @@ public:
             getSize().y / 4})
             .withDrawingCallback([&](MurkaShape shape) {
                 m.drawImage(playIcon, shape.x(), shape.y(), shape.width(), shape.height());
-
 //                m.drawLine(shape.x() + shape.width(), shape.y(), shape.x() + shape.width(), shape.y() + shape.height());
 //                m.drawLine(shape.x(), shape.y(), shape.width(), shape.height());
             })
@@ -64,7 +64,6 @@ public:
             getSize().y / 4,
             getSize().y / 4})
             .withDrawingCallback([&](MurkaShape shape) {
-                
                 m.pushStyle();
                 m.disableFill();
                 m.setLineWidth(3);
@@ -74,7 +73,6 @@ public:
                 m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.40);
                 m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.38);
                 m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.36);
-
                 m.popStyle();
             })
         .draw();
@@ -93,7 +91,6 @@ public:
                 onVolumeChangeCallback(newVolume);
             };
             volumeSlider.draw();
-            
             
             // Position slider
             // TODO: Add an image for the label
@@ -157,7 +154,4 @@ public:
     M1PlayerControls & withPlayPauseCallback(std::function<void()> playPausePressed) {
         playPausePressedCallback = playPausePressed;
     }
-    
-    
-    
 };
