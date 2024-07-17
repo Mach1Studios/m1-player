@@ -13,7 +13,8 @@ class PlayerOSC : private juce::OSCSender, private juce::OSCReceiver, private ju
     bool isActivePlayer = true; // used to track if this is the primary player instance
     std::function<void(juce::OSCMessage msg)> messageReceived;
     void oscMessageReceived(const juce::OSCMessage& msg) override;
-    juce::uint32 lastMessageTime = 0; 
+    juce::uint32 lastMessageTime = 0;
+    int num_monitor_instances = 0;
 
 public:
     PlayerOSC();
@@ -25,6 +26,7 @@ public:
     bool IsConnected();
     void setAsActivePlayer(bool is_active);
     bool IsActivePlayer();
+    int getNumberOfMonitors();
     bool sendPlayerYPR(float yaw, float pitch, float roll);
     bool connectToHelper();
     bool disconnectToHelper();
