@@ -559,6 +559,14 @@ void MainComponent::syncWithDAWPlayhead() {
 
 void MainComponent::draw() {
     
+    // update standalone mode flag
+    // TODO: introduce a button to swap modes
+    if (playerOSC.getNumberOfMonitors() > 0) {
+        b_standalone_mode = false;
+    } else {
+        b_standalone_mode = true;
+    }
+    
     if (b_standalone_mode) {
         // TODO: Allow playhead control
         // TODO: Audio/Video Sync
