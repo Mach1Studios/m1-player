@@ -10,9 +10,11 @@ using namespace murka;
 
 class M1Slider : public murka::View<M1Slider> {
 public:
+    
+    double currentValue;
+    std::function<void(double)> valueUpdated = [](double v){};
 
     void internalDraw(Murka & m) {
-        float* data = dataToControl;
         
         bool isInside = inside() *
         //!areInteractiveChildrenHovered(c) *
@@ -42,7 +44,7 @@ public:
             imChildren.erase(idToDelete);
         };
         
-        std::string displayString = float_to_string(*data, floatingPointPrecision);
+        std::string displayString = float_to_string(currentValue, floatingPointPrecision);
         std::string valueText = prefix + displayString + postfix;
         auto font = m.getCurrentFont();
         
@@ -50,9 +52,9 @@ public:
         int ellipseSize = 5;
         float reticlePositionNorm;
         if (isHorizontal) {
-            reticlePositionNorm = (*((float*)dataToControl) - rangeFrom) / (rangeTo - rangeFrom);
+            reticlePositionNorm = (currentValue - rangeFrom) / (rangeTo - rangeFrom);
         } else {
-            reticlePositionNorm = (*((float*)dataToControl) - rangeTo) / (rangeFrom - rangeTo);
+            reticlePositionNorm = (currentValue - rangeTo) / (rangeFrom - rangeTo);
         }
         MurkaShape reticlePosition = { getSize().x / 2 - 6,
                                       (shape.size.y) * reticlePositionNorm - 6,
@@ -184,7 +186,7 @@ public:
 
         if (shouldSetDefault && inside()) {
             draggingNow = false;
-            *((float*)dataToControl) = defaultValue;
+            currentValue = defaultValue;
             //cursorShow();
             changed = true;
         }
@@ -197,17 +199,19 @@ public:
                 }
                 
                 if (isHorizontal) {
-                        *((float*)dataToControl) -= ( mouseDelta().x / s) * (rangeTo - rangeFrom);
+                    currentValue -= ( mouseDelta().x / s) * (rangeTo - rangeFrom);
                 } else {
-                        *((float*)dataToControl) -= ( mouseDelta().y / s) * (rangeFrom - rangeTo);
+                    currentValue -= ( mouseDelta().y / s) * (rangeFrom - rangeTo);
                 }
             
-            if (*((float*)dataToControl) > rangeTo) {
-                *((float*)dataToControl) = rangeTo;
+            if (currentValue > rangeTo) {
+                currentValue = rangeTo;
+                valueUpdated(currentValue);
             }
             
-            if (*((float*)dataToControl) < rangeFrom) {
-                *((float*)dataToControl) = rangeFrom;
+            if (currentValue < rangeFrom) {
+                currentValue = rangeFrom;
+                valueUpdated(currentValue);
             }
             changed = true;
         }
@@ -231,7 +235,6 @@ public:
     std::string postfix = "";
     std::string prefix = "";
 
-    float* dataToControl = nullptr;
     float defaultValue = 0;
     float speed = 250.;
     bool isHovered = false;
@@ -249,10 +252,6 @@ public:
 
     std::function<void()> cursorHide, cursorShow;
     
-    M1Slider & controlling(float* dataPointer) {
-        dataToControl = dataPointer;
-        return *this;
-    }
     
     M1Slider & hasMovingLabel(bool movingLabel_) {
         movingLabel = movingLabel_;
@@ -272,5 +271,9 @@ public:
     M1Slider & withFontSize(double fontSize_) {
         fontSize = fontSize_;
         return *this;
+    }
+    
+    M1Slider & withCurrentValue(double value) {
+        currentValue = value;
     }
 };
