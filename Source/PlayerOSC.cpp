@@ -89,13 +89,19 @@ void PlayerOSC::oscMessageReceived(const juce::OSCMessage& msg)
             isConnected = true;
         } else if (msg.getAddressPattern() == "/m1-activate-client") {
             DBG("[OSC] Recieved msg | Activate: "+std::to_string(msg[0].getInt32()));
-            // Capturing monitor mode
+            // Capturing active bool
             int active = msg[0].getInt32();
             if (active == 1) {
                 setAsActivePlayer(true);
             } else if (active == 0) {
                 setAsActivePlayer(false);
             }
+            
+            // Capture number of instances of Monitors
+            if (msg.size() > 1) {
+                num_monitor_instances = msg[1].getInt32();
+            }
+            
         } else if (msg.getAddressPattern() == "/m1-reconnect-req") {
             disconnectToHelper();
             isConnected = false; // when false the update loop will trigger connectToHelper()
@@ -178,6 +184,11 @@ bool PlayerOSC::sendPlayerYPR(float yaw, float pitch, float roll)
         return juce::OSCSender::send(m); // check to update isConnected for error catching
     }
     return false;
+}
+
+void PlayerOSC::getNumberOfMonitors()
+{
+    return num_monitor_instances;
 }
 
 bool PlayerOSC::connectToHelper()
