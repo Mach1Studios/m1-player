@@ -186,7 +186,7 @@ bool PlayerOSC::sendPlayerYPR(float yaw, float pitch, float roll)
     return false;
 }
 
-void PlayerOSC::getNumberOfMonitors()
+int PlayerOSC::getNumberOfMonitors()
 {
     return num_monitor_instances;
 }
