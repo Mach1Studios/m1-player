@@ -275,5 +275,7 @@ public:
     
     M1Slider & withCurrentValue(double value) {
         currentValue = value;
+        
+        return *this;
     }
 };

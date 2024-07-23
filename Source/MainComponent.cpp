@@ -707,29 +707,7 @@ void MainComponent::draw() {
          */
         
 
-        auto& playerControls = m.prepare<M1PlayerControls>({m.getWindowWidth() / 2 - 150,
-                                     m.getWindowHeight() / 2 - 50,
-                                     300,
-                                     100})
-            .withPlayerData("00:00", "22:22",
-                            true, // showPositionReticle
-                            0.5, // currentPosition
-                            [&](double newPositionNormalised) {
-                                // refreshing player position
-                            })
-            .withVolumeData(0.5,
-                            [&](double newVolume){
-                                // refreshing the volume
-            })            
-            .withStandaloneMode(b_standalone_mode);
-        
-        m.setColor(20, 20, 20, 200 * (1 - playerControls.bypassingBecauseofInactivity));
-        m.drawRectangle(m.getWindowWidth() / 2 - 150,
-                        m.getWindowHeight() / 2 - 50,
-                        300,
-                        100);
 
-        playerControls.draw();
         
 
 		if (drawReference) {
@@ -776,6 +754,32 @@ void MainComponent::draw() {
 		float width = m.getCurrentFont()->getStringBoundingBox(message, 0, 0).width;
 		m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).draw();
 	}
+    
+    auto& playerControls = m.prepare<M1PlayerControls>({m.getWindowWidth() / 2 - 150,
+                                 m.getWindowHeight() / 2 - 50,
+                                 300,
+        100});
+    if (b_standalone_mode) {
+        playerControls.withPlayerData("00:00", "22:22",
+                        true, // showPositionReticle
+                        0.5, // currentPosition
+                        [&](double newPositionNormalised) {
+            // refreshing player position
+        });
+        playerControls.withVolumeData(0.5,
+                        [&](double newVolume){
+            // refreshing the volume
+        });
+    }
+    playerControls.withStandaloneMode(b_standalone_mode);
+    
+    m.setColor(20, 20, 20, 200 * (1 - playerControls.bypassingBecauseofInactivity));
+    m.drawRectangle(m.getWindowWidth() / 2 - 150,
+                    m.getWindowHeight() / 2 - 50,
+                    300,
+                    100);
+
+    playerControls.draw();
 
 	if (m.isKeyPressed('z')) {
 		videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
