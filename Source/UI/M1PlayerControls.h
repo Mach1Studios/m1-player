@@ -57,6 +57,15 @@ public:
 //                m.drawLine(shape.x(), shape.y(), shape.width(), shape.height());
             })
         .draw();
+        
+        // Timeline progressbar
+        
+        if (!standaloneMode) {
+            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 10);
+            float width = m.getCurrentFont()->getStringBoundingBox("SYNC TO DAW MODE", 0, 0).width;
+
+            m.prepare<murka::Label>({getSize().x / 2 - width / 2, 30, width, 30}).text("SYNC TO DAW MODE").draw();
+        }
 
         // Connect button
         m.prepare<M1PlayerControlButton>({getSize().x * 0.85 - getSize().y / 4,
@@ -94,17 +103,30 @@ public:
             
             // Position slider
             // TODO: Add an image for the label
-            auto& positionSlider = m.prepare<M1Slider>({ 30, 20, m.getSize().x() - 60, 30 }).withLabel("")
-                .hasMovingLabel(false)
-                .drawHorizontal(true);
-            positionSlider.rangeFrom = 0.0;
-            positionSlider.rangeTo = 1.0;
-            positionSlider.defaultValue = 1.0;
-            positionSlider.withCurrentValue(currentPositionNormalized);
-            positionSlider.valueUpdated = [&](double newPosition) {
-                onPositionChangeCallback(newPosition);
-            };
-            positionSlider.draw();
+            
+            m.setLineWidth(1);
+            m.setColor(200, 200, 200);
+            m.drawLine(40, 20, getSize().x - 40, 20);
+            m.setColor(M1_ACTION_YELLOW);
+            float positionSliderWIdth = getSize().x - 30 - 30;
+            float cursorPositionInPixels = currentPositionNormalized * positionSliderWIdth;
+            float sliderHeight = 20;
+            m.drawLine(40 + cursorPositionInPixels, 20 - sliderHeight / 2,
+                       40 + cursorPositionInPixels, 20 + sliderHeight / 2);
+            if (mouseDownPressed(0)) {
+                if mousePosition().x
+            }
+//            auto& positionSlider = m.prepare<M1Slider>({ 30, 20, m.getSize().x() - 60, 30 }).withLabel("")
+//                .hasMovingLabel(false)
+//                .drawHorizontal(true);
+//            positionSlider.rangeFrom = 0.0;
+//            positionSlider.rangeTo = 1.0;
+//            positionSlider.defaultValue = 1.0;
+//            positionSlider.withCurrentValue(currentPositionNormalized);
+//            positionSlider.valueUpdated = [&](double newPosition) {
+//                onPositionChangeCallback(newPosition);
+//            };
+//            positionSlider.draw();
 
         }
     }
