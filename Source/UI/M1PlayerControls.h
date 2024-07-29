@@ -113,20 +113,19 @@ public:
             float sliderHeight = 20;
             m.drawLine(40 + cursorPositionInPixels, 20 - sliderHeight / 2,
                        40 + cursorPositionInPixels, 20 + sliderHeight / 2);
+            MurkaShape positionSlider = MurkaShape(40, 20, getSize().x - 80, 60);
+            
             if (mouseDownPressed(0)) {
-                if mousePosition().x
+                if (positionSlider.inside(mousePosition())) {
+                        float normalizedPositionInsideSlider = ((positionSlider.position - mousePosition()) / positionSlider.size).x;
+                        
+                        onPositionChangeCallback(normalizedPositionInsideSlider);
+                        
+                        std::cout << "player position change request" << normalizedPositionInsideSlider << std::endl;
+//                    }
+                }
             }
-//            auto& positionSlider = m.prepare<M1Slider>({ 30, 20, m.getSize().x() - 60, 30 }).withLabel("")
-//                .hasMovingLabel(false)
-//                .drawHorizontal(true);
-//            positionSlider.rangeFrom = 0.0;
-//            positionSlider.rangeTo = 1.0;
-//            positionSlider.defaultValue = 1.0;
-//            positionSlider.withCurrentValue(currentPositionNormalized);
-//            positionSlider.valueUpdated = [&](double newPosition) {
-//                onPositionChangeCallback(newPosition);
-//            };
-//            positionSlider.draw();
+
 
         }
     }
