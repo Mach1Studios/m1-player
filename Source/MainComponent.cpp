@@ -765,10 +765,12 @@ void MainComponent::draw() {
                         0.5, // currentPosition
                         [&](double newPositionNormalised) {
             // refreshing player position
+            transportSource.setPosition(newPositionNormalised);
         });
         playerControls.withVolumeData(0.5,
                         [&](double newVolume){
             // refreshing the volume
+            mediaVolume = newVolume;
         });
     }
     playerControls.withStandaloneMode(b_standalone_mode);
@@ -779,7 +781,7 @@ void MainComponent::draw() {
                     300,
                     100);
 
-    playerControls.draw();
+//    playerControls.draw();
 
 	if (m.isKeyPressed('z')) {
 		videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
@@ -835,6 +837,7 @@ void MainComponent::draw() {
 		m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);
 		m.getCurrentFont()->drawString("Playing: " + std::string(clipVideo.get() != nullptr ? "yes" : "no"), 10, 90);
 		m.getCurrentFont()->drawString("Frame: " + std::to_string(transportSource.getCurrentPosition()), 10, 110);
+        m.getCurrentFont()->drawString("Standalone mode: " + std::to_string(b_standalone_mode), 10, 130);
 
 		m.getCurrentFont()->drawString("Hotkeys:", 10, 130);
 		m.getCurrentFont()->drawString("[w] - FOV+", 10, 150);
