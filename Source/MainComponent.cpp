@@ -872,7 +872,7 @@ void MainComponent::draw() {
     }
     
     if (b_standalone_mode) { // block interaction unless in standalone mode
-        if (m.eventState.isKeyPressed(' ')) {
+        if (m.eventState.isKeyPressed(MURKA_KEY_SPACE)) { // Space bar is 32 on OSX
             if (transportSource.isPlaying()) {
                 transportSource.stop();
             }
