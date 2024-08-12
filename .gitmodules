@@ -9,6 +9,3 @@
 	path = Modules/foleys_video_engine
 	url = git@github.com:Mach1Studios/foleys_video_engine.git
 	branch = mach1/develop
-[submodule "JUCE"]
-	path = JUCE
-	url = git@github.com:juce-framework/JUCE.git
