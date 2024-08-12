@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "juce_murka/Murka/MurkaBasicWidgets.h"
+#include "MurkaBasicWidgets.h"
 #include "juce_murka/JuceMurkaBaseComponent.h"
 #include "m1_orientation_client/UI/M1Label.h"
 #include "../MeshGenerator.h"

@@ -2,7 +2,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 
-#include "juce_murka/Murka/MurkaBasicWidgets.h"
+#include "MurkaBasicWidgets.h"
 #include "juce_murka/JuceMurkaBaseComponent.h"
 
 class RadioGroupWidget : public View<RadioGroupWidget> {

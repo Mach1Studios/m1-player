@@ -2,7 +2,7 @@
 
 #include <JuceHeader.h>
 
-#include "juce_murka/Murka/MurkaBasicWidgets.h"
+#include "MurkaBasicWidgets.h"
 #include "juce_murka/JuceMurkaBaseComponent.h"
 
 #include "Config.h"
@@ -66,16 +66,12 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     float mediaVolume = 1.0;
 
     foleys::VideoEngine videoEngine;
-    
-    // TODO: make a check that changes this flag
-    bool b_standalone_mode = false;
-
-    std::shared_ptr<foleys::AVClip> clipVideo;
-    std::shared_ptr<foleys::AVClip> clipAudio;
-
+    std::shared_ptr<foleys::AVClip> clip;
+    juce::AudioTransportSource  transportSource;
     juce::AudioBuffer<float> tempBuffer;
 
-    juce::AudioTransportSource  transportSource;
+    // TODO: make a check that changes this flag
+    bool b_standalone_mode = false;
 
     double                      sampleRate = 0.0;
     int                         blockSize = 0;
