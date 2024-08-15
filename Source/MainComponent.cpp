@@ -815,7 +815,6 @@ void MainComponent::draw() {
 
 	if (m.isKeyHeld('q')) {
 		m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);
-		m.getCurrentFont()->drawString("Playing: " + std::string(clip->hasVideo() ? "yes" : "no"), 10, 90);
 		m.getCurrentFont()->drawString("Frame: " + std::to_string(transportSource.getCurrentPosition()), 10, 110);
         m.getCurrentFont()->drawString("Standalone mode: " + std::to_string(b_standalone_mode), 10, 130);
 
