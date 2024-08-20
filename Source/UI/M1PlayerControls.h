@@ -47,16 +47,24 @@ public:
         
         // Play button
         m.setColor(220, 220, 220);
-        m.prepare<M1PlayerControlButton>({getSize().x / 2 - getSize().y / 4, 
+        m.prepare<M1PlayerControlButton>({getSize().x / 2 - getSize().y / 4 + 10,
             getSize().y * 0.4,
             getSize().y / 4,
             getSize().y / 4})
             .withDrawingCallback([&](MurkaShape shape) {
+                m.setColor(50, 50, 50);
                 m.drawImage(playIcon, shape.x(), shape.y(), shape.width(), shape.height());
 //                m.drawLine(shape.x() + shape.width(), shape.y(), shape.x() + shape.width(), shape.y() + shape.height());
 //                m.drawLine(shape.x(), shape.y(), shape.width(), shape.height());
             })
         .draw();
+        
+        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 7);
+        m.prepare<murka::Label>({getSize().x / 2 - getSize().y / 4 + 5,
+            getSize().y * 0.4 + 35,
+            getSize().y / 4 + 20,
+            getSize().y / 4}).text("PLAY").draw();
+
         
         // Timeline progressbar
         
@@ -89,6 +97,7 @@ public:
         if (standaloneMode) {
             // Volume slider
             // TODO: Add an image for the label
+            m.setLineWidth(1);
             auto& volumeSlider = m.prepare<M1Slider>({ 30, 40, 70, 30 }).withLabel("")
                 .hasMovingLabel(false)
                 .drawHorizontal(true);
@@ -100,6 +109,10 @@ public:
                 onVolumeChangeCallback(newVolume);
             };
             volumeSlider.draw();
+            
+            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 7);
+            m.prepare<murka::Label>({ 35, 40 + 35, 70, 30 }).text("VOLUME").draw();
+
             
             // Position slider
             // TODO: Add an image for the label
@@ -145,13 +158,20 @@ public:
     std::function<void(double newPositionNormalised)> onPositionChangeCallback;
     double currentPositionNormalized = 0.0;
     
+    bool isPlaying = false;
+    std::function<void()> playButtonCallback;
+
     M1PlayerControls & withPlayerData(std::string startTime,
                                       std::string endTime,
                                       bool showPositionReticle = true,
                                       double currentPosition = 0.0,
+                                      bool playing = false,
+                                      std::function<void()> playButtonPress = []() {},
                                       std::function<void(double)> onPositionChange = [](double newPositionNormalised ){}) {
         currentPositionNormalized = currentPosition;
         onPositionChangeCallback = onPositionChange;
+        isPlaying = playing;
+        playButtonCallback = playButtonPress;
         return *this;
     }
     

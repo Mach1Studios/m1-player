@@ -729,20 +729,38 @@ void MainComponent::draw() {
 			cropStereoscopicCheckbox.draw();
 		}
 	}
-	else {
+	else { // Either no clip at all (nullptr) or no audio or video in a clip
 		std::string message = "Drop an audio or video file here";
 		float width = m.getCurrentFont()->getStringBoundingBox(message, 0, 0).width;
 		m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).draw();
 	}
     
-    auto& playerControls = m.prepare<M1PlayerControls>({m.getWindowWidth() / 2 - 150,
-                                 m.getWindowHeight() / 2 - 50,
-                                 300,
-        100});
+    MurkaShape playerControlShape = {m.getWindowWidth() / 2 - 150,
+        m.getWindowHeight() / 2 - 50,
+        300,
+        100};
+    auto& playerControls = m.prepare<M1PlayerControls>(playerControlShape);
     if (b_standalone_mode) {
         playerControls.withPlayerData("00:00", "22:22",
                         true, // showPositionReticle
                         0.5, // currentPosition
+                        false, // playing
+                        []() {}, // playButtonPress
+                        [&](double newPositionNormalised) {
+            // refreshing player position
+            transportSource.setPosition(newPositionNormalised);
+        });
+        playerControls.withVolumeData(0.5,
+                        [&](double newVolume){
+            // refreshing the volume
+            mediaVolume = newVolume;
+        });
+    } else {
+        playerControls.withPlayerData("", "",
+                        false, // showPositionReticle
+                        0.5, // currentPosition
+                        false, // playing
+                        []() {}, // playButtonPress
                         [&](double newPositionNormalised) {
             // refreshing player position
             transportSource.setPosition(newPositionNormalised);
@@ -756,12 +774,9 @@ void MainComponent::draw() {
     playerControls.withStandaloneMode(b_standalone_mode);
     
     m.setColor(20, 20, 20, 200 * (1 - playerControls.bypassingBecauseofInactivity));
-    m.drawRectangle(m.getWindowWidth() / 2 - 150,
-                    m.getWindowHeight() / 2 - 50,
-                    300,
-                    100);
+    m.drawRectangle(playerControlShape);
 
-//    playerControls.draw();
+    playerControls.draw();
 
 	if (m.isKeyPressed('z')) {
 		videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
