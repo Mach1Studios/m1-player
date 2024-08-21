@@ -787,9 +787,9 @@ void MainComponent::draw() {
         playerControls.draw();
     } else {
         std::string message = "Drop an audio or video file here";
-        float width = m.getCurrentFont()->getStringBoundingBox(message, 0, 0).width;
-        m.setColor(220, 220, 220);
-        m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).draw();
+        juceFontStash::Rectangle boundingBox = m.getCurrentFont()->getStringBoundingBox(message, 0, 0);
+        m.setColor(ENABLED_PARAM);
+        m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - boundingBox.width * 0.5, m.getWindowHeight() * 0.5 - boundingBox.height, 350, 30 }).text(message).draw();
     }
 
 
