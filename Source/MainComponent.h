@@ -83,6 +83,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     juce::AudioBuffer<float> readBuffer;
     int detectedNumInputChannels;
     
+    int secondsWithoutMouseMove = 0;
     MurkaPoint lastScrollValue;
     bool bHideUI = false;
     
