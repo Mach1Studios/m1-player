@@ -117,14 +117,14 @@ public:
             // timeline line
             m.setLineWidth(1);
             m.setColor(ENABLED_PARAM);
-            m.drawLine(40, 20, getSize().x - 40, 20);
+            m.drawLine(40, 25, getSize().x - 40, 25);
             // Position slider
             m.setColor(M1_ACTION_YELLOW);
             float positionSliderWIdth = getSize().x - 30 - 30;
             float cursorPositionInPixels = currentPositionNormalized * positionSliderWIdth;
             float sliderHeight = 20;
-            m.drawLine(40 + cursorPositionInPixels, 20 - sliderHeight / 2,
-                       40 + cursorPositionInPixels, 20 + sliderHeight / 2);
+            m.drawLine(40 + cursorPositionInPixels, 25 - sliderHeight / 2,
+                       40 + cursorPositionInPixels, 25 + sliderHeight / 2);
             MurkaShape positionSlider = MurkaShape(40, 20, getSize().x - 80, 60);
             
             if (mouseDownPressed(0)) {
