@@ -792,13 +792,7 @@ void MainComponent::draw() {
         m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - boundingBox.width * 0.5, m.getWindowHeight() * 0.5 - boundingBox.height, 350, 30 }).text(message).draw();
     }
 
-
-
-	if (m.isKeyPressed('z')) {
-		videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
-	}
-
-	// these reset keys 
+	// arrow orientation reset keys
 	if (m.isKeyPressed(MurkaKey::MURKA_KEY_UP)) { // up arrow
         videoPlayerWidget.rotationOffsetMouse = { 0, 0, 0 };
         videoPlayerWidget.rotation = { 0, 0, 0 };
@@ -831,6 +825,10 @@ void MainComponent::draw() {
 		drawReference = !drawReference;
 	}
 
+    if (m.isKeyPressed('z')) {
+        videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;
+    }
+    
 	if (m.isKeyPressed('o')) {
 		videoPlayerWidget.drawOverlay = !videoPlayerWidget.drawOverlay;
 	}

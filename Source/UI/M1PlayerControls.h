@@ -18,14 +18,12 @@ public:
         startTimerHz(1);
         playIcon.loadFromRawData(BinaryData::play_png, BinaryData::play_pngSize);
         stopIcon.loadFromRawData(BinaryData::stop_png, BinaryData::stop_pngSize);
-        indicatorIcon.loadFromRawData(BinaryData::indicator_png, BinaryData::indicator_pngSize); // TODO: change to drawLine()
-        playIndicatorIcon.loadFromRawData(BinaryData::playing_indicator_png, BinaryData::playing_indicator_pngSize); // TODO: change to drawLine()
         deviceOrientationIcon.loadFromRawData(BinaryData::device_orientation_png, BinaryData::device_orientation_pngSize);
     }
     
     int secondsWithoutMouseMove = 0;
     
-    MurImage playIcon, stopIcon, indicatorIcon, playIndicatorIcon, deviceOrientationIcon;
+    MurImage playIcon, stopIcon, deviceOrientationIcon;
     
     // Timer callback for resizing
     void timerCallback() override {
@@ -44,7 +42,7 @@ public:
         
         // Play button
         m.setColor(ENABLED_PARAM);
-        m.prepare<M1PlayerControlButton>({getSize().x / 2 - 10, getSize().y / 2,
+        m.prepare<M1PlayerControlButton>({getSize().x / 2 - 5, getSize().y / 2,
             getSize().y / 4,
             getSize().y / 4})
             .withDrawingCallback([&](MurkaShape shape) {
@@ -53,7 +51,7 @@ public:
             })
         .draw();
         
-        m.setFontFromRawData(PLUGIN_FONT+2, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 5);
+        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 6);
         m.setColor(ENABLED_PARAM);
         m.prepare<murka::Label>({getSize().x / 2 - getSize().y / 4 + 10,
             40 + 35,
@@ -62,16 +60,15 @@ public:
 
         // Timeline progressbar
         if (!standaloneMode) {
-            m.setFontFromRawData(PLUGIN_FONT+1, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 5);
+            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 6);
             float width = m.getCurrentFont()->getStringBoundingBox("SYNC TO DAW MODE", 0, 0).width;
             m.prepare<murka::Label>({getSize().x / 2 - width / 2, 30, width, 30}).text("SYNC TO DAW MODE").draw();
         }
 
         // Connect button
-        m.prepare<M1PlayerControlButton>({getSize().x * 0.85 - getSize().y / 4,
-            getSize().y * 0.4,
-            getSize().y / 4,
-            getSize().y / 4})
+        m.prepare<M1PlayerControlButton>({getSize().x * 0.85 - 15,
+            getSize().y * 0.4 + 12,
+            10, 10})
             .withDrawingCallback([&](MurkaShape shape) {
                 m.pushStyle();
                 m.disableFill();
@@ -86,7 +83,7 @@ public:
             })
         .draw();
         
-        m.setFontFromRawData(PLUGIN_FONT+1+1, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 5);
+        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 6);
         m.setColor(ENABLED_PARAM);
         m.prepare<murka::Label>({getSize().x * 0.85 - getSize().y / 4 - 15,
             40 + 30,
@@ -101,7 +98,7 @@ public:
             // Volume slider
             // TODO: Add an image for the label
             m.setLineWidth(1);
-            auto& volumeSlider = m.prepare<M1Slider>({ 40, 40, 40, 20 })
+            auto& volumeSlider = m.prepare<M1Slider>({ 45, 40, 40, 30 })
                 .hasMovingLabel(false)
                 .drawHorizontal(true);
             volumeSlider.rangeFrom = 0.0;
@@ -113,16 +110,15 @@ public:
             };
             volumeSlider.draw();
             
-            m.setFontFromRawData(PLUGIN_FONT+1, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 5);
+            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 6);
             m.setColor(ENABLED_PARAM);
-            m.prepare<murka::Label>({ 35, 40 + 35, 70, 30 }).text("VOLUME").draw();
+            m.prepare<murka::Label>({ 40, 40 + 35, 70, 30 }).text("VOLUME").draw();
             
-            // Position slider
-            // TODO: Add an image for the label
-            
+            // timeline line
             m.setLineWidth(1);
             m.setColor(ENABLED_PARAM);
             m.drawLine(40, 20, getSize().x - 40, 20);
+            // Position slider
             m.setColor(M1_ACTION_YELLOW);
             float positionSliderWIdth = getSize().x - 30 - 30;
             float cursorPositionInPixels = currentPositionNormalized * positionSliderWIdth;
@@ -133,12 +129,9 @@ public:
             
             if (mouseDownPressed(0)) {
                 if (positionSlider.inside(mousePosition())) {
-                        float normalizedPositionInsideSlider = ((positionSlider.position - mousePosition()) / positionSlider.size).x;
-                        
-                        onPositionChangeCallback(normalizedPositionInsideSlider);
-                        
-                        std::cout << "player position change request" << normalizedPositionInsideSlider << std::endl;
-//                    }
+                    float normalizedPositionInsideSlider = ((positionSlider.position - mousePosition()) / positionSlider.size).x;
+                    onPositionChangeCallback(normalizedPositionInsideSlider);
+                    std::cout << "player position change request" << normalizedPositionInsideSlider << std::endl;
                 }
             }
         }
