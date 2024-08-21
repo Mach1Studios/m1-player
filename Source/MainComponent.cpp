@@ -698,7 +698,7 @@ void MainComponent::draw() {
 		modeRadioGroup.labels = { "3D", "2D" };
 		if (!bHideUI) {
 			modeRadioGroup.selectedIndex = videoPlayerWidget.drawFlat ? 1 : 0;
-			modeRadioGroup.draw();
+//			modeRadioGroup.draw();
 			if (modeRadioGroup.changed) {
 				if (modeRadioGroup.selectedIndex == 0) {
 					videoPlayerWidget.drawFlat = false;
@@ -730,21 +730,19 @@ void MainComponent::draw() {
 		}
 	}
 	else { // Either no clip at all (nullptr) or no audio or video in a clip
-		std::string message = "Drop an audio or video file here";
-		float width = m.getCurrentFont()->getStringBoundingBox(message, 0, 0).width;
-		m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).draw();
 	}
     
     MurkaShape playerControlShape = {m.getWindowWidth() / 2 - 150,
         m.getWindowHeight() / 2 - 50,
         300,
         100};
+
     auto& playerControls = m.prepare<M1PlayerControls>(playerControlShape);
-    if (b_standalone_mode) {
+    if (b_standalone_mode) { // Standalone mode
         playerControls.withPlayerData("00:00", "22:22",
                         true, // showPositionReticle
                         0.5, // currentPosition
-                        false, // playing
+                        transportSource.isPlaying(), // playing
                         []() {}, // playButtonPress
                         [&](double newPositionNormalised) {
             // refreshing player position
@@ -754,13 +752,21 @@ void MainComponent::draw() {
                         [&](double newVolume){
             // refreshing the volume
             mediaVolume = newVolume;
+            transportSource.setGain(mediaVolume);
         });
-    } else {
+    } else { // Slave mode
         playerControls.withPlayerData("", "",
                         false, // showPositionReticle
                         0.5, // currentPosition
-                        false, // playing
-                        []() {}, // playButtonPress
+                        transportSource.isPlaying(), // playing
+                        [&]() { // playButtonPress
+                            if (transportSource.isPlaying()) {
+                                transportSource.stop();
+                            }
+                            else {
+                                transportSource.start();
+                            }
+                        },
                         [&](double newPositionNormalised) {
             // refreshing player position
             transportSource.setPosition(newPositionNormalised);
@@ -769,14 +775,24 @@ void MainComponent::draw() {
                         [&](double newVolume){
             // refreshing the volume
             mediaVolume = newVolume;
+            transportSource.setGain(mediaVolume);
         });
     }
     playerControls.withStandaloneMode(b_standalone_mode);
     
     m.setColor(20, 20, 20, 200 * (1 - playerControls.bypassingBecauseofInactivity));
     m.drawRectangle(playerControlShape);
+    
+    if (clip.get() != nullptr && (clip->hasVideo() || clip->hasAudio())) {
+        playerControls.draw();
+    } else {
+        std::string message = "Drop an audio or video file here";
+        float width = m.getCurrentFont()->getStringBoundingBox(message, 0, 0).width;
+        m.setColor(220, 220, 220);
+        m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - width * 0.5, m.getWindowHeight() * 0.5, 350, 30 }).text(message).draw();
+    }
 
-    playerControls.draw();
+
 
 	if (m.isKeyPressed('z')) {
 		videoPlayerWidget.drawFlat = !videoPlayerWidget.drawFlat;

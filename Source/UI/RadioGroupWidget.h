@@ -59,7 +59,7 @@ public:
 			m.translate(w, 0, 0);
 		}
 
-		m.pushMatrix();
+		m.popMatrix();
 		m.popStyle();
 	};
 
