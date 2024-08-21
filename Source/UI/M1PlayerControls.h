@@ -41,36 +41,29 @@ public:
         
         bypassingBecauseofInactivity = (secondsWithoutMouseMove > 5);
         if (bypassingBecauseofInactivity) return;
-
-//        m.setColor(20, 20, 20, 150);
-//        m.drawRectangle(0, 0, m.getSize().x(), m.getSize().y());
         
         // Play button
-        m.setColor(220, 220, 220);
-        m.prepare<M1PlayerControlButton>({getSize().x / 2 - getSize().y / 4 + 10,
-            getSize().y * 0.4,
+        m.setColor(ENABLED_PARAM);
+        m.prepare<M1PlayerControlButton>({getSize().x / 2 - 10, getSize().y / 2,
             getSize().y / 4,
             getSize().y / 4})
             .withDrawingCallback([&](MurkaShape shape) {
-                m.setColor(220, 220, 220);
-                m.drawImage(playIcon, shape.x(), shape.y(), shape.width(), shape.height());
+                m.setColor(ENABLED_PARAM);
+                m.drawImage(playIcon, shape.x(), shape.y(), shape.width()/2, shape.height()/2);
             })
         .draw();
         
-        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 5);
-        m.setColor(220, 220, 220);
-        m.prepare<murka::Label>({getSize().x / 2 - getSize().y / 4 + 5,
-            getSize().y * 0.4 + 35,
+        m.setFontFromRawData(PLUGIN_FONT+2, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 5);
+        m.setColor(ENABLED_PARAM);
+        m.prepare<murka::Label>({getSize().x / 2 - getSize().y / 4 + 10,
+            40 + 35,
             getSize().y / 4 + 20,
             getSize().y / 4}).text("PLAY").draw();
 
-        
         // Timeline progressbar
-        
         if (!standaloneMode) {
-            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 5);
+            m.setFontFromRawData(PLUGIN_FONT+1, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 5);
             float width = m.getCurrentFont()->getStringBoundingBox("SYNC TO DAW MODE", 0, 0).width;
-
             m.prepare<murka::Label>({getSize().x / 2 - width / 2, 30, width, 30}).text("SYNC TO DAW MODE").draw();
         }
 
@@ -83,7 +76,7 @@ public:
                 m.pushStyle();
                 m.disableFill();
                 m.setLineWidth(3);
-                m.setColor(130, 130, 130);
+                m.setColor(GRID_LINES_4_RGB);
                 m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.44);
                 m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.42);
                 m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.40);
@@ -93,23 +86,22 @@ public:
             })
         .draw();
         
-        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 5);
-        m.setColor(220, 220, 220);
+        m.setFontFromRawData(PLUGIN_FONT+1+1, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 5);
+        m.setColor(ENABLED_PARAM);
         m.prepare<murka::Label>({getSize().x * 0.85 - getSize().y / 4 - 15,
-            getSize().y * 0.4 + 35,
+            40 + 30,
             getSize().y / 4 + 100,
             getSize().y / 4}).text("CONNECTED").draw();
-        m.prepare<murka::Label>({getSize().x * 0.85 - getSize().y / 4 + 10,
-            getSize().y * 0.4 + 45,
+        m.prepare<murka::Label>({getSize().x * 0.85 - getSize().y / 4 - 5,
+            40 + 40,
             getSize().y / 4 + 100,
             getSize().y / 4}).text("DEVICE").draw();
-
 
         if (standaloneMode) {
             // Volume slider
             // TODO: Add an image for the label
             m.setLineWidth(1);
-            auto& volumeSlider = m.prepare<M1Slider>({ 40, 40, 50, 30 }).withLabel("")
+            auto& volumeSlider = m.prepare<M1Slider>({ 40, 40, 40, 20 })
                 .hasMovingLabel(false)
                 .drawHorizontal(true);
             volumeSlider.rangeFrom = 0.0;
@@ -121,16 +113,15 @@ public:
             };
             volumeSlider.draw();
             
-            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 5);
-            m.setColor(220, 220, 220);
+            m.setFontFromRawData(PLUGIN_FONT+1, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 5);
+            m.setColor(ENABLED_PARAM);
             m.prepare<murka::Label>({ 35, 40 + 35, 70, 30 }).text("VOLUME").draw();
-
             
             // Position slider
             // TODO: Add an image for the label
             
             m.setLineWidth(1);
-            m.setColor(200, 200, 200);
+            m.setColor(ENABLED_PARAM);
             m.drawLine(40, 20, getSize().x - 40, 20);
             m.setColor(M1_ACTION_YELLOW);
             float positionSliderWIdth = getSize().x - 30 - 30;
@@ -150,8 +141,6 @@ public:
 //                    }
                 }
             }
-
-
         }
     }
     
