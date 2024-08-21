@@ -640,55 +640,9 @@ void MainComponent::draw() {
 	// draw panners
 	videoPlayerWidget.pannerSettings = panners;
 	videoPlayerWidget.draw();
-    
-//    // volume slider
-//    // TODO: Add an image for the label
-//    auto& volumeSlider = m.prepare<M1Slider>({ 160, m.getWindowHeight() - 80, 100, 30 }).withLabel("")
-//        .hasMovingLabel(false)
-//        .drawHorizontal(true);
-//    volumeSlider.rangeFrom = 0.0;
-//    volumeSlider.rangeTo = 1.0;
-//    volumeSlider.defaultValue = 1.0;
-//    volumeSlider.dataToControl = &mediaVolume;
-//    if (b_standalone_mode) {
-//        volumeSlider.enabled = true;
-//    } else {
-//        volumeSlider.enabled = false;
-//    }
-//    volumeSlider.draw();
 	
 	// draw reference
     if (clip.get() != nullptr && (clip->hasVideo() || clip->hasAudio())) {
-
-        /*
-		// play button
-        bool isPlaying = transportSource.isPlaying();
-        auto& playButton = m.prepare<murka::Button>({ 10, m.getWindowHeight() - 100, 60, 30 }).text(!isPlaying ? "play" : "pause").draw();
-        
-        if (b_standalone_mode) { // block interaction unless in standalone mode
-            // update gain of media
-            transportSource.setGain(mediaVolume);
-            
-            if (playButton.pressed) {
-                if (isPlaying) {
-                    transportSource.stop();
-                }
-                else {
-                    transportSource.start();
-                }
-            }
-        }
-
-		// stop button
-        auto& stopButton = m.prepare<murka::Button>({ 80, m.getWindowHeight() - 100, 60, 30 }).text("stop").draw();
-        if (stopButton.pressed) {
-            if (clip.get() != nullptr) {
-         clip->setNextReadPosition(0);
-            }
-            transportSource.stop();
-        }
-         
-         */
 
 		if (drawReference) {
 			m.drawImage(imgVideo, 0, 0, imgVideo.getWidth() * 0.3, imgVideo.getHeight() * 0.3);
@@ -698,7 +652,7 @@ void MainComponent::draw() {
 		modeRadioGroup.labels = { "3D", "2D" };
 		if (!bHideUI) {
 			modeRadioGroup.selectedIndex = videoPlayerWidget.drawFlat ? 1 : 0;
-//			modeRadioGroup.draw();
+			modeRadioGroup.draw();
 			if (modeRadioGroup.changed) {
 				if (modeRadioGroup.selectedIndex == 0) {
 					videoPlayerWidget.drawFlat = false;

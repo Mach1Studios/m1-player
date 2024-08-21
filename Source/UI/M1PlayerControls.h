@@ -114,6 +114,10 @@ public:
             m.setColor(ENABLED_PARAM);
             m.prepare<murka::Label>({ 40, 40 + 35, 70, 30 }).text("VOLUME").draw();
             
+            // current time readout
+            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 5);
+            m.setColor(ENABLED_PARAM);
+            m.prepare<murka::Label>({ 10, 25 - 4, 30, 10 }).text(currentTime).draw();
             // timeline line
             m.setLineWidth(1);
             m.setColor(ENABLED_PARAM);
@@ -126,6 +130,10 @@ public:
             m.drawLine(40 + cursorPositionInPixels, 25 - sliderHeight / 2,
                        40 + cursorPositionInPixels, 25 + sliderHeight / 2);
             MurkaShape positionSlider = MurkaShape(40, 20, getSize().x - 80, 60);
+            // total time readout
+            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 5);
+            m.setColor(ENABLED_PARAM);
+            m.prepare<murka::Label>({ getSize().x - 38, 25 - 4, 30, 10 }).text(totalTime).draw();
             
             if (mouseDownPressed(0)) {
                 if (positionSlider.inside(mousePosition())) {
@@ -151,12 +159,14 @@ public:
     
     std::function<void(double newPositionNormalised)> onPositionChangeCallback;
     double currentPositionNormalized = 0.0;
-    
+    std::string currentTime = "00:00";
+    std::string totalTime = "00:00";
+
     bool isPlaying = false;
     std::function<void()> playButtonCallback;
 
-    M1PlayerControls & withPlayerData(std::string startTime,
-                                      std::string endTime,
+    M1PlayerControls & withPlayerData(std::string current_timecode,
+                                      std::string total_timecode,
                                       bool showPositionReticle = true,
                                       double currentPosition = 0.0,
                                       bool playing = false,
@@ -166,6 +176,8 @@ public:
         onPositionChangeCallback = onPositionChange;
         isPlaying = playing;
         playButtonCallback = playButtonPress;
+        currentTime = current_timecode;
+        totalTime = total_timecode;
         return *this;
     }
     
