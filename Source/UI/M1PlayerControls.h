@@ -12,32 +12,15 @@
 
 using namespace murka;
 
-class M1PlayerControls : public murka::View<M1PlayerControls>, public juce::Timer {
+class M1PlayerControls : public murka::View<M1PlayerControls> {
 public:
     M1PlayerControls() {
-        startTimerHz(1);
         playIcon.loadFromRawData(BinaryData::play_png, BinaryData::play_pngSize);
         stopIcon.loadFromRawData(BinaryData::stop_png, BinaryData::stop_pngSize);
         deviceOrientationIcon.loadFromRawData(BinaryData::device_orientation_png, BinaryData::device_orientation_pngSize);
     }
-    
-    int secondsWithoutMouseMove = 0;
-    
-    MurImage playIcon, stopIcon, deviceOrientationIcon;
-    
-    // Timer callback for resizing
-    void timerCallback() override {
-        secondsWithoutMouseMove += 1;
-    }
-    
-    bool bypassingBecauseofInactivity = false;
-    
+
     void internalDraw(Murka & m) {
-        if ((m.mouseDelta().x != 0) || (m.mouseDelta().y != 0)) {
-            secondsWithoutMouseMove = 0;
-        }
-        
-        bypassingBecauseofInactivity = (secondsWithoutMouseMove > 5);
         if (bypassingBecauseofInactivity) return;
         
         // Play button
@@ -145,6 +128,7 @@ public:
         }
     }
     
+    MurImage playIcon, stopIcon, deviceOrientationIcon;
     float internalVolume = 0.0;
     float internalPosition = 0.0;
     float animatedData = 0;
@@ -156,7 +140,8 @@ public:
     bool* dataToControl = nullptr;
     bool showCircleWithText = true;
     bool useButtonMode = false;
-    
+    bool bypassingBecauseofInactivity = false;
+
     std::function<void(double newPositionNormalised)> onPositionChangeCallback;
     double currentPositionNormalized = 0.0;
     std::string currentTime = "00:00";
@@ -197,7 +182,6 @@ public:
     }
     
     std::function<void()> playPausePressedCallback;
-
     M1PlayerControls & withPlayPauseCallback(std::function<void()> playPausePressed) {
         playPausePressedCallback = playPausePressed;
     }

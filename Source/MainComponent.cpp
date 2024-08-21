@@ -9,7 +9,6 @@ MainComponent::MainComponent()
 
 	// specify the number of input and output channels that we want to open
 	setAudioChannels(0, 2);
-    
 }
 
 MainComponent::~MainComponent()
@@ -240,12 +239,11 @@ void MainComponent::initialise()
     });
     
     // playerOSC update timer loop (only used for checking the connection)
-    startTimer(200);
+    startTimerHz(1);
     
     // Debug video
     const juce::String& currentFile = "/Users/zebra/Downloads/testvideo.mp4";
     openFile(currentFile);
-
 }
 
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleRate)
@@ -546,6 +544,9 @@ void MainComponent::syncWithDAWPlayhead() {
 }
 
 void MainComponent::draw() {
+    if ((m.mouseDelta().x != 0) || (m.mouseDelta().y != 0)) {
+        secondsWithoutMouseMove = 0;
+    }
     
     // update standalone mode flag
     // TODO: introduce a button to swap modes
@@ -733,8 +734,9 @@ void MainComponent::draw() {
         });
     }
     playerControls.withStandaloneMode(b_standalone_mode);
-    
-    m.setColor(20, 20, 20, 200 * (1 - playerControls.bypassingBecauseofInactivity));
+    playerControls.bypassingBecauseofInactivity = (secondsWithoutMouseMove > 5);
+    // TODO: apply inactivity alpha to other UI elements
+    m.setColor(20, 20, 20, (int)(200 * (1 - (secondsWithoutMouseMove > 5)))); // if there has not been mouse activity hide the UI element
     m.drawRectangle(playerControlShape);
     
     if (clip.get() != nullptr && (clip->hasVideo() || clip->hasAudio())) {
@@ -980,6 +982,7 @@ void MainComponent::draw() {
 void MainComponent::timerCallback() {
     // Added if we need to move the OSC stuff from the processorblock
     playerOSC.update(); // test for connection
+    secondsWithoutMouseMove += 1;
 }
 
 //==============================================================================
