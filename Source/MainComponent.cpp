@@ -649,40 +649,42 @@ void MainComponent::draw() {
 			m.drawImage(imgVideo, 0, 0, imgVideo.getWidth() * 0.3, imgVideo.getHeight() * 0.3);
 		}
 
-		auto& modeRadioGroup = m.prepare<RadioGroupWidget>({ 20, 20, 90, 30 });
-		modeRadioGroup.labels = { "3D", "2D" };
-		if (!bHideUI) {
-			modeRadioGroup.selectedIndex = videoPlayerWidget.drawFlat ? 1 : 0;
-			modeRadioGroup.draw();
-			if (modeRadioGroup.changed) {
-				if (modeRadioGroup.selectedIndex == 0) {
-					videoPlayerWidget.drawFlat = false;
-					drawReference = false;
-				}
-				else if (modeRadioGroup.selectedIndex == 1) {
-					videoPlayerWidget.drawFlat = true;
-					drawReference = false;
-				}
-				else {
-					videoPlayerWidget.drawFlat = false;
-					drawReference = true;
-				}
-			}
-		}
-
-		auto& drawOverlayCheckbox = m.prepare<murka::Checkbox>({ 20, 50, 130, 30 });
-		drawOverlayCheckbox.dataToControl = &(videoPlayerWidget.drawOverlay);
-		drawOverlayCheckbox.label = "OVERLAY";
-		if (!bHideUI) {
-			drawOverlayCheckbox.draw();
-		}
-
-		auto& cropStereoscopicCheckbox = m.prepare<murka::Checkbox>({ 20, 80, 130, 30 });
-		cropStereoscopicCheckbox.dataToControl = &(videoPlayerWidget.crop_Stereoscopic_TopBottom);
-		cropStereoscopicCheckbox.label = "CROP STEREOSCOPIC";
-		if (!bHideUI) {
-			cropStereoscopicCheckbox.draw();
-		}
+        if (!(secondsWithoutMouseMove > 5)) { // skip drawing if mouse has not interacted in a while
+            auto& modeRadioGroup = m.prepare<RadioGroupWidget>({ 20, 20, 90, 30 });
+            modeRadioGroup.labels = { "3D", "2D" };
+            if (!bHideUI) {
+                modeRadioGroup.selectedIndex = videoPlayerWidget.drawFlat ? 1 : 0;
+                modeRadioGroup.draw();
+                if (modeRadioGroup.changed) {
+                    if (modeRadioGroup.selectedIndex == 0) {
+                        videoPlayerWidget.drawFlat = false;
+                        drawReference = false;
+                    }
+                    else if (modeRadioGroup.selectedIndex == 1) {
+                        videoPlayerWidget.drawFlat = true;
+                        drawReference = false;
+                    }
+                    else {
+                        videoPlayerWidget.drawFlat = false;
+                        drawReference = true;
+                    }
+                }
+            }
+            
+            auto& drawOverlayCheckbox = m.prepare<murka::Checkbox>({ 20, 50, 130, 30 });
+            drawOverlayCheckbox.dataToControl = &(videoPlayerWidget.drawOverlay);
+            drawOverlayCheckbox.label = "OVERLAY";
+            if (!bHideUI) {
+                drawOverlayCheckbox.draw();
+            }
+            
+            auto& cropStereoscopicCheckbox = m.prepare<murka::Checkbox>({ 20, 80, 130, 30 });
+            cropStereoscopicCheckbox.dataToControl = &(videoPlayerWidget.crop_Stereoscopic_TopBottom);
+            cropStereoscopicCheckbox.label = "CROP STEREOSCOPIC";
+            if (!bHideUI) {
+                cropStereoscopicCheckbox.draw();
+            }
+        }
 	}
 	else { // Either no clip at all (nullptr) or no audio or video in a clip
 	}
@@ -735,8 +737,7 @@ void MainComponent::draw() {
     }
     playerControls.withStandaloneMode(b_standalone_mode);
     playerControls.bypassingBecauseofInactivity = (secondsWithoutMouseMove > 5);
-    // TODO: apply inactivity alpha to other UI elements
-    m.setColor(20, 20, 20, (int)(200 * (1 - (secondsWithoutMouseMove > 5)))); // if there has not been mouse activity hide the UI element
+    m.setColor(20, 20, 20, 200 * (1 - (secondsWithoutMouseMove > 5))); // if there has not been mouse activity hide the UI element
     m.drawRectangle(playerControlShape);
     
     if (clip.get() != nullptr && (clip->hasVideo() || clip->hasAudio())) {
