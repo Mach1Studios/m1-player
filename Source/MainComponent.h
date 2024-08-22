@@ -86,6 +86,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     int secondsWithoutMouseMove = 0;
     MurkaPoint lastScrollValue;
     bool bHideUI = false;
+    bool bShowHelpUI = false;
     
     // Communication to Monitor and the rest of the M1SpatialSystem
     void timerCallback() override;

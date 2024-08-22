@@ -581,7 +581,7 @@ void MainComponent::draw() {
 
 	m.clear(20);
 	m.setColor(255);
-	m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 10);
+	m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 14);
 
 	auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
 
@@ -799,26 +799,8 @@ void MainComponent::draw() {
 		bHideUI = !bHideUI;
 	}
 
-	if (m.isKeyHeld('q')) {
-		m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);
-		m.getCurrentFont()->drawString("Frame: " + std::to_string(transportSource.getCurrentPosition()), 10, 110);
-        m.getCurrentFont()->drawString("Standalone mode: " + std::to_string(b_standalone_mode), 10, 130);
-
-		m.getCurrentFont()->drawString("Hotkeys:", 10, 130);
-		m.getCurrentFont()->drawString("[w] - FOV+", 10, 150);
-		m.getCurrentFont()->drawString("[s] - FOV-", 10, 170);
-		m.getCurrentFont()->drawString("[z] - Equirectangular / 2D", 10, 190);
-		m.getCurrentFont()->drawString("[g] - Overlay 2D Reference", 10, 210);
-		m.getCurrentFont()->drawString("[o] - Overlay Reference", 10, 230);
-		m.getCurrentFont()->drawString("[d] - Crop stereoscopic", 10, 250);
-        m.getCurrentFont()->drawString("[h] - Hide UI", 10, 270);
-		m.getCurrentFont()->drawString("[Arrow Keys] - Orientation Resets", 10, 290);
-
-        auto ori_deg = currentOrientation.GetGlobalRotationAsEulerDegrees();
-		m.getCurrentFont()->drawString("OverlayCoords:", 10, 350);
-        m.getCurrentFont()->drawString("Y: " + std::to_string(ori_deg.GetYaw()), 10, 370);
-        m.getCurrentFont()->drawString("P: " + std::to_string(ori_deg.GetPitch()), 10, 390);
-        m.getCurrentFont()->drawString("R: " + std::to_string(ori_deg.GetRoll()), 10, 410);
+	if (m.isKeyPressed('q')) {
+        bShowHelpUI = !bShowHelpUI;
 	}
     
     // Quick mute for Yaw orientation input from device
@@ -971,6 +953,28 @@ void MainComponent::draw() {
     }
     
     */
+    
+    if (bShowHelpUI) {
+        m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);
+        m.getCurrentFont()->drawString("Frame: " + std::to_string(transportSource.getCurrentPosition()), 10, 30);
+        m.getCurrentFont()->drawString("Standalone mode: " + std::to_string(b_standalone_mode), 10, 50);
+
+        m.getCurrentFont()->drawString("Hotkeys:", 10, 130);
+        m.getCurrentFont()->drawString("[w] - FOV+", 10, 150);
+        m.getCurrentFont()->drawString("[s] - FOV-", 10, 170);
+        m.getCurrentFont()->drawString("[z] - Equirectangular / 2D", 10, 190);
+        m.getCurrentFont()->drawString("[g] - Overlay 2D Reference", 10, 210);
+        m.getCurrentFont()->drawString("[o] - Overlay Reference", 10, 230);
+        m.getCurrentFont()->drawString("[d] - Crop stereoscopic", 10, 250);
+        m.getCurrentFont()->drawString("[h] - Hide UI", 10, 270);
+        m.getCurrentFont()->drawString("[Arrow Keys] - Orientation Resets", 10, 290);
+
+        auto ori_deg = currentOrientation.GetGlobalRotationAsEulerDegrees();
+        m.getCurrentFont()->drawString("OverlayCoords:", 10, 350);
+        m.getCurrentFont()->drawString("Y: " + std::to_string(ori_deg.GetYaw()), 10, 370);
+        m.getCurrentFont()->drawString("P: " + std::to_string(ori_deg.GetPitch()), 10, 390);
+        m.getCurrentFont()->drawString("R: " + std::to_string(ori_deg.GetRoll()), 10, 410);
+    }
     
     // update the previous orientation for calculating offset
     videoPlayerWidget.rotationPrevious = videoPlayerWidget.rotationCurrent;
