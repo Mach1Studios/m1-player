@@ -6,6 +6,10 @@
 #include "TextField.h"
 #include "../Config.h"
 
+#if !defined(DEFAULT_FONT_SIZE)
+#define DEFAULT_FONT_SIZE 10
+#endif
+
 using namespace murka;
 
 class M1Slider : public murka::View<M1Slider> {
@@ -244,7 +248,7 @@ public:
     bool movingLabel = false;
     bool isHorizontal = false;
     std::string label = "";
-    double fontSize = 10;
+    float fontSize = DEFAULT_FONT_SIZE;
     int floatingPointPrecision = 1;
     
     bool orientationClientConnected = false;
@@ -268,7 +272,7 @@ public:
         return *this;
     }
     
-    M1Slider & withFontSize(double fontSize_) {
+    M1Slider & withFontSize(float fontSize_) {
         fontSize = fontSize_;
         return *this;
     }

@@ -241,7 +241,7 @@ void MainComponent::initialise()
     // playerOSC update timer loop (only used for checking the connection)
     startTimerHz(1);
     
-    // Debug video
+    // Debug video TODO: REMOVE!
     const juce::String& currentFile = "/Users/zebra/Downloads/testvideo.mp4";
     openFile(currentFile);
 }
@@ -543,6 +543,49 @@ void MainComponent::syncWithDAWPlayhead() {
     }
 }
 
+void MainComponent::draw_orientation_client(murka::Murka &m, M1OrientationClient &m1OrientationClient) {
+    std::vector<M1OrientationClientWindowDeviceSlot> slots;
+    
+    std::vector<M1OrientationDeviceInfo> devices = m1OrientationClient.getDevices();
+    for (int i = 0; i < devices.size(); i++) {
+        std::string icon = "";
+        if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeSerial && devices[i].getDeviceName().find("Bluetooth-Incoming-Port") != std::string::npos) {
+            icon = "bt";
+        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeSerial && devices[i].getDeviceName().find("Mach1-") != std::string::npos) {
+            icon = "bt";
+        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeBLE) {
+            icon = "bt";
+        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeSerial) {
+            icon = "usb";
+        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeCamera) {
+            icon = "camera";
+        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeEmulator) {
+            icon = "none";
+        } else {
+            icon = "wifi";
+        }
+        
+        std::string name = devices[i].getDeviceName();
+        slots.push_back({ icon,
+            name,
+            name == m1OrientationClient.getCurrentDevice().getDeviceName(),
+            i,
+            [&](int idx)
+            {
+                m1OrientationClient.command_startTrackingUsingDevice(devices[idx]);
+            }
+        });
+    }
+    
+    // trigger a server side refresh for listed devices while menu is open
+    m1OrientationClient.command_refresh();
+    //bool showOrientationSettingsPanelInsideWindow = (m1OrientationClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone);
+    orientationControlWindow = &(m.prepare<M1OrientationClientWindow>({ 400 , 378, 290, 400}));
+    orientationControlWindow->withDeviceSlots(slots);
+    orientationControlWindow->withOrientationClient(m1OrientationClient);
+    orientationControlWindow->draw();
+}
+
 void MainComponent::draw() {
     if ((m.mouseDelta().x != 0) || (m.mouseDelta().y != 0)) {
         secondsWithoutMouseMove = 0;
@@ -581,7 +624,7 @@ void MainComponent::draw() {
 
 	m.clear(20);
 	m.setColor(255);
-	m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 14);
+	m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
 
 	auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
 
@@ -840,120 +883,18 @@ void MainComponent::draw() {
 	// draw m1 logo
 	m.drawImage(imgLogo, m.getWindowWidth() - imgLogo.getWidth()*0.3 - 10, m.getWindowHeight() - imgLogo.getHeight()*0.3 - 10, imgLogo.getWidth() * 0.3, imgLogo.getHeight() * 0.3);
 
-    /*
-	std::vector<M1OrientationClientWindowDeviceSlot> slots;
+    
+    // Settings pane is open
+    if (showSettingsMenu) {
 
-	std::vector<M1OrientationDeviceInfo> devices = m1OrientationClient.getDevices();
-	for (int i = 0; i < devices.size(); i++) {
-		std::string icon = "";
-        if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeSerial && devices[i].getDeviceName().find("Bluetooth-Incoming-Port") != std::string::npos) {
-            icon = "bt";
-        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeSerial && devices[i].getDeviceName().find("Mach1-") != std::string::npos) {
-            icon = "bt";
-        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeBLE) {
-            icon = "bt";
-        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeSerial) {
-            icon = "usb";
-        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeCamera) {
-            icon = "camera";
-        } else if (devices[i].getDeviceType() == M1OrientationDeviceType::M1OrientationManagerDeviceTypeEmulator) {
-            icon = "none";
-        } else {
-            icon = "wifi";
-        }
-
-		std::string name = devices[i].getDeviceName();
-		slots.push_back({ icon, name, name == m1OrientationClient.getCurrentDevice().getDeviceName(), i, [&](int idx)
-			{
-				m1OrientationClient.command_startTrackingUsingDevice(devices[idx]);
-			}
-        });
-	}
-
-	auto& orientationControlButton = m.prepare<M1OrientationWindowToggleButton>({ m.getSize().width() - 40 - 5, 5, 40, 40 }).onClick([&](M1OrientationWindowToggleButton& b) {
-		showOrientationControlMenu = !showOrientationControlMenu;
-		})
-		.withInteractiveOrientationGimmick(m1OrientationClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone, m1OrientationClient.getOrientation().GetGlobalRotationAsEulerDegrees().GetYaw())
-			.draw();
-
-    // TODO: move this to be to the left of the orientation client window button
-    if (std::holds_alternative<bool>(m1OrientationClient.getCurrentDevice().batteryPercentage)) {
-        // it's false, which means the battery percentage is unknown
-    } else {
-        // it has a battery percentage value
-        int battery_value = std::get<int>(m1OrientationClient.getCurrentDevice().batteryPercentage);
-        m.getCurrentFont()->drawString("Battery: " + std::to_string(battery_value), m.getWindowWidth() - 100, m.getWindowHeight() - 100);
+        /// LEFT SIDE
+        
+        /// RIGHT SIDE
+                    
+        // orientation client window
+        draw_orientation_client(m, m1OrientationClient);
     }
-    
-    if (orientationControlButton.hovered && (m1OrientationClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone)) {
-        std::string deviceReportString = "CONNECTED DEVICE: " + m1OrientationClient.getCurrentDevice().getDeviceName();
-        auto font = m.getCurrentFont();
-        auto bbox = font->getStringBoundingBox(deviceReportString, 0, 0);
-        //m.setColor(40, 40, 40, 200);
-        // TODO: fix this bounding box (doesnt draw the same place despite matching settings with Label.draw
-        //m.drawRectangle(     m.getSize().width() - 40 - 10 - bbox.width - 5, 5, bbox.width + 10, 40);
-        m.setColor(230, 230, 230);
-        m.prepare<M1Label>({ m.getSize().width() - 40 - 10 - bbox.width - 5, 5 + 10, bbox.width + 10, 40 }).text(deviceReportString).withTextAlignment(TEXT_CENTER).draw();
-    }
-    
-    if (showOrientationControlMenu) {
-        // trigger a server side refresh for listed devices while menu is open
-        m1OrientationClient.command_refresh();
-
-        auto rot_deg = m1OrientationClient.getOrientation().GetGlobalRotationAsEulerDegrees();
-        bool showOrientationSettingsPanelInsideWindow = (m1OrientationClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone);
-        orientationControlWindow = &(m.prepare<M1OrientationClientWindow>({ m.getSize().width() - 218 - 5 , 5, 218, 300 + 100 * showOrientationSettingsPanelInsideWindow })
-            .withDeviceList(slots)
-            .withSettingsPanelEnabled(showOrientationSettingsPanelInsideWindow)
-            .withOscSettingsEnabled((m1OrientationClient.getCurrentDevice().getDeviceType() == M1OrientationManagerDeviceTypeOSC))
-            .withSupperwareSettingsEnabled(m1OrientationClient.getCurrentDevice().getDeviceName().find("Supperware HT IMU") != std::string::npos)
-            .onClickOutside([&]() {
-                if (!orientationControlButton.hovered) { // Only switch showing the orientation control if we didn't click on the button
-                    showOrientationControlMenu = !showOrientationControlMenu;
-                }
-            })
-            .onOscSettingsChanged([&](int requested_osc_port, std::string requested_osc_msg_address) {
-                m1OrientationClient.command_setAdditionalDeviceSettings("osc_add="+requested_osc_msg_address);
-                m1OrientationClient.command_setAdditionalDeviceSettings("osc_p="+std::to_string(requested_osc_port));
-            })
-            .onSupperwareSettingsChanged([&](bool isRightEarChirality) {
-                std::string chir_cmd;
-                if (isRightEarChirality) {
-                    chir_cmd = "1";
-                } else {
-                    chir_cmd = "0";
-                }
-                m1OrientationClient.command_setAdditionalDeviceSettings("sw_chir="+chir_cmd);
-            })
-            .onDisconnectClicked([&]() {
-                m1OrientationClient.command_disconnect();
-            })
-            .onRecenterClicked([&]() {
-                m1OrientationClient.command_recenter();
-            })
-            .onOscSettingsChanged([&](int requested_osc_port, std::string requested_osc_msg_address) {
-                m1OrientationClient.command_setAdditionalDeviceSettings("osc_add="+requested_osc_msg_address);
-                m1OrientationClient.command_setAdditionalDeviceSettings("osc_p="+std::to_string(requested_osc_port));
-            })
-            .onYPRSwitchesClicked([&](int whichone) {
-                if (whichone == 0) m1OrientationClient.command_setTrackingYawEnabled(!m1OrientationClient.getTrackingYawEnabled());
-                if (whichone == 1) m1OrientationClient.command_setTrackingPitchEnabled(!m1OrientationClient.getTrackingPitchEnabled());
-                if (whichone == 2) m1OrientationClient.command_setTrackingRollEnabled(!m1OrientationClient.getTrackingRollEnabled());
-            })
-            .withYPRTrackingSettings(
-                                     m1OrientationClient.getTrackingYawEnabled(),
-                                     m1OrientationClient.getTrackingPitchEnabled(),
-                                     m1OrientationClient.getTrackingRollEnabled(),
-                                     std::pair<int, int>(0, 180),
-                                     std::pair<int, int>(0, 180),
-                                     std::pair<int, int>(0, 180)
-            )
-            .withYPR(rot_deg.GetYaw(), rot_deg.GetPitch(), rot_deg.GetRoll()));
-            orientationControlWindow->draw();
-    }
-    
-    */
-    
+        
     if (bShowHelpUI) {
         m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);
         m.getCurrentFont()->drawString("Frame: " + std::to_string(transportSource.getCurrentPosition()), 10, 30);
