@@ -744,15 +744,17 @@ void MainComponent::draw() {
     playerControls.withStandaloneMode(b_standalone_mode);
     playerControls.bypassingBecauseofInactivity = (secondsWithoutMouseMove > 5);
     m.setColor(20, 20, 20, 200 * (1 - (secondsWithoutMouseMove > 5))); // if there has not been mouse activity hide the UI element
-    m.drawRectangle(playerControlShape);
-    
-    if (clip.get() != nullptr && (clip->hasVideo() || clip->hasAudio())) {
-        playerControls.draw();
-    } else {
-        std::string message = "Drop an audio or video file here";
-        juceFontStash::Rectangle boundingBox = m.getCurrentFont()->getStringBoundingBox(message, 0, 0);
-        m.setColor(ENABLED_PARAM);
-        m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - boundingBox.width * 0.5, m.getWindowHeight() * 0.5 - boundingBox.height, 350, 30 }).text(message).draw();
+    if (!showSettingsMenu) { // do not draw playcontrols if the settings menu is open
+        m.drawRectangle(playerControlShape);
+        
+        if (clip.get() != nullptr && (clip->hasVideo() || clip->hasAudio())) {
+            playerControls.draw();
+        } else {
+            std::string message = "Drop an audio or video file here";
+            juceFontStash::Rectangle boundingBox = m.getCurrentFont()->getStringBoundingBox(message, 0, 0);
+            m.setColor(ENABLED_PARAM);
+            m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - boundingBox.width * 0.5, m.getWindowHeight() * 0.5 - boundingBox.height, 350, 30 }).text(message).draw();
+        }
     }
 
 	// arrow orientation reset keys
@@ -864,18 +866,7 @@ void MainComponent::draw() {
         m.getCurrentFont()->drawString("P: " + std::to_string(ori_deg.GetPitch()), 10, 390);
         m.getCurrentFont()->drawString("R: " + std::to_string(ori_deg.GetRoll()), 10, 410);
     }
-    
-    /// BOTTOM BAR
-    m.setColor(BACKGROUND_GREY, 180);
-    if (showSettingsMenu) {
-        m.drawRectangle(0, m.getSize().height(), m.getSize().width(), m.getSize().height() * 0.75); // bottom bar
-    } else {
-        if (!(secondsWithoutMouseMove > 5)) { // skip drawing if mouse has not interacted in a while
-            m.drawRectangle(0, m.getSize().height(), m.getSize().width(), 35); // bottom bar
-        }
-    }
 
-    ///
     std::function<void()> deleteTheSettingsButton = [&]() {
         // Temporary solution to delete the TextField:
         // Searching for an id to delete the text field widget.
@@ -891,13 +882,25 @@ void MainComponent::draw() {
         m.imChildren.erase(idToDelete);
     };
     
+    /// BOTTOM BAR
+    m.setColor(BACKGROUND_GREY, 100);
+    if (showSettingsMenu) {
+        // bottom bar becomes the settings pane
+        // TODO: Animate this drawer opening and closing
+        m.drawRectangle(0, m.getSize().height()*0.20f, m.getSize().width(), m.getSize().height() * 0.80f);
+    } else {
+        if (!(secondsWithoutMouseMove > 5)) { // skip drawing if mouse has not interacted in a while
+            m.drawRectangle(0, m.getSize().height() - 50, m.getSize().width(), 50); // bottom bar
+        }
+    }
+    
     /// SETTINGS BUTTON
     if (showSettingsMenu || !(secondsWithoutMouseMove > 5)) { // skip drawing if mouse has not interacted in a while
         m.setColor(ENABLED_PARAM);
-        float settings_button_height = m.getSize().height() - 10;
+        float settings_button_y = m.getSize().height() - 10;
         if (showSettingsMenu) {
-            float settings_button_height = m.getSize().height()*0.75 - 10;
-            auto& showSettingsWhileOpenedButton = m.prepare<M1DropdownButton>({ m.getSize().width()/2 - 30, settings_button_height - 30,
+            settings_button_y = m.getSize().height()*0.28f - 10; // adjust pos to top of drawer bar
+            auto& showSettingsWhileOpenedButton = m.prepare<M1DropdownButton>({ m.getSize().width()/2 - 30, settings_button_y - 30,
                 120, 30 })
             .withLabel("SETTINGS")
             .withFontSize(DEFAULT_FONT_SIZE)
@@ -915,7 +918,7 @@ void MainComponent::draw() {
             // draw settings arrow indicator pointing up
             m.enableFill();
             m.setColor(LABEL_TEXT_COLOR);
-            MurkaPoint triangleCenter = {m.getSize().width()/2 + 65, settings_button_height - 8};
+            MurkaPoint triangleCenter = {m.getSize().width()/2 + 45, settings_button_y - 10};
             std::vector<MurkaPoint3D> triangle;
             triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0});
             triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0}); // top middle
@@ -923,8 +926,8 @@ void MainComponent::draw() {
             triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0});
             m.drawPath(triangle);
         } else {
-            float settings_button_height = m.getSize().height() - 10;
-            auto& showSettingsWhileClosedButton = m.prepare<M1DropdownButton>({ m.getSize().width()/2 - 30, settings_button_height - 30,
+            settings_button_y = m.getSize().height() - 10;
+            auto& showSettingsWhileClosedButton = m.prepare<M1DropdownButton>({ m.getSize().width()/2 - 30, settings_button_y - 30,
                 120, 30 })
             .withLabel("SETTINGS")
             .withFontSize(DEFAULT_FONT_SIZE)
@@ -942,7 +945,7 @@ void MainComponent::draw() {
             // draw settings arrow indicator pointing down
             m.enableFill();
             m.setColor(LABEL_TEXT_COLOR);
-            MurkaPoint triangleCenter = {m.getSize().width()/2 + 65, settings_button_height - 8 - 5};
+            MurkaPoint triangleCenter = {m.getSize().width()/2 + 45, settings_button_y - 10 - 5};
             std::vector<MurkaPoint3D> triangle;
             triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0});
             triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0}); // bottom middle
