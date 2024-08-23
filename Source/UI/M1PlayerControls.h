@@ -9,6 +9,7 @@
 #include "MurkaBasicWidgets.h"
 #include "M1PlayerControlButton.h"
 #include "M1Slider.h"
+#include "../Config.h"
 
 using namespace murka;
 
@@ -34,16 +35,16 @@ public:
             })
         .draw();
         
-        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 11);
+        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-4);
         m.setColor(ENABLED_PARAM);
-        m.prepare<murka::Label>({getSize().x / 2 - getSize().y / 4 + 10,
+        m.prepare<murka::Label>({getSize().x / 2 - getSize().y / 4 + 12,
             40 + 35,
             getSize().y / 4 + 20,
             getSize().y / 4}).text("PLAY").draw();
 
         // Timeline progressbar
         if (!standaloneMode) {
-            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 11);
+            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-2);
             float width = m.getCurrentFont()->getStringBoundingBox("SYNC TO DAW MODE", 0, 0).width;
             m.prepare<murka::Label>({getSize().x / 2 - width / 2, 30, width, 30}).text("SYNC TO DAW MODE").draw();
         }
@@ -66,13 +67,13 @@ public:
             })
         .draw();
         
-        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 11);
+        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-5);
         m.setColor(ENABLED_PARAM);
-        m.prepare<murka::Label>({getSize().x * 0.85 - getSize().y / 4 - 15,
+        m.prepare<murka::Label>({getSize().x * 0.85 - getSize().y / 4 - 10,
             40 + 30,
             getSize().y / 4 + 100,
             getSize().y / 4}).text("CONNECTED").draw();
-        m.prepare<murka::Label>({getSize().x * 0.85 - getSize().y / 4 - 5,
+        m.prepare<murka::Label>({getSize().x * 0.85 - getSize().y / 4,
             40 + 40,
             getSize().y / 4 + 100,
             getSize().y / 4}).text("DEVICE").draw();
@@ -93,12 +94,12 @@ public:
             };
             volumeSlider.draw();
             
-            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 11);
+            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-4);
             m.setColor(ENABLED_PARAM);
-            m.prepare<murka::Label>({ 40, 40 + 35, 70, 30 }).text("VOLUME").draw();
+            m.prepare<murka::Label>({ 43, 40 + 35, 70, 30 }).text("VOLUME").draw();
             
             // current time readout
-            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 9);
+            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-5);
             m.setColor(ENABLED_PARAM);
             m.prepare<murka::Label>({ 10, 25 - 4, 30, 10 }).text(currentTime).draw();
             // timeline line
@@ -114,9 +115,9 @@ public:
                        40 + cursorPositionInPixels, 25 + sliderHeight / 2);
             MurkaShape positionSlider = MurkaShape(40, 20, getSize().x - 80, 60);
             // total time readout
-            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, 9);
+            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-5);
             m.setColor(ENABLED_PARAM);
-            m.prepare<murka::Label>({ getSize().x - 38, 25 - 4, 30, 10 }).text(totalTime).draw();
+            m.prepare<murka::Label>({ getSize().x - 36, 25 - 4, 30, 10 }).text(totalTime).draw();
             
             if (mouseDownPressed(0)) {
                 if (positionSlider.inside(mousePosition())) {
@@ -149,7 +150,7 @@ public:
 
     bool isPlaying = false;
     std::function<void()> playButtonCallback;
-
+    
     M1PlayerControls & withPlayerData(std::string current_timecode,
                                       std::string total_timecode,
                                       bool showPositionReticle = true,

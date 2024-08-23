@@ -37,13 +37,16 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     MurImage imgLogo;
     MurImage imgVideo;
 
-    M1OrientationClient m1OrientationClient;
     Mach1::Orientation currentOrientation;
     Mach1::Orientation previousClientOrientation;
     MurkaPoint3D prev_mouse_offset = { 0, 0, 0 }; // used to track if the player mouse offset has a new value
+
+    // Orientation Manager/Client
+    M1OrientationClient m1OrientationClient;
     M1OrientationClientWindow* orientationControlWindow;
     bool showOrientationControlMenu = false;
     bool showedOrientationControlBefore = false;
+    void draw_orientation_client(murka::Murka &m, M1OrientationClient &m1OrientationClient);
     
     // collect existing local panners for display
     std::vector<PannerSettings> panners;
@@ -87,6 +90,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     MurkaPoint lastScrollValue;
     bool bHideUI = false;
     bool bShowHelpUI = false;
+    bool showSettingsMenu = false;
     
     // Communication to Monitor and the rest of the M1SpatialSystem
     void timerCallback() override;
