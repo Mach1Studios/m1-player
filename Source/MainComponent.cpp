@@ -580,7 +580,7 @@ void MainComponent::draw_orientation_client(murka::Murka &m, M1OrientationClient
     // trigger a server side refresh for listed devices while menu is open
     m1OrientationClient.command_refresh();
     //bool showOrientationSettingsPanelInsideWindow = (m1OrientationClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone);
-    orientationControlWindow = &(m.prepare<M1OrientationClientWindow>({ 400 , 378, 290, 400}));
+    orientationControlWindow = &(m.prepare<M1OrientationClientWindow>({ m.getSize().width()/2 + 18 , m.getSize().height()*0.4, 290, 400}));
     orientationControlWindow->withDeviceSlots(slots);
     orientationControlWindow->withOrientationClient(m1OrientationClient);
     orientationControlWindow->draw();
@@ -691,43 +691,6 @@ void MainComponent::draw() {
 		if (drawReference) {
 			m.drawImage(imgVideo, 0, 0, imgVideo.getWidth() * 0.3, imgVideo.getHeight() * 0.3);
 		}
-
-        if (!(secondsWithoutMouseMove > 5)) { // skip drawing if mouse has not interacted in a while
-            auto& modeRadioGroup = m.prepare<RadioGroupWidget>({ 20, 20, 90, 30 });
-            modeRadioGroup.labels = { "3D", "2D" };
-            if (!bHideUI) {
-                modeRadioGroup.selectedIndex = videoPlayerWidget.drawFlat ? 1 : 0;
-                modeRadioGroup.draw();
-                if (modeRadioGroup.changed) {
-                    if (modeRadioGroup.selectedIndex == 0) {
-                        videoPlayerWidget.drawFlat = false;
-                        drawReference = false;
-                    }
-                    else if (modeRadioGroup.selectedIndex == 1) {
-                        videoPlayerWidget.drawFlat = true;
-                        drawReference = false;
-                    }
-                    else {
-                        videoPlayerWidget.drawFlat = false;
-                        drawReference = true;
-                    }
-                }
-            }
-            
-            auto& drawOverlayCheckbox = m.prepare<murka::Checkbox>({ 20, 50, 130, 30 });
-            drawOverlayCheckbox.dataToControl = &(videoPlayerWidget.drawOverlay);
-            drawOverlayCheckbox.label = "OVERLAY";
-            if (!bHideUI) {
-                drawOverlayCheckbox.draw();
-            }
-            
-            auto& cropStereoscopicCheckbox = m.prepare<murka::Checkbox>({ 20, 80, 130, 30 });
-            cropStereoscopicCheckbox.dataToControl = &(videoPlayerWidget.crop_Stereoscopic_TopBottom);
-            cropStereoscopicCheckbox.label = "CROP STEREOSCOPIC";
-            if (!bHideUI) {
-                cropStereoscopicCheckbox.draw();
-            }
-        }
 	}
 	else { // Either no clip at all (nullptr) or no audio or video in a clip
 	}
@@ -880,21 +843,6 @@ void MainComponent::draw() {
         }
     }
 
-	// draw m1 logo
-	m.drawImage(imgLogo, m.getWindowWidth() - imgLogo.getWidth()*0.3 - 10, m.getWindowHeight() - imgLogo.getHeight()*0.3 - 10, imgLogo.getWidth() * 0.3, imgLogo.getHeight() * 0.3);
-
-    
-    // Settings pane is open
-    if (showSettingsMenu) {
-
-        /// LEFT SIDE
-        
-        /// RIGHT SIDE
-                    
-        // orientation client window
-        draw_orientation_client(m, m1OrientationClient);
-    }
-        
     if (bShowHelpUI) {
         m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);
         m.getCurrentFont()->drawString("Frame: " + std::to_string(transportSource.getCurrentPosition()), 10, 30);
@@ -917,6 +865,157 @@ void MainComponent::draw() {
         m.getCurrentFont()->drawString("R: " + std::to_string(ori_deg.GetRoll()), 10, 410);
     }
     
+    /// BOTTOM BAR
+    m.setColor(BACKGROUND_GREY, 180);
+    if (showSettingsMenu) {
+        m.drawRectangle(0, m.getSize().height(), m.getSize().width(), m.getSize().height() * 0.75); // bottom bar
+    } else {
+        if (!(secondsWithoutMouseMove > 5)) { // skip drawing if mouse has not interacted in a while
+            m.drawRectangle(0, m.getSize().height(), m.getSize().width(), 35); // bottom bar
+        }
+    }
+
+    ///
+    std::function<void()> deleteTheSettingsButton = [&]() {
+        // Temporary solution to delete the TextField:
+        // Searching for an id to delete the text field widget.
+        // To be redone after the UI library refactoring.
+        
+        imIdentifier idToDelete;
+        for (auto childTuple: m.imChildren) {
+            auto childIdTuple = childTuple.first;
+            if (std::get<1>(childIdTuple) == typeid(M1DropdownButton).name()) {
+                idToDelete = childIdTuple;
+            }
+        }
+        m.imChildren.erase(idToDelete);
+    };
+    
+    /// SETTINGS BUTTON
+    if (showSettingsMenu || !(secondsWithoutMouseMove > 5)) { // skip drawing if mouse has not interacted in a while
+        m.setColor(ENABLED_PARAM);
+        float settings_button_height = m.getSize().height() - 10;
+        if (showSettingsMenu) {
+            float settings_button_height = m.getSize().height()*0.75 - 10;
+            auto& showSettingsWhileOpenedButton = m.prepare<M1DropdownButton>({ m.getSize().width()/2 - 30, settings_button_height - 30,
+                120, 30 })
+            .withLabel("SETTINGS")
+            .withFontSize(DEFAULT_FONT_SIZE)
+            .withOutline(false);
+            showSettingsWhileOpenedButton.textAlignment = TEXT_LEFT;
+            showSettingsWhileOpenedButton.heightDivisor = 3;
+            showSettingsWhileOpenedButton.labelPaddingLeft = 0;
+            showSettingsWhileOpenedButton.draw();
+            
+            if (showSettingsWhileOpenedButton.pressed) {
+                showSettingsMenu = false;
+                deleteTheSettingsButton();
+            }
+            
+            // draw settings arrow indicator pointing up
+            m.enableFill();
+            m.setColor(LABEL_TEXT_COLOR);
+            MurkaPoint triangleCenter = {m.getSize().width()/2 + 65, settings_button_height - 8};
+            std::vector<MurkaPoint3D> triangle;
+            triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0});
+            triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0}); // top middle
+            triangle.push_back({triangleCenter.x , triangleCenter.y - 5, 0});
+            triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0});
+            m.drawPath(triangle);
+        } else {
+            float settings_button_height = m.getSize().height() - 10;
+            auto& showSettingsWhileClosedButton = m.prepare<M1DropdownButton>({ m.getSize().width()/2 - 30, settings_button_height - 30,
+                120, 30 })
+            .withLabel("SETTINGS")
+            .withFontSize(DEFAULT_FONT_SIZE)
+            .withOutline(false);
+            showSettingsWhileClosedButton.textAlignment = TEXT_LEFT;
+            showSettingsWhileClosedButton.heightDivisor = 3;
+            showSettingsWhileClosedButton.labelPaddingLeft = 0;
+            showSettingsWhileClosedButton.draw();
+            
+            if (showSettingsWhileClosedButton.pressed) {
+                showSettingsMenu = true;
+                deleteTheSettingsButton();
+            }
+            
+            // draw settings arrow indicator pointing down
+            m.enableFill();
+            m.setColor(LABEL_TEXT_COLOR);
+            MurkaPoint triangleCenter = {m.getSize().width()/2 + 65, settings_button_height - 8 - 5};
+            std::vector<MurkaPoint3D> triangle;
+            triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0});
+            triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0}); // bottom middle
+            triangle.push_back({triangleCenter.x , triangleCenter.y + 5, 0});
+            triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0});
+            m.drawPath(triangle);
+        }
+    }
+    
+    // Settings pane is open
+    if (showSettingsMenu) {
+        // Settings rendering
+        float leftSide_LeftBound_x = 18;
+        float rightSide_LeftBound_x = m.getSize().width()/2 + 18;
+        float bottomSettings_topBound_y = 382;
+        
+        /// LEFT SIDE
+        auto& modeRadioGroup = m.prepare<RadioGroupWidget>({ leftSide_LeftBound_x, bottomSettings_topBound_y, 90, 30 });
+        modeRadioGroup.labels = { "3D", "2D" };
+        if (!bHideUI) {
+            modeRadioGroup.selectedIndex = videoPlayerWidget.drawFlat ? 1 : 0;
+            modeRadioGroup.draw();
+            if (modeRadioGroup.changed) {
+                if (modeRadioGroup.selectedIndex == 0) {
+                    videoPlayerWidget.drawFlat = false;
+                    drawReference = false;
+                }
+                else if (modeRadioGroup.selectedIndex == 1) {
+                    videoPlayerWidget.drawFlat = true;
+                    drawReference = false;
+                }
+                else {
+                    videoPlayerWidget.drawFlat = false;
+                    drawReference = true;
+                }
+            }
+        }
+        
+        auto& drawOverlayCheckbox = m.prepare<murka::Checkbox>({ leftSide_LeftBound_x, bottomSettings_topBound_y + 30, 130, 30 });
+        drawOverlayCheckbox.dataToControl = &(videoPlayerWidget.drawOverlay);
+        drawOverlayCheckbox.label = "OVERLAY";
+        if (!bHideUI) {
+            drawOverlayCheckbox.draw();
+        }
+        
+        auto& cropStereoscopicCheckbox = m.prepare<murka::Checkbox>({ leftSide_LeftBound_x, bottomSettings_topBound_y + 50, 130, 30 });
+        cropStereoscopicCheckbox.dataToControl = &(videoPlayerWidget.crop_Stereoscopic_TopBottom);
+        cropStereoscopicCheckbox.label = "CROP STEREOSCOPIC";
+        if (!bHideUI) {
+            cropStereoscopicCheckbox.draw();
+        }
+        
+        /// RIGHT SIDE
+                    
+        // orientation client window
+        draw_orientation_client(m, m1OrientationClient);
+    }
+    
+    /// Player label
+    if (!(secondsWithoutMouseMove > 5)) { // skip drawing if mouse has not interacted in a while
+        m.setColor(ENABLED_PARAM);
+        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-2);
+        auto& playerLabel = m.prepare<M1Label>(MurkaShape(m.getSize().width() - 100, m.getSize().height() - 30, 80, 20));
+        playerLabel.label = "PLAYER";
+        playerLabel.alignment = TEXT_CENTER;
+        playerLabel.enabled = false;
+        playerLabel.highlighted = false;
+        playerLabel.draw();
+        
+        m.setColor(ENABLED_PARAM);
+        m.drawImage(imgLogo, 25, m.getSize().height() - 30, 161 / 4, 39 / 4);
+    }
+
     // update the previous orientation for calculating offset
     videoPlayerWidget.rotationPrevious = videoPlayerWidget.rotationCurrent;
     

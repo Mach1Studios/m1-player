@@ -215,26 +215,9 @@ public:
                     MurkaPoint p = project3DToFlat2D({ -points[j].z, points[j].y, points[j].x });
                     drawReticle(m, p, pannerSettings[i].displayName + ": " + pointsNames[j], pannerSettings[i].color);
                 }
-
             }
         }
     }
-};
-
-class VideoPlayerPlayhead : public View<VideoPlayerPlayhead> {
-public:
-    void internalDraw(Murka& m) {
-        float w = getSize().x - 20;
-        float h = getSize().y / 2;
-
-        m.drawLine(10, h, 10 + w, h);
-        m.drawCircle(10 + playheadPosition * w, h, 10);
-
-        if (inside() && mouseDownPressed(0)) {
-            playheadPosition = (mousePosition().x - 10) / w;
-        }
-    }
-    float playheadPosition = 0.0;
 };
 
 class VideoPlayerWidget : public View<VideoPlayerWidget> {
@@ -253,11 +236,6 @@ public:
         videoPlayerSurface.pannerSettings = pannerSettings;
         videoPlayerSurface.draw();
 
-        auto& videoPlayerPlayhead = m.prepare<VideoPlayerPlayhead>({ 0, getSize().y - playheadHeight, getSize().x, playheadHeight });
-        videoPlayerPlayhead.playheadPosition = playheadPosition;
-        videoPlayerPlayhead.draw();
-
-        playheadPosition = videoPlayerPlayhead.playheadPosition;
         rotationCurrent = videoPlayerSurface.rotationCurrent;
         rotationOffsetMouse = videoPlayerSurface.rotationOffsetMouse;
 
