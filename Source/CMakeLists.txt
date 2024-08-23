@@ -8,6 +8,7 @@ file(GLOB source_files  Config.h
                         PlayerOSC.h
                         PlayerOSC.cpp
                         UI/M1Slider.h
+                        UI/M1DropdownButton.h
                         UI/VideoPlayerWidget.h
                         UI/RadioGroupWidget.h
                         UI/M1PlayerControls.h)

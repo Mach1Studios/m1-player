@@ -15,6 +15,7 @@
 #include "UI/M1PlayerControls.h"
 
 #include "UI/M1Slider.h"
+#include "UI/M1DropdownButton.h"
 #include "UI/VideoPlayerWidget.h"
 #include "UI/RadioGroupWidget.h"
 

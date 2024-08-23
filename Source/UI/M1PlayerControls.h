@@ -142,7 +142,7 @@ public:
     bool showCircleWithText = true;
     bool useButtonMode = false;
     bool bypassingBecauseofInactivity = false;
-
+    
     std::function<void(double newPositionNormalised)> onPositionChangeCallback;
     double currentPositionNormalized = 0.0;
     std::string currentTime = "00:00";
@@ -186,4 +186,20 @@ public:
     M1PlayerControls & withPlayPauseCallback(std::function<void()> playPausePressed) {
         playPausePressedCallback = playPausePressed;
     }
+};
+
+class VideoPlayerPlayhead : public View<VideoPlayerPlayhead> {
+public:
+    void internalDraw(Murka& m) {
+        float w = getSize().x - 20;
+        float h = getSize().y / 2;
+
+        m.drawLine(10, h, 10 + w, h);
+        m.drawCircle(10 + playheadPosition * w, h, 10);
+
+        if (inside() && mouseDownPressed(0)) {
+            playheadPosition = (mousePosition().x - 10) / w;
+        }
+    }
+    float playheadPosition = 0.0;
 };
