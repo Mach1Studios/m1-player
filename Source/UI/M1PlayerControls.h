@@ -11,6 +11,10 @@
 #include "M1Slider.h"
 #include "../Config.h"
 
+#if !defined(DEFAULT_FONT_SIZE)
+#define DEFAULT_FONTSIZE 10
+#endif
+
 using namespace murka;
 
 class M1PlayerControls : public murka::View<M1PlayerControls> {
@@ -137,7 +141,7 @@ public:
     bool changed = false;
     bool checked = false; // TODO: implement a way to uncheck/check button fill
     std::string label;
-    double fontSize = 10;
+    float fontSize = DEFAULT_FONT_SIZE;
     bool* dataToControl = nullptr;
     bool showCircleWithText = true;
     bool useButtonMode = false;

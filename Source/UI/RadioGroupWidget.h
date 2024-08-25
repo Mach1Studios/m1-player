@@ -5,6 +5,10 @@
 #include "MurkaBasicWidgets.h"
 #include "juce_murka/JuceMurkaBaseComponent.h"
 
+#if !defined(DEFAULT_FONT_SIZE)
+#define DEFAULT_FONTSIZE 10
+#endif
+
 class RadioGroupWidget : public View<RadioGroupWidget> {
     
 public:
@@ -58,11 +62,9 @@ public:
 
 			m.translate(w, 0, 0);
 		}
-
 		m.popMatrix();
 		m.popStyle();
 	};
-
 
 	// Whatever the parameters and the results are, the functions have to be defined here
 	float r = 80, g = 80, b = 80;
@@ -70,7 +72,13 @@ public:
 	std::vector<std::string> labels;
 	int selectedIndex = 0;
 	bool changed = false;
+    float fontSize = DEFAULT_FONT_SIZE;
 
 	// Internal state
 	float lastTimeClicked = 0;
+    
+    RadioGroupWidget & withFontSize(float fontSize_) {
+        fontSize = fontSize_;
+        return *this;
+    }
 };
