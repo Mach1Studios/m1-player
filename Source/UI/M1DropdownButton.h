@@ -8,6 +8,10 @@
 #include "MurkaLinearLayoutGenerator.h"
 #include "MurkaBasicWidgets.h"
 
+#if !defined(DEFAULT_FONT_SIZE)
+#define DEFAULT_FONTSIZE 10
+#endif
+
 using namespace murka;
 
 class M1DropdownButton : public murka::View<M1DropdownButton> {
@@ -47,7 +51,7 @@ public:
     float labelPaddingLeft = 5;
     MurkaColor labelColor = MurkaColor(LABEL_TEXT_COLOR);
     bool pressed = false;
-    float fontSize = 10;
+    float fontSize = DEFAULT_FONT_SIZE;
     bool outlineEnabled = false;
     TextAlignment textAlignment = TEXT_CENTER;
     int heightDivisor = 3;

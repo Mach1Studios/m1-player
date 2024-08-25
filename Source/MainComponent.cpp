@@ -577,10 +577,13 @@ void MainComponent::draw_orientation_client(murka::Murka &m, M1OrientationClient
         });
     }
     
+    float rightSide_LeftBound_x = m.getSize().width()/2 + 40;
+    float settings_topBound_y = m.getSize().height()*0.23f + 18;
+
     // trigger a server side refresh for listed devices while menu is open
     m1OrientationClient.command_refresh();
     //bool showOrientationSettingsPanelInsideWindow = (m1OrientationClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone);
-    orientationControlWindow = &(m.prepare<M1OrientationClientWindow>({ m.getSize().width()/2 + 18 , m.getSize().height()*0.4, 290, 400}));
+    orientationControlWindow = &(m.prepare<M1OrientationClientWindow>({ rightSide_LeftBound_x, settings_topBound_y, 300, 400}));
     orientationControlWindow->withDeviceSlots(slots);
     orientationControlWindow->withOrientationClient(m1OrientationClient);
     orientationControlWindow->draw();
@@ -883,11 +886,11 @@ void MainComponent::draw() {
     };
     
     /// BOTTOM BAR
-    m.setColor(BACKGROUND_GREY, 100);
+    m.setColor(BACKGROUND_GREY, 200);
     if (showSettingsMenu) {
         // bottom bar becomes the settings pane
         // TODO: Animate this drawer opening and closing
-        m.drawRectangle(0, m.getSize().height()*0.20f, m.getSize().width(), m.getSize().height() * 0.80f);
+        m.drawRectangle(0, m.getSize().height()*0.15f, m.getSize().width(), m.getSize().height() * 0.85f);
     } else {
         if (!(secondsWithoutMouseMove > 5)) { // skip drawing if mouse has not interacted in a while
             m.drawRectangle(0, m.getSize().height() - 50, m.getSize().width(), 50); // bottom bar
@@ -899,7 +902,7 @@ void MainComponent::draw() {
         m.setColor(ENABLED_PARAM);
         float settings_button_y = m.getSize().height() - 10;
         if (showSettingsMenu) {
-            settings_button_y = m.getSize().height()*0.28f - 10; // adjust pos to top of drawer bar
+            settings_button_y = m.getSize().height()*0.23f - 10; // adjust pos to top of drawer bar
             auto& showSettingsWhileOpenedButton = m.prepare<M1DropdownButton>({ m.getSize().width()/2 - 30, settings_button_y - 30,
                 120, 30 })
             .withLabel("SETTINGS")
@@ -958,44 +961,92 @@ void MainComponent::draw() {
     // Settings pane is open
     if (showSettingsMenu) {
         // Settings rendering
-        float leftSide_LeftBound_x = 18;
-        float rightSide_LeftBound_x = m.getSize().width()/2 + 18;
-        float bottomSettings_topBound_y = 382;
+        float leftSide_LeftBound_x = 40;
+        float rightSide_LeftBound_x = m.getSize().width()/2 + 40;
+        float settings_topBound_y = m.getSize().height()*0.23f + 18;
         
         /// LEFT SIDE
-        auto& modeRadioGroup = m.prepare<RadioGroupWidget>({ leftSide_LeftBound_x, bottomSettings_topBound_y, 90, 30 });
+        
+        m.setColor(ENABLED_PARAM);
+        juceFontStash::Rectangle pm_label_box = m.getCurrentFont()->getStringBoundingBox("PLAYER MODE", 0, 0);
+        m.prepare<murka::Label>({
+            leftSide_LeftBound_x,
+            settings_topBound_y,
+            pm_label_box.width, pm_label_box.height })
+            .text("PLAYER MODE")
+            .draw();
+        
+        // settings_topBound_y - boundingBox.height + 30
+        
+        juceFontStash::Rectangle mf_label_box = m.getCurrentFont()->getStringBoundingBox("MEDIA FILE", 0, 0);
+        m.prepare<murka::Label>({
+            leftSide_LeftBound_x,
+            settings_topBound_y + 70,
+            mf_label_box.width, mf_label_box.height })
+            .text("MEDIA FILE")
+            .draw();
+        
+        juceFontStash::Rectangle vm_label_box = m.getCurrentFont()->getStringBoundingBox("VIEW MODE", 0, 0);
+        m.prepare<murka::Label>({
+            leftSide_LeftBound_x,
+            settings_topBound_y + 140,
+            vm_label_box.width, vm_label_box.height })
+            .text("VIEW MODE")
+            .draw();
+        
+        auto& modeRadioGroup = m.prepare<RadioGroupWidget>({ leftSide_LeftBound_x, settings_topBound_y + 160, 90, 30 });
         modeRadioGroup.labels = { "3D", "2D" };
-        if (!bHideUI) {
-            modeRadioGroup.selectedIndex = videoPlayerWidget.drawFlat ? 1 : 0;
-            modeRadioGroup.draw();
-            if (modeRadioGroup.changed) {
-                if (modeRadioGroup.selectedIndex == 0) {
-                    videoPlayerWidget.drawFlat = false;
-                    drawReference = false;
-                }
-                else if (modeRadioGroup.selectedIndex == 1) {
-                    videoPlayerWidget.drawFlat = true;
-                    drawReference = false;
-                }
-                else {
-                    videoPlayerWidget.drawFlat = false;
-                    drawReference = true;
-                }
+        modeRadioGroup.selectedIndex = videoPlayerWidget.drawFlat ? 1 : 0;
+        modeRadioGroup.draw();
+        if (modeRadioGroup.changed) {
+            if (modeRadioGroup.selectedIndex == 0) {
+                videoPlayerWidget.drawFlat = false;
+                drawReference = false;
+            }
+            else if (modeRadioGroup.selectedIndex == 1) {
+                videoPlayerWidget.drawFlat = true;
+                drawReference = false;
+            }
+            else {
+                videoPlayerWidget.drawFlat = false;
+                drawReference = true;
             }
         }
         
-        auto& drawOverlayCheckbox = m.prepare<murka::Checkbox>({ leftSide_LeftBound_x, bottomSettings_topBound_y + 30, 130, 30 });
-        drawOverlayCheckbox.dataToControl = &(videoPlayerWidget.drawOverlay);
-        drawOverlayCheckbox.label = "OVERLAY";
-        if (!bHideUI) {
-            drawOverlayCheckbox.draw();
+        auto& overlayCheckbox = m.prepare<M1Checkbox>({ 
+            leftSide_LeftBound_x,
+            settings_topBound_y + 210,
+            200, 20 })
+            .withLabel("OVERLAY (O)");
+        overlayCheckbox.dataToControl = &videoPlayerWidget.drawOverlay;
+        overlayCheckbox.enabled = true;
+        overlayCheckbox.draw();
+        if (overlayCheckbox.changed) {
+            videoPlayerWidget.drawOverlay = !videoPlayerWidget.drawOverlay;
         }
         
-        auto& cropStereoscopicCheckbox = m.prepare<murka::Checkbox>({ leftSide_LeftBound_x, bottomSettings_topBound_y + 50, 130, 30 });
-        cropStereoscopicCheckbox.dataToControl = &(videoPlayerWidget.crop_Stereoscopic_TopBottom);
-        cropStereoscopicCheckbox.label = "CROP STEREOSCOPIC";
-        if (!bHideUI) {
-            cropStereoscopicCheckbox.draw();
+        auto& cropStereoscopicCheckbox = m.prepare<M1Checkbox>({
+            leftSide_LeftBound_x,
+            settings_topBound_y + 240,
+            200, 20 })
+            .withLabel("CROP STEREOSCOPIC (D)");
+        cropStereoscopicCheckbox.dataToControl = &videoPlayerWidget.crop_Stereoscopic_TopBottom;
+        cropStereoscopicCheckbox.enabled = (clip.get() != nullptr && clip->hasVideo()); // only if video file exists
+        cropStereoscopicCheckbox.draw();
+        if (cropStereoscopicCheckbox.changed) {
+            videoPlayerWidget.crop_Stereoscopic_TopBottom = !videoPlayerWidget.crop_Stereoscopic_TopBottom;
+        }
+        
+        auto& twoDRefCheckbox = m.prepare<M1Checkbox>({
+            leftSide_LeftBound_x,
+            settings_topBound_y + 270,
+            200, 20 })
+            .withLabel("2D REFERENCE (G)");
+        twoDRefCheckbox.dataToControl = &drawReference;
+        twoDRefCheckbox.enabled = (clip.get() != nullptr && clip->hasVideo()); // only if video file exists
+        twoDRefCheckbox.draw();
+        if (twoDRefCheckbox.changed) {
+            drawReference = !drawReference;
         }
         
         /// RIGHT SIDE
