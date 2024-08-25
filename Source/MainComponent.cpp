@@ -1008,6 +1008,8 @@ void MainComponent::draw() {
             .text("MEDIA FILE")
             .draw();
         
+        // TODO: Display currently loaded video if exists
+        // TODO: Add load button to prompt a load file popup and replace existing file
         m.setColor(BACKGROUND_COMPONENT);
         m.drawRectangle(leftSide_LeftBound_x, settings_topBound_y + 100, m.getSize().width()/2 - 88, 30); // temp for load media file section
         m.setColor(ENABLED_PARAM);
