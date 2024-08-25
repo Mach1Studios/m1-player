@@ -1016,10 +1016,10 @@ void MainComponent::draw() {
         if (clip.get() != nullptr) {
             file_path = clip->getMediaFile().getSubPath().toStdString();
         }
-        //juceFontStash::Rectangle mf_file_path_box = m.getCurrentFont()->getStringBoundingBox(file_path, 0, 0);
-        m.prepare<murka::Label>({leftSide_LeftBound_x, settings_topBound_y + 100, m.getSize().width()/2 - 88, 30})
+        juceFontStash::Rectangle mf_file_path_box = m.getCurrentFont()->getStringBoundingBox(file_path, 0, 0);
+        m.prepare<murka::Label>({leftSide_LeftBound_x + 4, mf_file_path_box.height/2 + settings_topBound_y + 100, m.getSize().width()/2 - 88 - 4, 30})
             .text(file_path)
-            .withAlignment(TEXT_CENTER)
+            .withAlignment(TEXT_LEFT)
             .draw();
         
         juceFontStash::Rectangle vm_label_box = m.getCurrentFont()->getStringBoundingBox("VIEW MODE", 0, 0);
