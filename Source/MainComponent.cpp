@@ -753,10 +753,12 @@ void MainComponent::draw() {
         if (clip.get() != nullptr && (clip->hasVideo() || clip->hasAudio())) {
             playerControls.draw();
         } else {
-            std::string message = "Drop an audio or video file here";
-            juceFontStash::Rectangle boundingBox = m.getCurrentFont()->getStringBoundingBox(message, 0, 0);
-            m.setColor(ENABLED_PARAM);
-            m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - boundingBox.width * 0.5, m.getWindowHeight() * 0.5 - boundingBox.height, 350, 30 }).text(message).draw();
+            if (!(secondsWithoutMouseMove > 5)) { // skip drawing if mouse has not interacted in a while
+                std::string message = "Drop an audio or video file here";
+                juceFontStash::Rectangle boundingBox = m.getCurrentFont()->getStringBoundingBox(message, 0, 0);
+                m.setColor(ENABLED_PARAM);
+                m.prepare<murka::Label>({ m.getWindowWidth() * 0.5 - boundingBox.width * 0.5, m.getWindowHeight() * 0.5 - boundingBox.height, 350, 30 }).text(message).draw();
+            }
         }
     }
 

@@ -58,7 +58,7 @@ public:
 		receiver.disconnect();
 	}
 
-	~TransportOSCServer() {
+	~TransportOSCServer() override {
 		close();
 	}
 };
