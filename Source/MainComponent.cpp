@@ -976,34 +976,61 @@ void MainComponent::draw() {
             .text("PLAYER MODE")
             .draw();
         
-        // settings_topBound_y - boundingBox.height + 30
+        auto& playModeRadioGroup = m.prepare<RadioGroupWidget>({ leftSide_LeftBound_x, settings_topBound_y + 20, m.getSize().width()/2 - 88, 30 });
+        playModeRadioGroup.labels = { "STANDALONE", "SYNC TO DAW" };
+        playModeRadioGroup.selectedIndex = b_standalone_mode;
+        playModeRadioGroup.drawAsCircles = true;
+        playModeRadioGroup.draw();
+        if (playModeRadioGroup.changed) {
+            if (playModeRadioGroup.selectedIndex == 0) {
+                b_standalone_mode = true;
+            }
+            else if (playModeRadioGroup.selectedIndex == 1) {
+                // override and allow swap to standalone mode if a media file is loaded
+                b_standalone_mode = false;
+            }
+            else {
+                if (clip.get() != nullptr) {
+                    // clip loaded so default to standalone mode
+                    b_standalone_mode = true;
+                } else {
+                    // no clip loaded, look for sync
+                    b_standalone_mode = false;
+                }
+            }
+        }
         
         juceFontStash::Rectangle mf_label_box = m.getCurrentFont()->getStringBoundingBox("MEDIA FILE", 0, 0);
         m.prepare<murka::Label>({
             leftSide_LeftBound_x,
-            settings_topBound_y + 70,
+            settings_topBound_y + 80,
             mf_label_box.width, mf_label_box.height })
             .text("MEDIA FILE")
             .draw();
         
+        m.setColor(BACKGROUND_COMPONENT);
+        m.drawRectangle(leftSide_LeftBound_x, settings_topBound_y + 100, m.getSize().width()/2 - 88, 30); // temp for load media file section
+        m.setColor(ENABLED_PARAM);
+        
         juceFontStash::Rectangle vm_label_box = m.getCurrentFont()->getStringBoundingBox("VIEW MODE", 0, 0);
         m.prepare<murka::Label>({
             leftSide_LeftBound_x,
-            settings_topBound_y + 140,
+            settings_topBound_y + 160,
             vm_label_box.width, vm_label_box.height })
             .text("VIEW MODE")
             .draw();
         
-        auto& modeRadioGroup = m.prepare<RadioGroupWidget>({ leftSide_LeftBound_x, settings_topBound_y + 160, 90, 30 });
-        modeRadioGroup.labels = { "3D", "2D" };
-        modeRadioGroup.selectedIndex = videoPlayerWidget.drawFlat ? 1 : 0;
-        modeRadioGroup.draw();
-        if (modeRadioGroup.changed) {
-            if (modeRadioGroup.selectedIndex == 0) {
+        auto& viewModeRadioGroup = m.prepare<RadioGroupWidget>({ leftSide_LeftBound_x, settings_topBound_y + 180, m.getSize().width()/2 - 88, 30 });
+        viewModeRadioGroup.labels = { "3D", "2D" };
+        viewModeRadioGroup.selectedIndex = videoPlayerWidget.drawFlat ? 1 : 0;
+        viewModeRadioGroup.drawAsCircles = true;
+        viewModeRadioGroup.draw();
+        if (viewModeRadioGroup.changed) {
+            if (viewModeRadioGroup.selectedIndex == 0) {
                 videoPlayerWidget.drawFlat = false;
                 drawReference = false;
             }
-            else if (modeRadioGroup.selectedIndex == 1) {
+            else if (viewModeRadioGroup.selectedIndex == 1) {
                 videoPlayerWidget.drawFlat = true;
                 drawReference = false;
             }
@@ -1015,7 +1042,7 @@ void MainComponent::draw() {
         
         auto& overlayCheckbox = m.prepare<M1Checkbox>({ 
             leftSide_LeftBound_x,
-            settings_topBound_y + 210,
+            settings_topBound_y + 240,
             200, 18 })
             .withLabel("OVERLAY (O)");
         overlayCheckbox.dataToControl = &videoPlayerWidget.drawOverlay;
@@ -1029,7 +1056,7 @@ void MainComponent::draw() {
         
         auto& cropStereoscopicCheckbox = m.prepare<M1Checkbox>({
             leftSide_LeftBound_x,
-            settings_topBound_y + 240,
+            settings_topBound_y + 270,
             200, 18 })
             .withLabel("CROP STEREOSCOPIC (D)");
         cropStereoscopicCheckbox.dataToControl = &videoPlayerWidget.crop_Stereoscopic_TopBottom;
@@ -1043,7 +1070,7 @@ void MainComponent::draw() {
         
         auto& twoDRefCheckbox = m.prepare<M1Checkbox>({
             leftSide_LeftBound_x,
-            settings_topBound_y + 270,
+            settings_topBound_y + 300,
             200, 18 })
             .withLabel("2D REFERENCE (G)");
         twoDRefCheckbox.dataToControl = &drawReference;
