@@ -12,6 +12,7 @@ file(GLOB source_files  Config.h
                         UI/M1DropdownButton.h
                         UI/VideoPlayerWidget.h
                         UI/RadioGroupWidget.h
+                        UI/M1PlayerControlButton.h
                         UI/M1PlayerControls.h)
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${source_files})
