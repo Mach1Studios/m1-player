@@ -418,26 +418,24 @@ void MainComponent::filesDropped(const juce::StringArray& files, int, int)
 void MainComponent::openFile(juce::File filepath)
 {
 	// Video Setup
-	{
-		std::shared_ptr<foleys::AVClip> newClip = videoEngine.createClipFromFile(juce::URL(filepath));
+    std::shared_ptr<foleys::AVClip> newClip = videoEngine.createClipFromFile(juce::URL(filepath));
 
-		if (newClip.get() == nullptr)
-			return;
+    if (newClip.get() == nullptr)
+        return;
 
-		/// Video Setup
-		if (newClip->hasVideo()) {
-            // clear the old clip
-            if (clip.get() != nullptr) {
-                clip->removeTimecodeListener(this);
-            }
-            
-			newClip->prepareToPlay(blockSize, sampleRate);
-            clip = newClip;
-            clip->setLooping(false); // TODO: change this for standalone mode with exposed setting
-			clip->addTimecodeListener(this);
-            transportSource.setSource(clip.get(), 0, nullptr);
-		}
-	}
+    /// Video Setup
+    if (newClip->hasVideo()) {
+        // clear the old clip
+        if (clip.get() != nullptr) {
+            clip->removeTimecodeListener(this);
+        }
+        
+        newClip->prepareToPlay(blockSize, sampleRate);
+        clip = newClip;
+        clip->setLooping(false); // TODO: change this for standalone mode with exposed setting
+        clip->addTimecodeListener(this);
+        transportSource.setSource(clip.get(), 0, nullptr);
+    }
 
     // Audio Setup
     // TODO: make clearer logic to when we should get the audioClip assigned to the transport
@@ -888,11 +886,11 @@ void MainComponent::draw() {
     };
     
     /// BOTTOM BAR
-    m.setColor(BACKGROUND_GREY, 200);
+    m.setColor(20, 20, 20, 200);
     if (showSettingsMenu) {
         // bottom bar becomes the settings pane
         // TODO: Animate this drawer opening and closing
-        m.drawRectangle(0, m.getSize().height()*0.15f, m.getSize().width(), m.getSize().height() * 0.85f);
+        m.drawRectangle(0, m.getSize().height()*0.15f, m.getSize().width(), m.getSize().height() * 0.85f - 50);
     } else {
         if (!(secondsWithoutMouseMove > 5)) { // skip drawing if mouse has not interacted in a while
             m.drawRectangle(0, m.getSize().height() - 50, m.getSize().width(), 50); // bottom bar
@@ -1018,10 +1016,12 @@ void MainComponent::draw() {
         auto& overlayCheckbox = m.prepare<M1Checkbox>({ 
             leftSide_LeftBound_x,
             settings_topBound_y + 210,
-            200, 20 })
+            200, 18 })
             .withLabel("OVERLAY (O)");
         overlayCheckbox.dataToControl = &videoPlayerWidget.drawOverlay;
+        overlayCheckbox.checked = videoPlayerWidget.drawOverlay;
         overlayCheckbox.enabled = true;
+        overlayCheckbox.drawAsCircle = false;
         overlayCheckbox.draw();
         if (overlayCheckbox.changed) {
             videoPlayerWidget.drawOverlay = !videoPlayerWidget.drawOverlay;
@@ -1030,10 +1030,12 @@ void MainComponent::draw() {
         auto& cropStereoscopicCheckbox = m.prepare<M1Checkbox>({
             leftSide_LeftBound_x,
             settings_topBound_y + 240,
-            200, 20 })
+            200, 18 })
             .withLabel("CROP STEREOSCOPIC (D)");
         cropStereoscopicCheckbox.dataToControl = &videoPlayerWidget.crop_Stereoscopic_TopBottom;
+        cropStereoscopicCheckbox.checked = videoPlayerWidget.crop_Stereoscopic_TopBottom;
         cropStereoscopicCheckbox.enabled = (clip.get() != nullptr && clip->hasVideo()); // only if video file exists
+        cropStereoscopicCheckbox.drawAsCircle = false;
         cropStereoscopicCheckbox.draw();
         if (cropStereoscopicCheckbox.changed) {
             videoPlayerWidget.crop_Stereoscopic_TopBottom = !videoPlayerWidget.crop_Stereoscopic_TopBottom;
@@ -1042,10 +1044,12 @@ void MainComponent::draw() {
         auto& twoDRefCheckbox = m.prepare<M1Checkbox>({
             leftSide_LeftBound_x,
             settings_topBound_y + 270,
-            200, 20 })
+            200, 18 })
             .withLabel("2D REFERENCE (G)");
         twoDRefCheckbox.dataToControl = &drawReference;
+        twoDRefCheckbox.checked = drawReference;
         twoDRefCheckbox.enabled = (clip.get() != nullptr && clip->hasVideo()); // only if video file exists
+        twoDRefCheckbox.drawAsCircle = false;
         twoDRefCheckbox.draw();
         if (twoDRefCheckbox.changed) {
             drawReference = !drawReference;

@@ -27,19 +27,31 @@ public:
 		m.pushStyle();
         m.enableFill();
         m.setColor(100 + 110 * enabled + 30 * animation, 220);
-        m.drawCircle(getSize().y / 2, getSize().y / 2, getSize().y / 2);
+        if (drawAsCircle) {
+            m.drawCircle(getSize().y / 2, getSize().y / 2, getSize().y / 2);
+        } else {
+            m.drawRectangle(0, 0, getSize().y, getSize().y);
+        }
         m.setColor(40 + 20 * !enabled, 255);
-        m.drawCircle(getSize().y / 2, getSize().y / 2, getSize().y / 2 - 2);
+        if (drawAsCircle) {
+            m.drawCircle(getSize().y / 2, getSize().y / 2, getSize().y / 2 - 2);
+        } else {
+            m.drawRectangle(1, 1, getSize().y - 2, getSize().y - 2);
+        }
         
         m.setColor(100 + 110 * enabled + 30 * animation, 220);
         
         animatedData = A(*((bool*)dataToControl));
-        m.drawCircle(getSize().y / 2, getSize().y / 2,
-                          4 * animatedData);
+        if (drawAsCircle) {
+            m.drawCircle(getSize().y / 2, getSize().y / 2,
+                         4 * animatedData);
+        } else {
+            m.drawRectangle(getSize().y / 2 - (8 * animatedData)/2, getSize().y /2 - (8 * animatedData)/2, 8 * animatedData, 8 * animatedData);
+        }
 
         m.setColor(100 + 110 * enabled + 30 * animation, 220);
         m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, fontSize);
-        m.prepare<murka::Label>({shape.size.y + 2, 2, 150, shape.size.y + 5}).text(label).draw();
+        m.prepare<murka::Label>({shape.size.y + 6, 2, 150, shape.size.y + 5}).text(label).draw();
         m.disableFill();
         m.popStyle();
 
@@ -59,6 +71,7 @@ public:
     bool didntInitialiseYet = true;
     bool changed = false;
     bool checked = true;
+    bool drawAsCircle = true;
     std::string label;
     float fontSize = DEFAULT_FONT_SIZE;
     bool* dataToControl = nullptr;
@@ -75,6 +88,11 @@ public:
     
     M1Checkbox & withFontSize(float fontSize_) {
         fontSize = fontSize_;
+        return *this;
+    }
+    
+    M1Checkbox & drawnAsCircle(float drawAsCircle_) {
+        drawAsCircle = drawAsCircle_;
         return *this;
     }
 
