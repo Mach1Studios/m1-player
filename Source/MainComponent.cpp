@@ -1008,11 +1008,19 @@ void MainComponent::draw() {
             .text("MEDIA FILE")
             .draw();
         
-        // TODO: Display currently loaded video if exists
         // TODO: Add load button to prompt a load file popup and replace existing file
         m.setColor(BACKGROUND_COMPONENT);
         m.drawRectangle(leftSide_LeftBound_x, settings_topBound_y + 100, m.getSize().width()/2 - 88, 30); // temp for load media file section
         m.setColor(ENABLED_PARAM);
+        std::string file_path = "LOAD MEDIA FILE HERE...";
+        if (clip.get() != nullptr) {
+            file_path = clip->getMediaFile().getSubPath().toStdString();
+        }
+        //juceFontStash::Rectangle mf_file_path_box = m.getCurrentFont()->getStringBoundingBox(file_path, 0, 0);
+        m.prepare<murka::Label>({leftSide_LeftBound_x, settings_topBound_y + 100, m.getSize().width()/2 - 88, 30})
+            .text(file_path)
+            .withAlignment(TEXT_CENTER)
+            .draw();
         
         juceFontStash::Rectangle vm_label_box = m.getCurrentFont()->getStringBoundingBox("VIEW MODE", 0, 0);
         m.prepare<murka::Label>({
