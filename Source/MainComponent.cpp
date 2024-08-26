@@ -1044,14 +1044,17 @@ void MainComponent::draw() {
             .withBackgroundFill(MurkaColor(BACKGROUND_COMPONENT), MurkaColor(BACKGROUND_GREY))
             .withOnClickFlash()
             .withOnClickCallback([&](){
-                transportSource.stop();
-                transportSource.setSource(nullptr);
-                juce::FileChooser chooser ("Open Spatial Audio or Video File");
-                if (chooser.browseForFileToOpen())
-                {
-                    auto video = chooser.getResult();
-                    openFile(chooser.getResult());
-                }
+                MessageManager::callAsync ([&]{
+                    transportSource.stop();
+                    transportSource.setSource(nullptr);
+                    juce::FileChooser chooser ("Open Spatial Audio or Video File");
+
+                    if (chooser.browseForFileToOpen())
+                    {
+                        auto video = chooser.getResult();
+                        openFile(chooser.getResult());
+                    }
+                });
             })
             .draw();
         
