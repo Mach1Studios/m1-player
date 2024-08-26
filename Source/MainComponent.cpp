@@ -752,6 +752,7 @@ void MainComponent::draw() {
             playerControls.draw();
         } else {
             if (!(secondsWithoutMouseMove > 5)) { // skip drawing if mouse has not interacted in a while
+                m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
                 std::string message = "Drop an audio or video file here";
                 juceFontStash::Rectangle boundingBox = m.getCurrentFont()->getStringBoundingBox(message, 0, 0);
                 m.setColor(ENABLED_PARAM);
@@ -983,7 +984,7 @@ void MainComponent::draw() {
             .text("PLAYER MODE")
             .draw();
         
-        auto& playModeRadioGroup = m.prepare<RadioGroupWidget>({ leftSide_LeftBound_x, settings_topBound_y + 20, m.getSize().width()/2 - 88, 30 });
+        auto& playModeRadioGroup = m.prepare<RadioGroupWidget>({ leftSide_LeftBound_x + 4, settings_topBound_y + 20, m.getSize().width()/2 - 88, 30 });
         playModeRadioGroup.labels = { "STANDALONE", "SYNC TO DAW" };
         playModeRadioGroup.selectedIndex = b_standalone_mode;
         playModeRadioGroup.drawAsCircles = true;
@@ -1015,21 +1016,46 @@ void MainComponent::draw() {
             .text("MEDIA FILE")
             .draw();
         
-        // TODO: Add load button to prompt a load file popup and replace existing file
-        float load_button_width = 80;
-        m.setColor(BACKGROUND_COMPONENT);
-        m.drawRectangle(leftSide_LeftBound_x, settings_topBound_y + 100, m.getSize().width()/2 - 88 - load_button_width - 4, 20); // temp for load media file section
-        m.setColor(ENABLED_PARAM);
+        // Media loader
+        float load_button_width = 50;
         std::string file_path = "LOAD MEDIA FILE HERE...";
         if (clip.get() != nullptr) {
             file_path = clip->getMediaFile().getSubPath().toStdString();
         }
-        juceFontStash::Rectangle mf_file_path_box = m.getCurrentFont()->getStringBoundingBox(file_path, 0, 0);
-        m.prepare<murka::Label>({leftSide_LeftBound_x + 4, mf_file_path_box.height/2 + settings_topBound_y + 100, m.getSize().width()/2 - 88 - 4, 30})
+
+        juceFontStash::Rectangle load_button_box = m.getCurrentFont()->getStringBoundingBox("LOAD", 0, 0);
+        m.setColor(BACKGROUND_COMPONENT);
+        m.enableFill();
+        m.drawRectangle(leftSide_LeftBound_x + 4, settings_topBound_y + 100, m.getSize().width()/2 - load_button_box.width - 4 - 90, 20); // draw background rectangle fille
+        m.setColor(ENABLED_PARAM);
+        m.prepare<murka::Label>({leftSide_LeftBound_x + 4, settings_topBound_y + 100,
+            m.getSize().width()/2 - load_button_box.width - 4 - 90, 20})
             .text(file_path)
             .withAlignment(TEXT_LEFT)
             .draw();
+
+        // load button
+        m.prepare<M1Label>({
+            m.getSize().width()/2 - load_button_box.width + 8 - 90, settings_topBound_y + 100,
+            load_button_width, 20})
+            .withText("LOAD")
+            .withTextAlignment(TEXT_CENTER)
+            .withStrokeBorder(MurkaColor(ENABLED_PARAM))
+            .withBackgroundFill(MurkaColor(BACKGROUND_COMPONENT), MurkaColor(BACKGROUND_GREY))
+            .withOnClickFlash()
+            .withOnClickCallback([&](){
+                transportSource.stop();
+                transportSource.setSource(nullptr);
+                juce::FileChooser chooser ("Open Spatial Audio or Video File");
+                if (chooser.browseForFileToOpen())
+                {
+                    auto video = chooser.getResult();
+                    openFile(chooser.getResult());
+                }
+            })
+            .draw();
         
+        // view mode
         juceFontStash::Rectangle vm_label_box = m.getCurrentFont()->getStringBoundingBox("VIEW MODE", 0, 0);
         m.prepare<murka::Label>({
             leftSide_LeftBound_x,
@@ -1038,7 +1064,7 @@ void MainComponent::draw() {
             .text("VIEW MODE")
             .draw();
         
-        auto& viewModeRadioGroup = m.prepare<RadioGroupWidget>({ leftSide_LeftBound_x, settings_topBound_y + 180, m.getSize().width()/2 - 88, 30 });
+        auto& viewModeRadioGroup = m.prepare<RadioGroupWidget>({ leftSide_LeftBound_x + 4, settings_topBound_y + 180, m.getSize().width()/2 - 88, 30 });
         viewModeRadioGroup.labels = { "3D", "2D" };
         viewModeRadioGroup.selectedIndex = videoPlayerWidget.drawFlat ? 1 : 0;
         viewModeRadioGroup.drawAsCircles = true;
@@ -1109,7 +1135,7 @@ void MainComponent::draw() {
     /// Player label
     if (!(secondsWithoutMouseMove > 5)) { // skip drawing if mouse has not interacted in a while
         m.setColor(ENABLED_PARAM);
-        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-2);
+        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
         auto& playerLabel = m.prepare<M1Label>(MurkaShape(m.getSize().width() - 100, m.getSize().height() - 30, 80, 20));
         playerLabel.label = "PLAYER";
         playerLabel.alignment = TEXT_CENTER;
