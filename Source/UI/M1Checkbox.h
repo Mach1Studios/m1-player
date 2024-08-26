@@ -22,11 +22,11 @@ public:
             didntInitialiseYet = false;
         }
         
-        float animation = A(inside() * enabled);
+        float highlight_animation = A(inside() * enabled);
         
 		m.pushStyle();
         m.enableFill();
-        m.setColor(100 + 110 * enabled + 30 * animation, 220);
+        m.setColor(100 + 110 * enabled + 30 * highlight_animation, 220);
         if (drawAsCircle) {
             m.drawCircle(getSize().y / 2, getSize().y / 2, getSize().y / 2);
         } else {
@@ -39,17 +39,17 @@ public:
             m.drawRectangle(1, 1, getSize().y - 2, getSize().y - 2);
         }
         
-        m.setColor(100 + 110 * enabled + 30 * animation, 220);
+        m.setColor(100 + 110 * enabled + 30 * highlight_animation, 220);
         
         animatedData = A(*((bool*)dataToControl));
         if (drawAsCircle) {
             m.drawCircle(getSize().y / 2, getSize().y / 2,
                          4 * animatedData);
         } else {
-            m.drawRectangle(getSize().y / 2 - (8 * animatedData)/2, getSize().y /2 - (8 * animatedData)/2, 8 * animatedData, 8 * animatedData);
+            m.drawRectangle(getSize().y / 2 - (8 * animatedData)/2, getSize().y / 2 - (8 * animatedData)/2, 8 * animatedData, 8 * animatedData);
         }
 
-        m.setColor(100 + 110 * enabled + 30 * animation, 220);
+        m.setColor(100 + 110 * enabled + 30 * highlight_animation, 220);
         m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, fontSize);
         m.prepare<murka::Label>({shape.size.y + 6, 2, 150, shape.size.y + 5}).text(label).draw();
         m.disableFill();

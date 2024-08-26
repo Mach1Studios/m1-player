@@ -40,17 +40,12 @@ public:
 
         if (drawAsCircles) {
             for (int i = 0; i < c; i++) {
-                float animation = A(inside()/* * enabled */);
+                float highlight_animation = A(inside()/* * enabled */);
+
                 m.enableFill();
                 
                 // outer line
-                if (i == hoverIndex) {
-                    m.setColor(120);
-                }
-                else if (i == selectedIndex) {
-                    m.setColor(100);
-                }
-                else { m.setColor(50); }
+                m.setColor(190 + 30 * highlight_animation);
                 m.drawCircle(getSize().y / 4 + (i * w), getSize().y /2, getSize().y / 4);
                 
                 // inner fill
@@ -58,14 +53,8 @@ public:
                 m.drawCircle(getSize().y / 4 + (i * w), getSize().y /2, getSize().y / 4 - 2);
                 
                 // inner selected icon
-                if (i == hoverIndex) {
-                    m.setColor(120);
-                }
-                else if (i == selectedIndex) {
-                    m.setColor(100);
-                }
-                else { m.setColor(50); }
-                m.drawCircle(getSize().y / 4 + (i * w), getSize().y / 2, 3 * animation);
+                m.setColor(ENABLED_PARAM);
+                m.drawCircle(getSize().y / 4 + (i * w), getSize().y / 2, 3 * (i == selectedIndex));
                 
                 m.setColor(ENABLED_PARAM);
                 m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, fontSize);
