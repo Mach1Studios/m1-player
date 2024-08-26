@@ -2,7 +2,7 @@ option(PLUGIN_FONT "Set the plugin's primary text font" "InterRegular.ttf")
 
 set(FOUND_FONT InterRegular)
 set(FOUND_FONT_TYPE ttf)
-set(DEFAULT_FONT_SIZE 14)
+set(DEFAULT_FONT_SIZE 13)
 juce_add_binary_data(Resources NAMESPACE BinaryData SOURCES mach1logo.png overlay.png play.png stop.png indicator.png playing_indicator.png device_orientation.png ../Modules/m1_orientation_client/Resources/bluetooth_icon.png ../Modules/m1_orientation_client/Resources/tech_support_icon.png ../Modules/m1_orientation_client/Resources/wi-fi_icon.png ../Modules/m1_orientation_client/Resources/usb_icon.png ../Modules/m1_orientation_client/Resources/camera_icon.png InterRegular.ttf)
 
 set(PLUGIN_FONT "${FOUND_FONT}.${FOUND_FONT_TYPE}")

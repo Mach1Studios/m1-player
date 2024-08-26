@@ -829,6 +829,13 @@ void MainComponent::draw() {
         m1OrientationClient.command_setTrackingRollEnabled(!m1OrientationClient.getTrackingRollEnabled());
     }
     
+    // close settings menu if open
+    if (m.isKeyPressed(MurkaKey::MURKA_KEY_ESC)) {
+        if (showSettingsMenu) {
+            showSettingsMenu = false;
+        }
+    }
+    
     if (b_standalone_mode) { // block interaction unless in standalone mode
         if (m.isKeyPressed(MURKA_KEY_SPACE)) { // Space bar is 32 on OSX
             if (transportSource.isPlaying()) {
@@ -918,15 +925,15 @@ void MainComponent::draw() {
                 deleteTheSettingsButton();
             }
             
-            // draw settings arrow indicator pointing up
+            // draw settings arrow indicator pointing down
             m.enableFill();
             m.setColor(LABEL_TEXT_COLOR);
-            MurkaPoint triangleCenter = {m.getSize().width()/2 + 45, settings_button_y - 10};
+            MurkaPoint triangleCenter = {m.getSize().width()/2 + 45, settings_button_y - 10 - 5};
             std::vector<MurkaPoint3D> triangle;
-            triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0});
-            triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0}); // top middle
-            triangle.push_back({triangleCenter.x , triangleCenter.y - 5, 0});
-            triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0});
+            triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0});
+            triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0}); // bottom middle
+            triangle.push_back({triangleCenter.x , triangleCenter.y + 5, 0});
+            triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0});
             m.drawPath(triangle);
         } else {
             settings_button_y = m.getSize().height() - 10;
@@ -945,15 +952,15 @@ void MainComponent::draw() {
                 deleteTheSettingsButton();
             }
             
-            // draw settings arrow indicator pointing down
+            // draw settings arrow indicator pointing up
             m.enableFill();
             m.setColor(LABEL_TEXT_COLOR);
-            MurkaPoint triangleCenter = {m.getSize().width()/2 + 45, settings_button_y - 10 - 5};
+            MurkaPoint triangleCenter = {m.getSize().width()/2 + 45, settings_button_y - 10};
             std::vector<MurkaPoint3D> triangle;
-            triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0});
-            triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0}); // bottom middle
-            triangle.push_back({triangleCenter.x , triangleCenter.y + 5, 0});
-            triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0});
+            triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0});
+            triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0}); // top middle
+            triangle.push_back({triangleCenter.x , triangleCenter.y - 5, 0});
+            triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0});
             m.drawPath(triangle);
         }
     }
@@ -1009,8 +1016,9 @@ void MainComponent::draw() {
             .draw();
         
         // TODO: Add load button to prompt a load file popup and replace existing file
+        float load_button_width = 80;
         m.setColor(BACKGROUND_COMPONENT);
-        m.drawRectangle(leftSide_LeftBound_x, settings_topBound_y + 100, m.getSize().width()/2 - 88, 30); // temp for load media file section
+        m.drawRectangle(leftSide_LeftBound_x, settings_topBound_y + 100, m.getSize().width()/2 - 88 - load_button_width - 4, 20); // temp for load media file section
         m.setColor(ENABLED_PARAM);
         std::string file_path = "LOAD MEDIA FILE HERE...";
         if (clip.get() != nullptr) {
