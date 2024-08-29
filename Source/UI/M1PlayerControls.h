@@ -28,27 +28,57 @@ public:
     void internalDraw(Murka & m) {
         if (bypassingBecauseofInactivity) return;
         
-        // Play button
-        m.setColor(ENABLED_PARAM);
-        m.prepare<M1PlayerControlButton>({getSize().x / 2 - 5, getSize().y / 2,
-            getSize().y / 4,
-            getSize().y / 4})
-            .withDrawingCallback([&](MurkaShape shape) {
-                m.setColor(ENABLED_PARAM);
-                m.drawImage(playIcon, shape.x(), shape.y(), shape.width()/2, shape.height()/2);
-            })
-            .withOnClickCallback([&](){
-                playPausePressedCallback();
-            })
-        .draw();
-        
-        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-4);
-        m.setColor(ENABLED_PARAM);
-        m.prepare<murka::Label>({getSize().x / 2 - getSize().y / 4 + 12,
-            40 + 35,
-            getSize().y / 4 + 20,
-            getSize().y / 4}).text("PLAY").draw();
+        if (isPlaying) {
+            // Stop button
+            m.setColor(ENABLED_PARAM);
+            m.prepare<M1PlayerControlButton>({getSize().x / 2 - 5, getSize().y / 2,
+                getSize().y / 4,
+                getSize().y / 4})
+                .withDrawingCallback([&](MurkaShape shape) {
+                    m.setColor(ENABLED_PARAM);
+                    m.drawImage(stopIcon, shape.x(), shape.y(), shape.width()/2, shape.height()/2);
+                })
+                .withOnClickCallback([&](){
+                    playPausePressedCallback();
+                })
+            .draw();
+            
+            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-4);
+            m.setColor(ENABLED_PARAM);
+            juceFontStash::Rectangle stop_label_box = m.getCurrentFont()->getStringBoundingBox("STOP", 0, 0); // used to find size of text
+            m.prepare<murka::Label>({getSize().x / 2 - stop_label_box.width / 2 - 4,
+                40 + 35,
+                getSize().y / 4 + 20,
+                getSize().y / 4}).text("STOP").draw();
 
+        } else {
+            // Play button
+            m.setColor(ENABLED_PARAM);
+            m.prepare<M1PlayerControlButton>({getSize().x / 2 - 5, getSize().y / 2,
+                getSize().y / 4,
+                getSize().y / 4})
+                .withDrawingCallback([&](MurkaShape shape) {
+                    m.setColor(ENABLED_PARAM);
+                    m.drawImage(playIcon, shape.x(), shape.y(), shape.width()/2, shape.height()/2);
+                })
+                .withOnClickCallback([&](){
+                    playPausePressedCallback();
+                })
+            .draw();
+            
+            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-4);
+            m.setColor(ENABLED_PARAM);
+            juceFontStash::Rectangle play_label_box = m.getCurrentFont()->getStringBoundingBox("PLAY", 0, 0); // used to find size of text
+            m.prepare<murka::Label>({getSize().x / 2 - play_label_box.width / 2 - 4,
+                40 + 35,
+                getSize().y / 4 + 20,
+                getSize().y / 4})
+            .withAlignment(TEXT_CENTER)
+            .text("PLAY")
+            .draw();
+
+        }
+        
         // Timeline progressbar
         if (!standaloneMode) {
             m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-2);
