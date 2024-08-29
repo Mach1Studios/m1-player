@@ -58,7 +58,8 @@ public:
                 
                 m.setColor(ENABLED_PARAM);
                 m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, fontSize);
-                m.prepare<murka::Label>({getSize().y*0.75f + (i * w), getSize().y / 4, w - getSize().y / 2, getSize().y}).text(labels[i]).draw();
+                juceFontStash::Rectangle label_box = m.getCurrentFont()->getStringBoundingBox(labels[i], 0, 0); // used to find size of text
+                m.prepare<murka::Label>({getSize().y*0.75f + (i * w), getSize().y/2 - label_box.height/2, w - getSize().y / 2, getSize().y}).text(labels[i]).draw();
                 m.disableFill();
             }
 
