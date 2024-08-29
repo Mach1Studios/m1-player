@@ -223,9 +223,7 @@ public:
 class VideoPlayerWidget : public View<VideoPlayerWidget> {
 public:
     void internalDraw(Murka& m) {
-        float playheadHeight = 50;
-
-        auto& videoPlayerSurface = m.prepare<VideoPlayerSurface>({ 0, 0, getSize().x, getSize().y - playheadHeight });
+        auto& videoPlayerSurface = m.prepare<VideoPlayerSurface>({ 0, 0, getSize().x, getSize().y });
         videoPlayerSurface.imgVideo = imgVideo;
         videoPlayerSurface.drawFlat = drawFlat;
         videoPlayerSurface.drawOverlay = drawOverlay;

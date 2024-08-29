@@ -392,6 +392,25 @@ void MainComponent::timecodeChanged(int64_t, double seconds)
 
 //==============================================================================
 
+void MainComponent::showFileChooser()
+{
+    // TODO: test new dropped files first before clearing
+    file_chooser = std::make_unique<juce::FileChooser>("Open", File::getCurrentWorkingDirectory(), "*.mp4'*.m4v;*.mov;*.mkv;*.webm;*.avi;*.wmv;*.ogv;*.aif;*.aiff;*.wav;*.mp3;*.vorbis;*.opus;*.ogg;*.flac;*.pcm;*.alac;*.aac;*.tif;*.tiff;*.png;*.jpg;*.jpeg;*.gif;*.webp;*.svg", true);
+    file_chooser->launchAsync(FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles, [&, this] (const FileChooser& chooser) {
+        auto fileUrl = chooser.getURLResult();
+
+        if (fileUrl.isLocalFile()) {
+            openFile(fileUrl.getLocalFile());
+            
+            if (clip.get() != nullptr) {
+                clip->setNextReadPosition(0);
+            }
+        }
+        
+        juce::Process::makeForegroundProcess();
+    });
+}
+
 bool MainComponent::isInterestedInFileDrag(const juce::StringArray&)
 {
 	return true;
@@ -903,11 +922,11 @@ void MainComponent::draw() {
     };
     
     /// BOTTOM BAR
-    m.setColor(20, 20, 20, 200);
+    m.setColor(20, 220);
     if (showSettingsMenu) {
         // bottom bar becomes the settings pane
         // TODO: Animate this drawer opening and closing
-        m.drawRectangle(0, m.getSize().height()*0.15f, m.getSize().width(), m.getSize().height() * 0.85f - 50);
+        m.drawRectangle(0, m.getSize().height()*0.15f, m.getSize().width(), m.getSize().height() * 0.85f);
     } else {
         if (!(secondsWithoutMouseMove > 5)) { // skip drawing if mouse has not interacted in a while
             m.drawRectangle(0, m.getSize().height() - 50, m.getSize().width(), 50); // bottom bar
@@ -919,7 +938,6 @@ void MainComponent::draw() {
         m.setColor(ENABLED_PARAM);
         float settings_button_y = m.getSize().height() - 10;
         if (showSettingsMenu) {
-            settings_button_y = m.getSize().height()*0.23f - 10; // adjust pos to top of drawer bar
             auto& showSettingsWhileOpenedButton = m.prepare<M1DropdownButton>({ m.getSize().width()/2 - 30, settings_button_y - 30,
                 120, 30 })
             .withLabel("SETTINGS")
@@ -938,7 +956,7 @@ void MainComponent::draw() {
             // draw settings arrow indicator pointing down
             m.enableFill();
             m.setColor(LABEL_TEXT_COLOR);
-            MurkaPoint triangleCenter = {m.getSize().width()/2 + 45, settings_button_y - 10 - 5};
+            MurkaPoint triangleCenter = {m.getSize().width()/2 + 40, settings_button_y - 10 - 6};
             std::vector<MurkaPoint3D> triangle;
             triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0});
             triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0}); // bottom middle
@@ -946,7 +964,6 @@ void MainComponent::draw() {
             triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0});
             m.drawPath(triangle);
         } else {
-            settings_button_y = m.getSize().height() - 10;
             auto& showSettingsWhileClosedButton = m.prepare<M1DropdownButton>({ m.getSize().width()/2 - 30, settings_button_y - 30,
                 120, 30 })
             .withLabel("SETTINGS")
@@ -965,7 +982,7 @@ void MainComponent::draw() {
             // draw settings arrow indicator pointing up
             m.enableFill();
             m.setColor(LABEL_TEXT_COLOR);
-            MurkaPoint triangleCenter = {m.getSize().width()/2 + 45, settings_button_y - 10};
+            MurkaPoint triangleCenter = {m.getSize().width()/2 + 40, settings_button_y - 11};
             std::vector<MurkaPoint3D> triangle;
             triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0});
             triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0}); // top middle
@@ -1045,7 +1062,7 @@ void MainComponent::draw() {
 
         // load button
         m.prepare<M1Label>({
-            m.getSize().width()/2 - load_button_box.width + 8 - 90, settings_topBound_y + 100,
+            m.getSize().width()/2 - load_button_box.width + 30 - 90, settings_topBound_y + 100,
             load_button_width, 20})
             .withText("LOAD")
             .withTextAlignment(TEXT_CENTER)
@@ -1053,17 +1070,9 @@ void MainComponent::draw() {
             .withBackgroundFill(MurkaColor(BACKGROUND_COMPONENT), MurkaColor(BACKGROUND_GREY))
             .withOnClickFlash()
             .withOnClickCallback([&](){
-                MessageManager::callAsync ([&]{
-                    transportSource.stop();
-                    transportSource.setSource(nullptr);
-                    juce::FileChooser chooser ("Open Spatial Audio or Video File");
-
-                    if (chooser.browseForFileToOpen())
-                    {
-                        auto video = chooser.getResult();
-                        openFile(chooser.getResult());
-                    }
-                });
+                transportSource.stop();
+                transportSource.setSource(nullptr);
+                showFileChooser();
             })
             .draw();
         
@@ -1145,7 +1154,7 @@ void MainComponent::draw() {
     }
     
     /// Player label
-    if (!(secondsWithoutMouseMove > 5)) { // skip drawing if mouse has not interacted in a while
+    if (!(secondsWithoutMouseMove > 5) || showSettingsMenu) { // skip drawing if mouse has not interacted in a while
         m.setColor(ENABLED_PARAM);
         m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
         auto& playerLabel = m.prepare<M1Label>(MurkaShape(m.getSize().width() - 100, m.getSize().height() - 30, 80, 20));
