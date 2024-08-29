@@ -24,6 +24,10 @@
 #include "m1_orientation_client/UI/M1OrientationWindowToggleButton.h"
 #include "m1_orientation_client/UI/M1OrientationClientWindow.h"
 
+#include <iomanip>
+#include <sstream>
+#include <string>
+
 //==============================================================================
 /*
     This component lives inside our window, and this is where you should put all
@@ -97,6 +101,22 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     // Communication to Monitor and the rest of the M1SpatialSystem
     void timerCallback() override;
     PlayerOSC playerOSC;
+    
+    std::string formatTime(double seconds) {
+        int hours = static_cast<int>(seconds) / 3600;
+        int minutes = (static_cast<int>(seconds) % 3600) / 60;
+        int secs = static_cast<int>(seconds) % 60;
+
+        std::ostringstream oss;
+        oss << std::setfill('0');
+
+        if (hours > 0) {
+            oss << hours << ':' << std::setw(2);
+        }
+        oss << minutes << ':' << std::setw(2) << secs;
+
+        return oss.str();
+    }
  
 public:
     //==============================================================================

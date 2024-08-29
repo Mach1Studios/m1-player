@@ -612,8 +612,9 @@ void MainComponent::draw() {
 
 	// update video frame
 	if (clip.get() != nullptr && clip->hasVideo()) {
+        auto clipLengthInSeconds = transportSource.getLengthInSeconds();
 		foleys::VideoFrame& frame = clip->getFrame(clip->getCurrentTimeInSeconds());
-        DBG("[Video] Time: "+std::to_string(clip->getCurrentTimeInSeconds())+", Block:"+std::to_string(clip->getNextReadPosition()));
+        DBG("[Video] Time: " + std::to_string(clip->getCurrentTimeInSeconds()) + ", Block:" + std::to_string(clip->getNextReadPosition()) + ", normalized: " + std::to_string( clip->getCurrentTimeInSeconds() /  clipLengthInSeconds ));
 		if (frame.image.getWidth() > 0 && frame.image.getHeight() > 0) {
 			if (imgVideo.getWidth() != frame.image.getWidth() || imgVideo.getHeight() != frame.image.getHeight()) {
 				imgVideo.allocate(frame.image.getWidth(), frame.image.getHeight());
@@ -703,25 +704,33 @@ void MainComponent::draw() {
 
     auto& playerControls = m.prepare<M1PlayerControls>(playerControlShape);
     if (b_standalone_mode) { // Standalone mode
-        playerControls.withPlayerData("00:00", "22:22",
+        auto clipLengthInSeconds = transportSource.getLengthInSeconds();
+        double currentPosition = 0.5;
+        if (clip.get() != nullptr && (clip->hasVideo() || clip->hasAudio())) {
+            currentPosition = clip->getCurrentTimeInSeconds() /  clipLengthInSeconds;
+        }
+        playerControls.withPlayerData("00:00", formatTime(clipLengthInSeconds),
                         true, // showPositionReticle
-                        0.5, // currentPosition
+                        currentPosition, // currentPosition
                         transportSource.isPlaying(), // playing
-                        []() {}, // playButtonPress
+                        []() {
+                            
+                        }, // playButtonPress
                         [&](double newPositionNormalised) {
-            // refreshing player position
-            transportSource.setPosition(newPositionNormalised);
-        });
-        playerControls.withVolumeData(0.5,
+                            // refreshing player position
+                            transportSource.setPosition(newPositionNormalised);
+                        });
+        playerControls.withVolumeData(transportSource.getGain(),
                         [&](double newVolume){
             // refreshing the volume
             mediaVolume = newVolume;
             transportSource.setGain(mediaVolume);
         });
     } else { // Slave mode
+        auto clipLengthInSeconds = transportSource.getLengthInSeconds();
         playerControls.withPlayerData("", "",
                         false, // showPositionReticle
-                        0.5, // currentPosition
+                        0, // currentPosition
                         transportSource.isPlaying(), // playing
                         [&]() { // playButtonPress
                             if (transportSource.isPlaying()) {
