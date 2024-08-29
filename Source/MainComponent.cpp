@@ -876,6 +876,10 @@ void MainComponent::draw() {
         }
     }
     
+    if (showSettingsMenu) {
+        // TODO: if we click outside of the settings menu while it is open we should close the menu
+    }
+    
     if (b_standalone_mode) { // block interaction unless in standalone mode
         if (m.isKeyPressed(MURKA_KEY_SPACE)) { // Space bar is 32 on OSX
             if (transportSource.isPlaying()) {
