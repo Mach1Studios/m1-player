@@ -97,6 +97,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     bool bHideUI = false;
     bool bShowHelpUI = false;
     bool showSettingsMenu = false;
+    std::unique_ptr<juce::FileChooser> file_chooser;
     
     // Communication to Monitor and the rest of the M1SpatialSystem
     void timerCallback() override;
@@ -142,6 +143,7 @@ public:
     void timecodeChanged(int64_t, double seconds) override;
 
     //==============================================================================
+    void showFileChooser();
     bool isInterestedInFileDrag(const juce::StringArray&) override;
     void filesDropped(const juce::StringArray& files, int, int) override;
 
