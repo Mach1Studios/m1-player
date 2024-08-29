@@ -1050,22 +1050,28 @@ void MainComponent::draw() {
         }
 
         juceFontStash::Rectangle load_button_box = m.getCurrentFont()->getStringBoundingBox("LOAD", 0, 0);
-        m.setColor(BACKGROUND_COMPONENT);
-        m.enableFill();
-        m.drawRectangle(leftSide_LeftBound_x + 4, settings_topBound_y + 100, m.getSize().width()/2 - load_button_box.width - 4 - 90, 20); // draw background rectangle fille
-        m.setColor(ENABLED_PARAM);
-        m.prepare<murka::Label>({leftSide_LeftBound_x + 4, settings_topBound_y + 100,
-            m.getSize().width()/2 - load_button_box.width - 4 - 90, 20})
-            .text(file_path)
-            .withAlignment(TEXT_LEFT)
-            .draw();
+        juceFontStash::Rectangle file_path_button_box = m.getCurrentFont()->getStringBoundingBox(file_path, 0, 0);
+
+        auto& media_file_path_label = m.prepare<M1Label>({leftSide_LeftBound_x, settings_topBound_y + 100,
+            m.getSize().width()/2 - 45 - load_button_box.width - 60, 20})
+            .withText(file_path)
+            .withTextAlignment(TEXT_LEFT)
+            .withVerticalTextOffset(3)
+            .withForegroundColor(MurkaColor(ENABLED_PARAM))
+            .withBackgroundFill(MurkaColor(BACKGROUND_COMPONENT), MurkaColor(BACKGROUND_COMPONENT))
+            .withOnClickCallback([&](){
+                // TODO: allow editing path and reloading new video if exists
+            });
+        media_file_path_label.labelPadding_x = 10;
+        media_file_path_label.draw();
 
         // load button
         m.prepare<M1Label>({
-            m.getSize().width()/2 - load_button_box.width + 30 - 90, settings_topBound_y + 100,
+            m.getSize().width()/2 - load_button_box.width - 60, settings_topBound_y + 100,
             load_button_width, 20})
             .withText("LOAD")
             .withTextAlignment(TEXT_CENTER)
+            .withVerticalTextOffset(3)
             .withStrokeBorder(MurkaColor(ENABLED_PARAM))
             .withBackgroundFill(MurkaColor(BACKGROUND_COMPONENT), MurkaColor(BACKGROUND_GREY))
             .withOnClickFlash()
