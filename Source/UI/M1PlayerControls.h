@@ -37,6 +37,9 @@ public:
                 m.setColor(ENABLED_PARAM);
                 m.drawImage(playIcon, shape.x(), shape.y(), shape.width()/2, shape.height()/2);
             })
+            .withOnClickCallback([&](){
+                playPausePressedCallback();
+            })
         .draw();
         
         m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-4);
@@ -68,6 +71,9 @@ public:
                 m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.311);
                 m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.311);
                 m.popStyle();
+            })
+            .withOnClickCallback([&](){
+                connectButtonCallback();
             })
         .draw();
         
@@ -153,7 +159,8 @@ public:
     std::string totalTime = "00:00";
 
     bool isPlaying = false;
-    std::function<void()> playButtonCallback;
+    std::function<void()> playPausePressedCallback;
+    std::function<void()> connectButtonCallback;
     
     M1PlayerControls & withPlayerData(std::string current_timecode,
                                       std::string total_timecode,
@@ -161,11 +168,13 @@ public:
                                       double currentPosition = 0.0,
                                       bool playing = false,
                                       std::function<void()> playButtonPress = []() {},
+                                      std::function<void()> connectButtonPress = []() {},
                                       std::function<void(double)> onPositionChange = [](double newPositionNormalised ){}) {
         currentPositionNormalized = currentPosition;
         onPositionChangeCallback = onPositionChange;
         isPlaying = playing;
-        playButtonCallback = playButtonPress;
+        playPausePressedCallback = playButtonPress;
+        connectButtonCallback = connectButtonPress;
         currentTime = current_timecode;
         totalTime = total_timecode;
         return *this;
@@ -182,11 +191,11 @@ public:
     
     M1PlayerControls & withVolumeData(double volume,
                                       std::function<void(double newVolume)> onVolumeChange) {
+        internalVolume = volume;
         onVolumeChangeCallback = onVolumeChange;
         return *this;
     }
     
-    std::function<void()> playPausePressedCallback;
     M1PlayerControls & withPlayPauseCallback(std::function<void()> playPausePressed) {
         playPausePressedCallback = playPausePressed;
     }
