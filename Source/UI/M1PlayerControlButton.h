@@ -19,6 +19,9 @@ public:
     
     void internalDraw(Murka & m) {
         drawingFunc({0, 0, m.getSize().width(), m.getSize().height()});
+        if ((mouseDownPressed(0)) && (inside())) {
+            onClick();
+        }
     }
     
     MurkaColor color;
@@ -33,5 +36,11 @@ public:
         drawingFunc = callback;
         return *this;
     }
+    
+    std::function<void()> onClick = [](){};
 
+    M1PlayerControlButton& withOnClickCallback(std::function<void()> clickCallback) {
+        onClick = clickCallback;
+        return *this;
+    }
 };

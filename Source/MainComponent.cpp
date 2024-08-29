@@ -732,9 +732,17 @@ void MainComponent::draw() {
                         true, // showPositionReticle
                         currentPosition, // currentPosition
                         transportSource.isPlaying(), // playing
-                        []() {
-                            
+                        [&]() {
+                            if (transportSource.isPlaying()) {
+                                transportSource.stop();
+                            }
+                            else {
+                                transportSource.start();
+                            }
                         }, // playButtonPress
+                        [&]() {
+                            showSettingsMenu = true;
+                        }, // connectButtonPress
                         [&](double newPositionNormalised) {
                             // refreshing player position
                             transportSource.setPosition(newPositionNormalised);
@@ -758,6 +766,9 @@ void MainComponent::draw() {
                             else {
                                 transportSource.start();
                             }
+                        },
+                        [&]() { // playButtonPress
+                            showSettingsMenu = true;
                         },
                         [&](double newPositionNormalised) {
             // refreshing player position
