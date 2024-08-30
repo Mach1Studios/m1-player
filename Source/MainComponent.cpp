@@ -418,24 +418,19 @@ bool MainComponent::isInterestedInFileDrag(const juce::StringArray&)
 
 void MainComponent::filesDropped(const juce::StringArray& files, int, int)
 {
-    // TODO: test new dropped files first before clearing
-    transportSource.stop();
-    transportSource.setSource(nullptr);
-    
 	for (int i = 0; i < files.size(); ++i) {
 		const juce::String& currentFile = files[i];
-		
 		openFile(currentFile);
-
-		if (clip.get() != nullptr) {
-			clip->setNextReadPosition(0);
-		}
 	}
 	juce::Process::makeForegroundProcess();
 }
 
 void MainComponent::openFile(juce::File filepath)
 {
+    // TODO: test new dropped files first before clearing
+    transportSource.stop();
+    transportSource.setSource(nullptr);
+    
 	// Video Setup
     std::shared_ptr<foleys::AVClip> newClip = videoEngine.createClipFromFile(juce::URL(filepath));
 
@@ -457,50 +452,34 @@ void MainComponent::openFile(juce::File filepath)
     }
 
     // Audio Setup
-    // TODO: make clearer logic to when we should get the audioClip assigned to the transport
-    if (b_standalone_mode)
-	{
-		std::shared_ptr<foleys::AVClip> newClip = videoEngine.createClipFromFile(juce::URL(filepath));
 
-		if (newClip.get() == nullptr)
-			return;
+    if (newClip->hasAudio()) {
+        detectedNumInputChannels = clip->getNumChannels();
 
-		if (newClip->hasAudio()) {
-            // clear the old clip
-            if (clip.get() != nullptr) {
-                clip->removeTimecodeListener(this);
-            }
-            
-			newClip->prepareToPlay(blockSize, sampleRate);
-            clip = newClip;
-            clip->addTimecodeListener(this);
-            transportSource.setSource(clip.get(), 0, nullptr);
-            
-			detectedNumInputChannels = clip->getNumChannels();
+        // Setup for Mach1Decode API
+        m1Decode.setPlatformType(Mach1PlatformDefault);
+        m1Decode.setFilterSpeed(0.99);
 
-			// Setup for Mach1Decode API
-			m1Decode.setPlatformType(Mach1PlatformDefault);
-			m1Decode.setFilterSpeed(0.99);
-
-			if (detectedNumInputChannels == 4) {
-				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoHorizon_4);
-			}
-			else if (detectedNumInputChannels == 8) {
-				bool useIsotropic = true; // TODO: implement this switch
-				if (useIsotropic) {
-					m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_8);
-				}
-				else {
-				}
-			}
-			else if (detectedNumInputChannels == 12) {
-				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_12);
-			}
-			else if (detectedNumInputChannels == 14) {
-				m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
-			}
-		}
-	}
+        if (detectedNumInputChannels == 4) {
+            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoHorizon_4);
+        }
+        else if (detectedNumInputChannels == 8) {
+            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_8);
+        }
+        else if (detectedNumInputChannels == 12) {
+            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_12);
+        }
+        else if (detectedNumInputChannels == 14) {
+            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
+        }
+    }
+    
+    // restart timeline
+    if (b_standalone_mode) {
+        if (clip.get() != nullptr) {
+            clip->setNextReadPosition(0);
+        }
+    }
 }
 
 void MainComponent::setStatus(bool success, std::string message)
@@ -612,23 +591,21 @@ void MainComponent::draw() {
     }
     
     // update standalone mode flag
-    // TODO: introduce a button to swap modes
     if (playerOSC.getNumberOfMonitors() > 0) {
-        // if a video is loaded
-        // TODO: how do we override this
-        b_standalone_mode = false;
+        if (b_wants_to_switch_to_standalone) {
+            b_standalone_mode = true;
+        } else {
+            b_standalone_mode = false;
+        }
     } else {
         b_standalone_mode = true;
     }
     
     if (b_standalone_mode) {
-        // TODO: Allow playhead control
-        // TODO: Audio/Video Sync
     } else {
         // check for monitor discovery to get DAW playhead pos
         // sync with DAW
         syncWithDAWPlayhead();
-        // TODO: Disable interaction on play/stop controls in UI
     }
 
 	// update video frame
@@ -735,16 +712,18 @@ void MainComponent::draw() {
                         currentPosition, // currentPosition
                         transportSource.isPlaying(), // playing
                         [&]() {
+                            // playButtonPress
                             if (transportSource.isPlaying()) {
                                 transportSource.stop();
                             }
                             else {
                                 transportSource.start();
                             }
-                        }, // playButtonPress
+                        },
                         [&]() {
+                            // connectButtonPress
                             showSettingsMenu = true;
-                        }, // connectButtonPress
+                        },
                         [&](double newPositionNormalised) {
                             // refreshing player position
                             transportSource.setPosition(newPositionNormalised);
@@ -761,15 +740,12 @@ void MainComponent::draw() {
                         false, // showPositionReticle
                         0, // currentPosition
                         transportSource.isPlaying(), // playing
-                        [&]() { // playButtonPress
-                            if (transportSource.isPlaying()) {
-                                transportSource.stop();
-                            }
-                            else {
-                                transportSource.start();
-                            }
+                        [&]() { 
+                            // playButtonPress
+                            // blocked since control should only be from DAW side
                         },
-                        [&]() { // playButtonPress
+                        [&]() { 
+                            // connectButtonPress
                             showSettingsMenu = true;
                         },
                         [&](double newPositionNormalised) {
@@ -1023,8 +999,9 @@ void MainComponent::draw() {
         m.prepare<murka::Label>({
             leftSide_LeftBound_x,
             settings_topBound_y,
-            pm_label_box.width, pm_label_box.height })
+            pm_label_box.width + 20, pm_label_box.height })
             .text("PLAYER MODE")
+            .withAlignment(TEXT_LEFT)
             .draw();
         
         auto& playModeRadioGroup = m.prepare<RadioGroupWidget>({ leftSide_LeftBound_x + 4, settings_topBound_y + 20, m.getSize().width()/2 - 88, 30 });
@@ -1034,11 +1011,16 @@ void MainComponent::draw() {
         playModeRadioGroup.draw();
         if (playModeRadioGroup.changed) {
             if (playModeRadioGroup.selectedIndex == 0) {
-                b_standalone_mode = false;
+                if (playerOSC.getNumberOfMonitors() > 0) {
+                    b_standalone_mode = false;
+                    b_wants_to_switch_to_standalone = false;
+                } else {
+                    // stay in standalone
+                }
             }
             else if (playModeRadioGroup.selectedIndex == 1) {
                 // override and allow swap to standalone mode if a media file is loaded
-                b_standalone_mode = true;
+                b_wants_to_switch_to_standalone = true;
             }
             else {
                 if (clip.get() != nullptr) {
@@ -1055,8 +1037,9 @@ void MainComponent::draw() {
         m.prepare<murka::Label>({
             leftSide_LeftBound_x,
             settings_topBound_y + 80,
-            mf_label_box.width, mf_label_box.height })
+            mf_label_box.width + 20, mf_label_box.height })
             .text("MEDIA FILE")
+            .withAlignment(TEXT_LEFT)
             .draw();
         
         // Media loader
@@ -1104,8 +1087,9 @@ void MainComponent::draw() {
         m.prepare<murka::Label>({
             leftSide_LeftBound_x,
             settings_topBound_y + 160,
-            vm_label_box.width, vm_label_box.height })
+            vm_label_box.width + 20, vm_label_box.height })
             .text("VIEW MODE")
+            .withAlignment(TEXT_LEFT)
             .draw();
         
         auto& viewModeRadioGroup = m.prepare<RadioGroupWidget>({ leftSide_LeftBound_x + 4, settings_topBound_y + 180, m.getSize().width()/2 - 88, 30 });

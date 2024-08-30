@@ -46,10 +46,10 @@ public:
             m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-4);
             m.setColor(ENABLED_PARAM);
             juceFontStash::Rectangle stop_label_box = m.getCurrentFont()->getStringBoundingBox("STOP", 0, 0); // used to find size of text
-            m.prepare<murka::Label>({getSize().x / 2 - stop_label_box.width / 2 - 4,
+            m.prepare<murka::Label>({(getSize().x / 2) - (stop_label_box.width / 2),
                 40 + 35,
-                getSize().y / 4 + 20,
-                getSize().y / 4}).text("STOP").draw();
+                stop_label_box.width,
+                stop_label_box.height}).text("STOP").draw();
 
         } else {
             // Play button
@@ -69,10 +69,10 @@ public:
             m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-4);
             m.setColor(ENABLED_PARAM);
             juceFontStash::Rectangle play_label_box = m.getCurrentFont()->getStringBoundingBox("PLAY", 0, 0); // used to find size of text
-            m.prepare<murka::Label>({getSize().x / 2 - play_label_box.width / 2 - 4,
+            m.prepare<murka::Label>({(getSize().x / 2) - (play_label_box.width / 2),
                 40 + 35,
-                getSize().y / 4 + 20,
-                getSize().y / 4})
+                play_label_box.width,
+                play_label_box.height})
             .withAlignment(TEXT_CENTER)
             .text("PLAY")
             .draw();
