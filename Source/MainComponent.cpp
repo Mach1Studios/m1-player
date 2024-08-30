@@ -614,6 +614,8 @@ void MainComponent::draw() {
     // update standalone mode flag
     // TODO: introduce a button to swap modes
     if (playerOSC.getNumberOfMonitors() > 0) {
+        // if a video is loaded
+        // TODO: how do we override this
         b_standalone_mode = false;
     } else {
         b_standalone_mode = true;
@@ -1026,17 +1028,17 @@ void MainComponent::draw() {
             .draw();
         
         auto& playModeRadioGroup = m.prepare<RadioGroupWidget>({ leftSide_LeftBound_x + 4, settings_topBound_y + 20, m.getSize().width()/2 - 88, 30 });
-        playModeRadioGroup.labels = { "STANDALONE", "SYNC TO DAW" };
-        playModeRadioGroup.selectedIndex = b_standalone_mode;
+        playModeRadioGroup.labels = { "SYNC TO DAW", "STANDALONE" };
+        playModeRadioGroup.selectedIndex = b_standalone_mode; // swapped since b_standalone_mode = 0 = standalone
         playModeRadioGroup.drawAsCircles = true;
         playModeRadioGroup.draw();
         if (playModeRadioGroup.changed) {
             if (playModeRadioGroup.selectedIndex == 0) {
-                b_standalone_mode = true;
+                b_standalone_mode = false;
             }
             else if (playModeRadioGroup.selectedIndex == 1) {
                 // override and allow swap to standalone mode if a media file is loaded
-                b_standalone_mode = false;
+                b_standalone_mode = true;
             }
             else {
                 if (clip.get() != nullptr) {
