@@ -240,10 +240,6 @@ void MainComponent::initialise()
     
     // playerOSC update timer loop (only used for checking the connection)
     startTimerHz(1);
-    
-    // Debug video TODO: REMOVE!
-    const juce::String& currentFile = "/Users/zebra/Downloads/testvideo.mp4";
-    openFile(currentFile);
 }
 
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleRate)
