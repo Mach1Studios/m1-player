@@ -79,8 +79,8 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     juce::AudioTransportSource  transportSource;
     juce::AudioBuffer<float> tempBuffer;
 
-    // TODO: make a check that changes this flag
     bool b_standalone_mode = false;
+    bool b_wants_to_switch_to_standalone = false;
 
     double                      sampleRate = 0.0;
     int                         blockSize = 0;
@@ -110,12 +110,10 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
 
         std::ostringstream oss;
         oss << std::setfill('0');
-
         if (hours > 0) {
             oss << hours << ':' << std::setw(2);
         }
         oss << minutes << ':' << std::setw(2) << secs;
-
         return oss.str();
     }
  
