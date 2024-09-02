@@ -722,7 +722,7 @@ void MainComponent::draw() {
                         },
                         [&](double newPositionNormalised) {
                             // refreshing player position
-                            transportSource.setPosition(newPositionNormalised);
+                            transportSource.setPosition(newPositionNormalised * transportSource.getLengthInSeconds());
                         });
         playerControls.withVolumeData(transportSource.getGain(),
                         [&](double newVolume){
