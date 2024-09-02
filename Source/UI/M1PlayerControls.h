@@ -79,7 +79,7 @@ public:
 
         }
         
-        // Timeline progressbar
+        // Timeline progressbar stand in label
         if (!standaloneMode) {
             m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-2);
             float width = m.getCurrentFont()->getStringBoundingBox("SYNC TO DAW MODE", 0, 0).width;
@@ -142,28 +142,46 @@ public:
             m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-5);
             m.setColor(ENABLED_PARAM);
             m.prepare<murka::Label>({ 10, 25 - 4, 30, 10 }).text(currentTime).draw();
+            
             // timeline line
             m.setLineWidth(1);
             m.setColor(ENABLED_PARAM);
             m.drawLine(40, 25, getSize().x - 40, 25);
+            
             // Position slider
             m.setColor(M1_ACTION_YELLOW);
-            float positionSliderWIdth = getSize().x - 30 - 30;
-            float cursorPositionInPixels = currentPositionNormalized * positionSliderWIdth;
+            float positionSliderWIdth = getSize().x - 40 - 40;
+            float cursorPositionInPixels = currentPositionNormalized * (positionSliderWIdth + 20);
             float sliderHeight = 20;
             m.drawLine(40 + cursorPositionInPixels, 25 - sliderHeight / 2,
                        40 + cursorPositionInPixels, 25 + sliderHeight / 2);
-            MurkaShape positionSlider = MurkaShape(40, 20, getSize().x - 80, 60);
+            MurkaShape positionSlider = MurkaShape(40, 10, positionSliderWIdth, 30);
+            
+            double hoveredTimelinePosition = -1.0;
+            if (positionSlider.inside(mousePosition())) {
+
+                float normalizedPositionInsideSlider = (mousePosition().x - positionSlider.position.x) / (positionSlider.size.x);
+//
+                hoveredTimelinePosition = normalizedPositionInsideSlider;
+            }
+            
+            // Drawing a little hovered line
+            if (hoveredTimelinePosition > 0.0) {
+                double hoveredPositionInPixels = positionSliderWIdth * hoveredTimelinePosition;
+                m.setColor(120);
+                m.drawLine(40 + hoveredPositionInPixels, 25 - sliderHeight / 2,
+                           40 + hoveredPositionInPixels, 25 + sliderHeight / 2);
+
+            }
+            
             // total time readout
             m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-5);
             m.setColor(ENABLED_PARAM);
             m.prepare<murka::Label>({ getSize().x - 36, 25 - 4, 30, 10 }).text(totalTime).draw();
             
             if (mouseDownPressed(0)) {
-                if (positionSlider.inside(mousePosition())) {
-                    float normalizedPositionInsideSlider = ((positionSlider.position - mousePosition()) / positionSlider.size).x;
-                    onPositionChangeCallback(normalizedPositionInsideSlider);
-                    std::cout << "player position change request" << normalizedPositionInsideSlider << std::endl;
+                if (hoveredTimelinePosition > 0) {
+                    onPositionChangeCallback(hoveredTimelinePosition);
                 }
             }
         }
@@ -201,6 +219,9 @@ public:
                                       std::function<void()> connectButtonPress = []() {},
                                       std::function<void(double)> onPositionChange = [](double newPositionNormalised ){}) {
         currentPositionNormalized = currentPosition;
+        if (currentPositionNormalized < 0.0) currentPositionNormalized = 0.0;
+        if (currentPositionNormalized > 1.0) currentPositionNormalized = 1.0;
+        
         onPositionChangeCallback = onPositionChange;
         isPlaying = playing;
         playPausePressedCallback = playButtonPress;
