@@ -283,7 +283,9 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
 				bufferToFill.numSamples);
 
 			transportSource.getNextAudioBlock(info);
-        } else {
+        }
+        
+        if (b_standalone_mode && clip->hasAudio()) {
             // then read audio source
             detectedNumInputChannels = clip->getNumChannels();
 
@@ -294,19 +296,10 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
                 bufferToFill.startSample,
                 bufferToFill.numSamples);
 
-            transportSource.getNextAudioBlock(info);
-
             tempBuffer.setSize(detectedNumInputChannels * 2, bufferToFill.numSamples);
             tempBuffer.clear();
 
-            /// Detect input audio channels
             if (detectedNumInputChannels > 0) {
-                /// Mono or Stereo
-                // TODO: mute or block audio playback by default
-                // TODO: add button for playing stereo/mono audio in videoplayer?
-          
-                /// Multichannel
-
                 // if you've got more output channels than input clears extra outputs
                 for (auto channel = detectedNumInputChannels; channel < 2 && channel < detectedNumInputChannels; ++channel)
                     readBuffer.clear(channel, 0, bufferToFill.numSamples);
@@ -343,6 +336,7 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
                             outBufferR[sample] += tempBuffer.getReadPointer(channel * 2 + 1)[sample] * smoothedChannelCoeffs[channel * 2 + 1].getNextValue();
                         }
                     }
+                /// Mono or Stereo
                 } else if (detectedNumInputChannels == 1) {
                     // mono
                     bufferToFill.buffer->copyFrom(0, 0, readBuffer, 0, 0, info.numSamples);
@@ -353,6 +347,7 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
                     bufferToFill.buffer->copyFrom(0, 0, readBuffer, 0, 0, info.numSamples);
                     bufferToFill.buffer->copyFrom(1, 0, readBuffer, 1, 0, info.numSamples);
                 }
+                /// Multichannel
                 else {
                     // Invalid Decode I/O; clear buffers
                     for (int channel = detectedNumInputChannels; channel < 2; ++channel)
