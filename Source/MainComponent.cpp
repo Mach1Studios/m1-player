@@ -699,11 +699,11 @@ void MainComponent::draw() {
     auto& playerControls = m.prepare<M1PlayerControls>(playerControlShape);
     if (b_standalone_mode) { // Standalone mode
         auto clipLengthInSeconds = transportSource.getLengthInSeconds();
-        double currentPosition = 0.5;
+        double currentPosition = 0.0;
         if (clip.get() != nullptr && (clip->hasVideo() || clip->hasAudio())) {
-            currentPosition = clip->getCurrentTimeInSeconds() /  clipLengthInSeconds;
+            currentPosition = clip->getCurrentTimeInSeconds() / clipLengthInSeconds;
         }
-        playerControls.withPlayerData("00:00", formatTime(clipLengthInSeconds),
+        playerControls.withPlayerData((clip.get() != nullptr && clip->hasVideo()) ? formatTime(clip->getCurrentTimeInSeconds()) : "00:00", formatTime(clipLengthInSeconds),
                         true, // showPositionReticle
                         currentPosition, // currentPosition
                         transportSource.isPlaying(), // playing
