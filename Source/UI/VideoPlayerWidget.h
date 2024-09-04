@@ -203,6 +203,10 @@ public:
                     m.drawImage(*imgVideo, 0, 0, getSize().x, getSize().y);
                 }
             }
+            
+            if (drawOverlay) {
+                m.drawImage(imgOverlay, 0, 0, getSize().x, getSize().y);
+            }
 
             // draw panners
             for (int i = 0; i < pannerSettings.size(); i++) {
