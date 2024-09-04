@@ -281,8 +281,6 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
 			juce::AudioSourceChannelInfo info(&readBuffer,
 				bufferToFill.startSample,
 				bufferToFill.numSamples);
-
-			transportSource.getNextAudioBlock(info);
         }
         
         if (b_standalone_mode && clip->hasAudio()) {
@@ -295,6 +293,8 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
             juce::AudioSourceChannelInfo info(&readBuffer,
                 bufferToFill.startSample,
                 bufferToFill.numSamples);
+            // the AudioTransportSource takes care of start, stop and resample
+            transportSource.getNextAudioBlock(info);
 
             tempBuffer.setSize(detectedNumInputChannels * 2, bufferToFill.numSamples);
             tempBuffer.clear();
@@ -362,7 +362,6 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
                 bufferToFill.clearActiveBufferRegion();
             }
         }
-        bufferToFill.clearActiveBufferRegion();
     } else {
         detectedNumInputChannels = 0;
     }
@@ -717,6 +716,7 @@ void MainComponent::draw() {
                         },
                         [&](double newPositionNormalised) {
                             // refreshing player position
+                            //clip->setNextReadPosition(static_cast<juce::int64>(newPositionNormalised * clip->getLengthInSeconds() * clip->getSampleRate()));
                             transportSource.setPosition(newPositionNormalised * transportSource.getLengthInSeconds());
                         });
         playerControls.withVolumeData(transportSource.getGain(),
@@ -863,7 +863,9 @@ void MainComponent::draw() {
                 transportSource.stop();
             }
             else {
-                transportSource.setPosition(0);
+                if (clip.get() != nullptr) {
+                    clip->setNextReadPosition(0);
+                }
             }
         }
     }
