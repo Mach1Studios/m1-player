@@ -428,7 +428,8 @@ void MainComponent::openFile(juce::File filepath)
         return;
 
     /// Video Setup
-    if (newClip->hasVideo()) {
+    if (newClip.get() != nullptr) {
+        
         // clear the old clip
         if (clip.get() != nullptr) {
             clip->removeTimecodeListener(this);
@@ -444,7 +445,9 @@ void MainComponent::openFile(juce::File filepath)
     // Audio Setup
 
     if (newClip->hasAudio()) {
-        detectedNumInputChannels = clip->getNumChannels();
+
+        // at this point clip should be assigned but checking newClip anyone for easier reading
+        detectedNumInputChannels = newClip->getNumChannels();
 
         // Setup for Mach1Decode API
         m1Decode.setPlatformType(Mach1PlatformDefault);
