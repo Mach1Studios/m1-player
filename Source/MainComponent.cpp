@@ -605,7 +605,7 @@ void MainComponent::draw() {
 	if (clip.get() != nullptr && clip->hasVideo()) {
         auto clipLengthInSeconds = transportSource.getLengthInSeconds();
 		foleys::VideoFrame& frame = clip->getFrame(clip->getCurrentTimeInSeconds());
-        DBG("[Video] Time: " + std::to_string(clip->getCurrentTimeInSeconds()) + ", Block:" + std::to_string(clip->getNextReadPosition()) + ", normalized: " + std::to_string( clip->getCurrentTimeInSeconds() /  clipLengthInSeconds ));
+//        DBG("[Video] Time: " + std::to_string(clip->getCurrentTimeInSeconds()) + ", Block:" + std::to_string(clip->getNextReadPosition()) + ", normalized: " + std::to_string( clip->getCurrentTimeInSeconds() /  clipLengthInSeconds ));
 		if (frame.image.getWidth() > 0 && frame.image.getHeight() > 0) {
 			if (imgVideo.getWidth() != frame.image.getWidth() || imgVideo.getHeight() != frame.image.getHeight()) {
 				imgVideo.allocate(frame.image.getWidth(), frame.image.getHeight());

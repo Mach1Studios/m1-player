@@ -171,11 +171,11 @@ public:
         
         // Action
         
-        if ((mouseDownPressed(0)) && (inside()) && (mousePosition().y < labelPositionY) &&
+        if ((mouseDownPressed(0)) && (inside()) /* && (mousePosition().y < labelPositionY )*/ &&
             (!draggingNow) && (enabled)) {
-            draggingNow = true;
-            //cursorHide();
-        }
+                draggingNow = true;
+                //cursorHide();
+            }
 
         if ((draggingNow) && (!mouseDown(0))) {
             draggingNow = false;
@@ -186,7 +186,7 @@ public:
         bool shouldSetDefault = isKeyHeld(murka::MurkaKey::MURKA_KEY_ALT) && mouseDownPressed(0);
         
         // Don't set default by doubleclick if the mouse is in the Label/Text editor zone
-        if (mousePosition().y >= labelPositionY) shouldSetDefault = false;
+//        if (mousePosition().y >= labelPositionY) shouldSetDefault = false;
 
         if (shouldSetDefault && inside()) {
             draggingNow = false;
@@ -201,23 +201,33 @@ public:
                 if (isKeyHeld(murka::MurkaKey::MURKA_KEY_SHIFT)) {
                     s *= 10;
                 }
-                
+            
+                double mouseDeltaX = mouseDelta().x;
+                double mouseDeltaY = mouseDelta().y;
+            
+            
+                if (mouseDeltaX != 0.0) {
+                    DBG("mouseDeltaX:" + std::to_string(mouseDeltaX) + " ; mouseDeltaY: " + std::to_string(mouseDeltaY));
+                }
+
                 if (isHorizontal) {
-                    currentValue -= ( mouseDelta().x / s) * (rangeTo - rangeFrom);
+                    double delta = mouseDeltaX / s;
+                    currentValue -= ( delta ) * (rangeTo - rangeFrom);
                 } else {
-                    currentValue -= ( mouseDelta().y / s) * (rangeFrom - rangeTo);
+                    currentValue -= ( mouseDeltaY / s) * (rangeFrom - rangeTo);
                 }
             
             if (currentValue > rangeTo) {
                 currentValue = rangeTo;
-                valueUpdated(currentValue);
+//                valueUpdated(currentValue);
             }
             
             if (currentValue < rangeFrom) {
                 currentValue = rangeFrom;
-                valueUpdated(currentValue);
+//                valueUpdated(currentValue);
             }
             changed = true;
+            valueUpdated(currentValue);
         }
     }
     
@@ -240,7 +250,7 @@ public:
     std::string prefix = "";
 
     float defaultValue = 0;
-    float speed = 250.;
+    float speed = 45;
     bool isHovered = false;
     bool externalHover = false;
     bool changed = false;
