@@ -56,21 +56,21 @@ void MainComponent::initialise()
         if (msg.getAddressPattern() == "/panner-settings") {
             
             // if incoming panner port does not currently exist add it
-            int plugin_port;
+            int plugin_port = 0;
             if (msg[0].isInt32()) {
                 plugin_port = msg[0].getInt32();
             }
             
-            int state;
+            int state = 0;
             if (msg.size() >= 2 && msg[1].isInt32()) {
                 state = msg[1].getInt32();
             }
 
-            int input_mode;
-            float azi; float ele; float div; float gain;
-            float st_azi, st_spr;
-            int panner_mode;
-            bool auto_orbit;
+            int input_mode = 0;
+            float azi = 0.0; float ele = 0.0; float div = 0.0; float gain = 0.0;
+            float st_azi = 0.0, st_spr = 0.0;
+            int panner_mode = 0;
+            bool auto_orbit = true;
             bool found = false;
             if (msg.size() >= 10) {
                 if (msg[4].isInt32()) {
@@ -160,10 +160,10 @@ void MainComponent::initialise()
                                 if (input_mode == 1 && msg.size() >= 13) {
                                     panner.m1Encode.setAutoOrbit(auto_orbit);
                                     panner.m1Encode.setOrbitRotationDegrees(st_azi);
-                                    panner.m1Encode.setStereoSpread(st_spr/100.); // normalize
+                                    panner.m1Encode.setStereoSpread(st_spr/100.0f); // normalize
                                     panner.autoOrbit = auto_orbit; // TODO: remove these?
                                     panner.stereoOrbitAzimuth = st_azi; // TODO: remove these?
-                                    panner.stereoSpread = st_spr/100.; // TODO: remove these?
+                                    panner.stereoSpread = st_spr/100.0f; // TODO: remove these?
                                 }
                                 
                                 DBG("[OSC] Panner: port="+std::to_string(plugin_port)+", in="+std::to_string(input_mode)+", az="+std::to_string(azi)+", el="+std::to_string(ele)+", di="+std::to_string(div)+", gain="+std::to_string(gain));
@@ -213,10 +213,10 @@ void MainComponent::initialise()
                     if (input_mode == 1 && msg.size() >= 13) {
                         panner.m1Encode.setAutoOrbit(auto_orbit);
                         panner.m1Encode.setOrbitRotationDegrees(st_azi);
-                        panner.m1Encode.setStereoSpread(st_spr/100.); // normalize
+                        panner.m1Encode.setStereoSpread(st_spr/100.0f); // normalize
                         panner.autoOrbit = auto_orbit; // TODO: remove these?
                         panner.stereoOrbitAzimuth = st_azi; // TODO: remove these?
-                        panner.stereoSpread = st_spr/100.; // TODO: remove these?
+                        panner.stereoSpread = st_spr/100.0f; // TODO: remove these?
                     }
 
                     panners.push_back(panner);
@@ -277,10 +277,6 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
 		if (clip->hasVideo()) {
 			readBuffer.setSize(clip->getNumChannels(), bufferToFill.numSamples);
 			readBuffer.clear();
-
-			juce::AudioSourceChannelInfo info(&readBuffer,
-				bufferToFill.startSample,
-				bufferToFill.numSamples);
         }
         
         if (b_standalone_mode && clip->hasAudio()) {
@@ -290,9 +286,6 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
             readBuffer.setSize(detectedNumInputChannels, bufferToFill.numSamples);
             readBuffer.clear();
 
-            juce::AudioSourceChannelInfo info(&readBuffer,
-                bufferToFill.startSample,
-                bufferToFill.numSamples);
             // the AudioTransportSource takes care of start, stop and resample
             transportSource.getNextAudioBlock(info);
 
@@ -451,7 +444,10 @@ void MainComponent::openFile(juce::File filepath)
 
         // Setup for Mach1Decode API
         m1Decode.setPlatformType(Mach1PlatformDefault);
-        m1Decode.setFilterSpeed(0.99);
+        m1Decode.setFilterSpeed(0.99f);
+
+        // TODO: Detect any Mach1Spatial comment metadata
+        // TODO: Mach1Transcode for common otherformats, setup temp UI for input->output format selection
 
         if (detectedNumInputChannels == 4) {
             m1Decode.setDecodeAlgoType(Mach1DecodeAlgoHorizon_4);
@@ -605,7 +601,7 @@ void MainComponent::draw() {
 	if (clip.get() != nullptr && clip->hasVideo()) {
         auto clipLengthInSeconds = transportSource.getLengthInSeconds();
 		foleys::VideoFrame& frame = clip->getFrame(clip->getCurrentTimeInSeconds());
-//        DBG("[Video] Time: " + std::to_string(clip->getCurrentTimeInSeconds()) + ", Block:" + std::to_string(clip->getNextReadPosition()) + ", normalized: " + std::to_string( clip->getCurrentTimeInSeconds() /  clipLengthInSeconds ));
+        //DBG("[Video] Time: " + std::to_string(clip->getCurrentTimeInSeconds()) + ", Block:" + std::to_string(clip->getNextReadPosition()) + ", normalized: " + std::to_string( clip->getCurrentTimeInSeconds() /  clipLengthInSeconds ));
 		if (frame.image.getWidth() > 0 && frame.image.getHeight() > 0) {
 			if (imgVideo.getWidth() != frame.image.getWidth() || imgVideo.getHeight() != frame.image.getHeight()) {
 				imgVideo.allocate(frame.image.getWidth(), frame.image.getHeight());
@@ -666,7 +662,7 @@ void MainComponent::draw() {
 
 		float length = transportSource.getLengthInSeconds();
 		float playheadPosition = transportSource.getCurrentPosition() / length;
-		videoPlayerWidget.playheadPosition = playheadPosition;
+		videoPlayerWidget.playheadPosition = (float)playheadPosition;
 	}
 	
 	// draw overlay if video empty
@@ -682,7 +678,7 @@ void MainComponent::draw() {
     if (clip.get() != nullptr && (clip->hasVideo() || clip->hasAudio())) {
 
 		if (drawReference) {
-			m.drawImage(imgVideo, 0, 0, imgVideo.getWidth() * 0.3, imgVideo.getHeight() * 0.3);
+			m.drawImage(imgVideo, 0, 0, imgVideo.getWidth() * 0.3f, imgVideo.getHeight() * 0.3f);
 		}
 	}
 	else { // Either no clip at all (nullptr) or no audio or video in a clip
@@ -725,11 +721,10 @@ void MainComponent::draw() {
         playerControls.withVolumeData(transportSource.getGain(),
                         [&](double newVolume){
             // refreshing the volume
-            mediaVolume = newVolume;
+            mediaVolume = (float)newVolume;
             transportSource.setGain(mediaVolume);
         });
     } else { // Slave mode
-        auto clipLengthInSeconds = transportSource.getLengthInSeconds();
         playerControls.withPlayerData("", "",
                         false, // showPositionReticle
                         0, // currentPosition
@@ -749,7 +744,7 @@ void MainComponent::draw() {
         playerControls.withVolumeData(0.5,
                         [&](double newVolume){
             // refreshing the volume
-            mediaVolume = newVolume;
+            mediaVolume = (float)newVolume;
             transportSource.setGain(mediaVolume);
         });
     }
