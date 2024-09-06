@@ -240,6 +240,10 @@ void MainComponent::initialise()
     
     // playerOSC update timer loop (only used for checking the connection)
     startTimerHz(1);
+    
+    // Telling Murka we're not in a plugin
+    
+    m.isPlugin = false;
 }
 
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleRate)
