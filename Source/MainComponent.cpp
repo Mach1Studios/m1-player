@@ -242,6 +242,9 @@ void MainComponent::initialise()
     // - checking the connection of playerOSC
     // - checking for mouse inactivity
     startTimerHz(1); // once a second
+    
+    // Telling Murka we're not in a plugin
+    m.isPlugin = false;
 }
 
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleRate)
