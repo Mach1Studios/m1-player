@@ -8,6 +8,7 @@
 #include "Config.h"
 #include "Mach1Decode.h"
 #include "Mach1Encode.h"
+#include "Mach1Transcode.h"
 #include "TypesForDataExchange.h"
 #include "TransportOSCServer.h"
 #include "PlayerOSC.h"
@@ -87,6 +88,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     int                         ffwdSpeed = 2;
 
     Mach1Decode m1Decode;
+    Mach1Transcode m1Transcode;
     std::vector<float> spatialMixerCoeffs;
     std::vector<juce::LinearSmoothedValue<float>> smoothedChannelCoeffs;
     juce::AudioBuffer<float> readBuffer;
