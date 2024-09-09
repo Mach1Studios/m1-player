@@ -238,8 +238,10 @@ void MainComponent::initialise()
         }
     });
     
-    // playerOSC update timer loop (only used for checking the connection)
-    startTimerHz(1);
+    // Update timer loop used for:
+    // - checking the connection of playerOSC
+    // - checking for mouse inactivity
+    startTimerHz(1); // once a second
 }
 
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleRate)
@@ -315,10 +317,16 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
                 float* outBufferR = bufferToFill.buffer->getWritePointer(1);
                 std::vector<float> spatialCoeffsBufferL, spatialCoeffsBufferR;
 
-                if (detectedNumInputChannels == m1Decode.getFormatChannelCount()){ // dumb safety check, TODO: do better i/o error handling
+                if (detectedNumInputChannels == m1Transcode.getInputNumChannels()) { // dumb safety check, TODO: do better i/o error handling
+                    
+                    for (auto channel = 0; channel < detectedNumInputChannels; ++channel) {
+                        // TODO: handle transcode -> decode
+                    }
+                }
+                else if (detectedNumInputChannels == m1Decode.getFormatChannelCount()){ // dumb safety check, TODO: do better i/o error handling
                                     
                     // copy from readBuffer for doubled channels
-                    for (auto channel = 0; channel < detectedNumInputChannels; ++channel){
+                    for (auto channel = 0; channel < detectedNumInputChannels; ++channel) {
                         tempBuffer.copyFrom(channel * 2 + 0, 0, readBuffer, channel, 0, bufferToFill.numSamples);
                         tempBuffer.copyFrom(channel * 2 + 1, 0, readBuffer, channel, 0, bufferToFill.numSamples);
                     }
@@ -449,6 +457,7 @@ void MainComponent::openFile(juce::File filepath)
         // TODO: Detect any Mach1Spatial comment metadata
         // TODO: Mach1Transcode for common otherformats, setup temp UI for input->output format selection
 
+        // Mach1 Spatial Formats
         if (detectedNumInputChannels == 4) {
             m1Decode.setDecodeAlgoType(Mach1DecodeAlgoHorizon_4);
         }
@@ -459,6 +468,20 @@ void MainComponent::openFile(juce::File filepath)
             m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_12);
         }
         else if (detectedNumInputChannels == 14) {
+            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
+        }
+        // Test Transcode Inputs
+        // TODO: Create UI for selecting input format
+        else if (detectedNumInputChannels == 6) {
+            // Assume 5.1
+            m1Transcode.setInputFormat(m1Transcode.getFormatFromString("5.1_C"));
+            m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-14"));
+            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
+        }
+        else if (detectedNumInputChannels == 9) {
+            // Assume 2OA ACN
+            m1Transcode.setInputFormat(m1Transcode.getFormatFromString("ACNSN3DO2A"));
+            m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-14"));
             m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
         }
     }
