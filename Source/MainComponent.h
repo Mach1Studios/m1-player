@@ -87,12 +87,18 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     int                         blockSize = 0;
     int                         ffwdSpeed = 2;
 
+    // Mach1Decode API
     Mach1Decode m1Decode;
-    Mach1Transcode m1Transcode;
     std::vector<float> spatialMixerCoeffs;
     std::vector<juce::LinearSmoothedValue<float>> smoothedChannelCoeffs;
     juce::AudioBuffer<float> readBuffer;
     int detectedNumInputChannels;
+    
+    // Mach1Transcode API
+    Mach1Transcode m1Transcode;
+    void updateMach1Transcode();
+    std::vector<float> transcodeToDecodeCoeffs;
+    std::vector< std::vector<float> > conversionMatrix;
     
     int secondsWithoutMouseMove = 0;
     MurkaPoint lastScrollValue;

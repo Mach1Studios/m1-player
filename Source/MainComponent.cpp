@@ -244,6 +244,8 @@ void MainComponent::initialise()
     startTimerHz(1); // once a second
     
     // Telling Murka we're not in a plugin
+    // this is to ensure Murka does not expect to pass
+    // keystrokes to a hosting layer
     m.isPlugin = false;
 }
 
@@ -316,6 +318,7 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
                     smoothedChannelCoeffs[channel * 2 + 1].setTargetValue(spatialMixerCoeffs[channel * 2 + 1]);
                 }
                 
+                // setup output buffers
                 float* outBufferL = bufferToFill.buffer->getWritePointer(0);
                 float* outBufferR = bufferToFill.buffer->getWritePointer(1);
                 std::vector<float> spatialCoeffsBufferL, spatialCoeffsBufferR;
@@ -334,6 +337,7 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
                         tempBuffer.copyFrom(channel * 2 + 1, 0, readBuffer, channel, 0, bufferToFill.numSamples);
                     }
                 
+                    // apply decode coeffs to output buffer
                     for (int sample = 0; sample < info.numSamples; sample++) {
                         for (int channel = 0; channel < detectedNumInputChannels; channel++) {
                             outBufferL[sample] += tempBuffer.getReadPointer(channel * 2 + 0)[sample] * smoothedChannelCoeffs[channel * 2].getNextValue();
