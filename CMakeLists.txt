@@ -153,7 +153,7 @@ endif()
 
 if(APPLE)
     ### setup info.plist and entitlements for macos
-    set_target_properties("${CMAKE_PROJECT_NAME}" PROPERTIES
+    set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Resources/${CMAKE_PROJECT_NAME}-Info.plist"
         MACOSX_BUNDLE_BUNDLE_NAME ${CMAKE_PROJECT_NAME}
@@ -162,6 +162,9 @@ if(APPLE)
         XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/Resources/${CMAKE_PROJECT_NAME}.entitlements"
         XCODE_ATTRIBUTE_INFOPLIST_KEY_LSApplicationCategoryType "public.app-category.utilities"
     )
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
+        "-framework Security"
+        )
 elseif(MSVC OR WIN32 OR MINGW)
     message(STATUS "Adding windows OS flag for httplib")
     add_compile_definitions(WIN32_LEAN_AND_MEAN)    
