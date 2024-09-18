@@ -111,14 +111,9 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
 set(JucePlugin_Name ${CMAKE_PROJECT_NAME})
 set(JucePlugin_Desc ${CMAKE_PROJECT_NAME})
 
-# download and link m1-sdk
-include(cmake/fetchM1SDK.cmake)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${MACH1ENCODE_LIBRARY})
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${MACH1SPATIAL_LIBS_PATH}/xcode/include/Mach1Encode.cpp)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${MACH1DECODE_LIBRARY})
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${MACH1SPATIAL_LIBS_PATH}/xcode/include/Mach1Decode.cpp)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${MACH1TRANSCODE_LIBRARY})
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${MACH1SPATIAL_LIBS_PATH}/xcode/include/Mach1Transcode.cpp)
+# link m1-sdk
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE M1Encode M1Decode M1Transcode)
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE Modules/m1-sdk/libmach1spatial/api_common/include Modules/m1-sdk/libmach1spatial/api_decode/include Modules/m1-sdk/libmach1spatial/api_encode/include Modules/m1-sdk/libmach1spatial/api_transcode/include Modules/m1-sdk/libmach1spatial/deps)
 
 # link ffmpeg output libs for juce module flags to pick up on
 # TODO: fix this to not require hardcoded paths
