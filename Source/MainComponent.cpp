@@ -321,7 +321,6 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
                 // setup output buffers
                 float* outBufferL = bufferToFill.buffer->getWritePointer(0);
                 float* outBufferR = bufferToFill.buffer->getWritePointer(1);
-                std::vector<float> spatialCoeffsBufferL, spatialCoeffsBufferR;
 
                 if (detectedNumInputChannels == m1Transcode.getInputNumChannels()) { // dumb safety check, TODO: do better i/o error handling
                     
