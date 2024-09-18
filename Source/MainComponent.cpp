@@ -146,12 +146,12 @@ void MainComponent::initialise()
                                     panner.color.a = 255;
                                 }
                                 
-                                panner.m1Encode.setInputMode((Mach1EncodeInputModeType)input_mode);
+                                panner.m1Encode.setInputMode((Mach1EncodeInputMode)input_mode);
                                 panner.m1Encode.setAzimuthDegrees(azi);
                                 panner.m1Encode.setElevationDegrees(ele);
                                 panner.m1Encode.setDiverge(div);
                                 panner.m1Encode.setOutputGain(gain, true);
-                                panner.m1Encode.setPannerMode((Mach1EncodePannerModeType)panner_mode);
+                                panner.m1Encode.setPannerMode((Mach1EncodePannerMode)panner_mode);
                                 panner.azimuth = azi; // TODO: remove these?
                                 panner.elevation = ele; // TODO: remove these?
                                 panner.diverge = div; // TODO: remove these?
@@ -199,12 +199,12 @@ void MainComponent::initialise()
                         panner.color.a = 255;
                     }
                     
-                    panner.m1Encode.setInputMode((Mach1EncodeInputModeType)input_mode);
+                    panner.m1Encode.setInputMode((Mach1EncodeInputMode)input_mode);
                     panner.m1Encode.setAzimuthDegrees(azi);
                     panner.m1Encode.setElevationDegrees(ele);
                     panner.m1Encode.setDiverge(div);
                     panner.m1Encode.setOutputGain(gain, true);
-                    panner.m1Encode.setPannerMode((Mach1EncodePannerModeType)panner_mode);
+                    panner.m1Encode.setPannerMode((Mach1EncodePannerMode)panner_mode);
                     panner.azimuth = azi; // TODO: remove these?
                     panner.elevation = ele; // TODO: remove these?
                     panner.diverge = div; // TODO: remove these?
@@ -308,9 +308,7 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
                 auto ori_deg = currentOrientation.GetGlobalRotationAsEulerDegrees();
                 m1Decode.setRotationDegrees({ ori_deg.GetYaw(), ori_deg.GetPitch(), ori_deg.GetRoll() });
 
-                m1Decode.beginBuffer();
                 spatialMixerCoeffs = m1Decode.decodeCoeffs();
-                m1Decode.endBuffer();
                 
                 // Update spatial mixer coeffs from Mach1Decode for a smoothed value
                 for (int channel = 0; channel < detectedNumInputChannels; ++channel) {
@@ -466,16 +464,16 @@ void MainComponent::openFile(juce::File filepath)
 
         // Mach1 Spatial Formats
         if (detectedNumInputChannels == 4) {
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoHorizon_4);
+            m1Decode.setDecodeMode(M1DecodeSpatial_4);
         }
         else if (detectedNumInputChannels == 8) {
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_8);
+            m1Decode.setDecodeMode(M1DecodeSpatial_8);
         }
         else if (detectedNumInputChannels == 12) {
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_12);
+            m1Decode.setDecodeMode(M1DecodeSpatial_12);
         }
         else if (detectedNumInputChannels == 14) {
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
+            m1Decode.setDecodeMode(M1DecodeSpatial_14);
         }
         // Test Transcode Inputs
         // TODO: Create UI for selecting input format
@@ -483,13 +481,13 @@ void MainComponent::openFile(juce::File filepath)
             // Assume 5.1
             m1Transcode.setInputFormat(m1Transcode.getFormatFromString("5.1_C"));
             m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-14"));
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
+            m1Decode.setDecodeMode(Mach1DecodeAlgoSpatial_14);
         }
         else if (detectedNumInputChannels == 9) {
             // Assume 2OA ACN
             m1Transcode.setInputFormat(m1Transcode.getFormatFromString("ACNSN3DO2A"));
             m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-14"));
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
+            m1Decode.setDecodeMode(Mach1DecodeAlgoSpatial_14);
         }
     }
     
