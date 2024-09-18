@@ -481,13 +481,13 @@ void MainComponent::openFile(juce::File filepath)
             // Assume 5.1
             m1Transcode.setInputFormat(m1Transcode.getFormatFromString("5.1_C"));
             m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-14"));
-            m1Decode.setDecodeMode(Mach1DecodeAlgoSpatial_14);
+            m1Decode.setDecodeMode(M1DecodeSpatial_14);
         }
         else if (detectedNumInputChannels == 9) {
             // Assume 2OA ACN
             m1Transcode.setInputFormat(m1Transcode.getFormatFromString("ACNSN3DO2A"));
             m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-14"));
-            m1Decode.setDecodeMode(Mach1DecodeAlgoSpatial_14);
+            m1Decode.setDecodeMode(M1DecodeSpatial_14);
         }
     }
     
