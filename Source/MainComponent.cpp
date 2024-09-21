@@ -9,6 +9,11 @@ MainComponent::MainComponent()
 
 	// specify the number of input and output channels that we want to open
 	setAudioChannels(0, 2);
+    
+    // print build time for debug
+    juce::String date(__DATE__);
+    juce::String time(__TIME__);
+    DBG("[PLAYER] Build date: " + date + " | Build time: " + time);
 }
 
 MainComponent::~MainComponent()
@@ -1213,13 +1218,10 @@ void MainComponent::timerCallback() {
 //==============================================================================
 void MainComponent::paint (juce::Graphics& g)
 {
-    // You can add your component specific drawing code here!
     // This will draw over the top of the openGL background.
 }
 
 void MainComponent::resized()
 {
     // This is called when the MainComponent is resized.
-    // If you add any child components, this is where you should
-    // update their positions.
 }
