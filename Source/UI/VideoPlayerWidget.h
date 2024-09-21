@@ -248,7 +248,7 @@ public:
     bool drawOverlay = false;
     bool crop_Stereoscopic_TopBottom = false;
 
-    int fov = 70;
+    int fov = 100;
 
     // Storage of tracked panner instances
     std::vector<PannerSettings> pannerSettings;

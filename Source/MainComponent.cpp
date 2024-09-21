@@ -603,6 +603,8 @@ void MainComponent::draw_orientation_client(murka::Murka &m, M1OrientationClient
     // trigger a server side refresh for listed devices while menu is open
     m1OrientationClient.command_refresh();
     //bool showOrientationSettingsPanelInsideWindow = (m1OrientationClient.getCurrentDevice().getDeviceType() != M1OrientationManagerDeviceTypeNone);
+    
+    m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-2);
     orientationControlWindow = &(m.prepare<M1OrientationClientWindow>({ rightSide_LeftBound_x, settings_topBound_y, 300, 400}));
     orientationControlWindow->withDeviceSlots(slots);
     orientationControlWindow->withOrientationClient(m1OrientationClient);
@@ -904,9 +906,9 @@ void MainComponent::draw() {
     }
 
     if (bShowHelpUI) {
-        m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);
+        m.getCurrentFont()->drawString("Fov : " + std::to_string(videoPlayerWidget.fov), 10, 10);
         m.getCurrentFont()->drawString("Frame: " + std::to_string(transportSource.getCurrentPosition()), 10, 30);
-        m.getCurrentFont()->drawString("Standalone mode: " + std::to_string(b_standalone_mode), 10, 50);
+        m.getCurrentFont()->drawString("Player Mode: " + (b_standalone_mode) ? "Standalone Player" : "Synced to DAW", 10, 50);
 
         m.getCurrentFont()->drawString("Hotkeys:", 10, 130);
         m.getCurrentFont()->drawString("[w] - FOV+", 10, 150);
@@ -1078,11 +1080,13 @@ void MainComponent::draw() {
         juceFontStash::Rectangle load_button_box = m.getCurrentFont()->getStringBoundingBox("LOAD", 0, 0);
         juceFontStash::Rectangle file_path_button_box = m.getCurrentFont()->getStringBoundingBox(file_path, 0, 0);
 
+        // shrink font size for media path
+        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-3);
         auto& media_file_path_label = m.prepare<M1Label>({leftSide_LeftBound_x, settings_topBound_y + 100,
             m.getSize().width()/2 - 45 - load_button_box.width - 60, 20})
             .withText(file_path)
             .withTextAlignment(TEXT_LEFT)
-            .withVerticalTextOffset(3)
+            .withVerticalTextOffset(file_path_button_box.height/2)
             .withForegroundColor(MurkaColor(ENABLED_PARAM))
             .withBackgroundFill(MurkaColor(BACKGROUND_COMPONENT), MurkaColor(BACKGROUND_COMPONENT))
             .withOnClickCallback([&](){
@@ -1090,6 +1094,9 @@ void MainComponent::draw() {
             });
         media_file_path_label.labelPadding_x = 10;
         media_file_path_label.draw();
+
+        // reset font size
+        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
 
         // load button
         m.prepare<M1Label>({
