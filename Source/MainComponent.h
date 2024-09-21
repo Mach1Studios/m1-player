@@ -70,8 +70,6 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     };
 
     float lastUpdateForPlayer = 0.0f;
-
-    double currentPlayerWidgetFov = 0;
     bool drawReference = false;
     float mediaVolume = 1.0;
 
