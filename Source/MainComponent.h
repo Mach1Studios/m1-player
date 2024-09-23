@@ -29,6 +29,8 @@
 #include <sstream>
 #include <string>
 
+#include "M1PlayerMediaObject.h"
+
 //==============================================================================
 /*
     This component lives inside our window, and this is where you should put all
@@ -75,10 +77,13 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     bool drawReference = false;
     float mediaVolume = 1.0;
 
-    foleys::VideoEngine videoEngine;
-    std::shared_ptr<foleys::AVClip> clip;
-    juce::AudioTransportSource  transportSource;
-    juce::AudioBuffer<float> tempBuffer;
+//    foleys::VideoEngine videoEngine;
+//    std::shared_ptr<foleys::AVClip> clip;
+//    juce::AudioTransportSource  transportSource;
+    
+    M1PlayerMediaObject currentMedia;
+    
+    juce::AudioBuffer<float> tempAudioBuffer;
 
     bool b_standalone_mode = false;
     bool b_wants_to_switch_to_standalone = false;
