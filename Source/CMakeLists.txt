@@ -2,6 +2,7 @@ file(GLOB source_files  Config.h
                         Main.cpp
                         MainComponent.h
                         MainComponent.cpp
+                        M1PlayerMediaObject.h
                         TypesForDataExchange.h
                         SphereMeshGenerator.h
                         TransportOSCServer.h

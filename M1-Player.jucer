@@ -12,6 +12,8 @@
       <FILE id="eWudXl" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
       <FILE id="LNSQ4b" name="MainComponent.cpp" compile="1" resource="0"
             file="Source/MainComponent.cpp"/>
+      <FILE id="mpue8F" name="M1PlayerMediaObject.h" compile="0" resource="0"
+            file="Source/M1PlayerMediaObject.h"/>
       <FILE id="Jz2XUb" name="TypesForDataExchange.h" compile="0" resource="0"
             file="Source/TypesForDataExchange.h"/>
       <FILE id="aLvb7L" name="MeshGenerator.h" compile="0" resource="0" file="Source/MeshGenerator.h"/>
