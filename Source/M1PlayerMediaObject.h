@@ -3,7 +3,7 @@ class M1PlayerMediaObject {
 private:
     foleys::VideoEngine videoEngine;
     std::shared_ptr<foleys::AVClip> clip;
-    juce::AudioTransportSource  transportSource;
+    juce::AudioTransportSource transportSource;
     int blockSize = 32;
     int sampleRate = 22050;
 
@@ -14,8 +14,7 @@ public:
     }
     
     ~M1PlayerMediaObject() {
-        // Release resources
-        
+        releaseResources();
     }
     
     void start() {
@@ -48,8 +47,6 @@ public:
             clip->prepareToPlay(blockSize, sampleRate);
             transportSource.prepareToPlay(blockSize, sampleRate);
         }
-            
-
     }
     
     bool hasVideo() {
@@ -62,14 +59,6 @@ public:
     
     bool clipLoaded() {
         return clip.get() != nullptr;
-    }
-    
-    void setTimelinePosition(int64 timecodeInSamples) {
-        clip->setNextReadPosition(timecodeInSamples);
-    }
-    
-    double getLengthInSeconds() {
-        return transportSource.getLengthInSeconds();
     }
     
     void getNextAudioBlock (const AudioSourceChannelInfo& info) {
@@ -100,23 +89,30 @@ public:
         return transportSource.getGain();
     }
     
+    double getLengthInSeconds() {
+        return transportSource.getLengthInSeconds();
+    }
+    
     double getCurrentTimelinePositionInSeconds() {
         return transportSource.getCurrentPosition();
     }
     
-    void setCurrentTimelinePositionInSeconds(double position) {
-        
+    void setTimelinePosition(int64 timecodeInSamples) {
+        clip->setNextReadPosition(timecodeInSamples);
+    }
+    
+    void setCurrentTimelinePositionInSeconds(double newPositionInSeconds) {
+        transportSource.setPosition(newPositionInSeconds);
     }
     
     void setPositionNormalized(double newPositionNormalized) {
-        transportSource.setPosition(newPositionNormalized);
+        transportSource.setPosition(newPositionNormalized * getLengthInSeconds());
     }
     
     bool open(juce::URL filepath) {
         transportSource.stop();
         transportSource.setSource(nullptr);
 
-        
         std::shared_ptr<foleys::AVClip> newClip = videoEngine.createClipFromFile(juce::URL(filepath));
 
         if (newClip.get() == nullptr)
