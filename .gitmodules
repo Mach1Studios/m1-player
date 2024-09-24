@@ -12,3 +12,6 @@
 [submodule "JUCE"]
 	path = JUCE
 	url = git@github.com:juce-framework/JUCE.git
+[submodule "Modules/m1-sdk"]
+	path = Modules/m1-sdk
+	url = git@github.com:Mach1Studios/m1-sdk.git

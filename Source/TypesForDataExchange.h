@@ -2,30 +2,32 @@
 
 #include "Mach1Encode.h"
 
-struct PannerSettings {
-    int port = 0;
-    std::string displayName = "";
-    
-    /// State Definitions:
-    ///  - -1 = mark for deletion
-    ///  -  0 = off / inactive
-    ///  -  1 = on / active
-    ///  -  2 = focused
-    int state = 0;
-    
+class PannerSettings {
+
+public:
+
     struct Color {
         std::uint8_t r = 0;
         std::uint8_t g = 0;
         std::uint8_t b = 0;
         std::uint8_t a = 0;
-    } color;
-    
-    /// This object contains:
-    /// - `Mach1EncodeInputModeType`
-    /// - `Mach1EncodeOutputModeType`
-    /// - `Mach1EncodePannerMode`
-    Mach1Encode m1Encode;
-    
+    };
+
+    int port = 0;
+
+    std::string displayName = "";
+
+    /**
+     * @brief Integer value that defines the state of this Panner:
+     * - -1 = mark for deletion
+     * - 0  = off / inactive
+     * - 1  = on / active
+     * - 2  = focused
+     */
+    int state = 0;
+
+    Color color;
+
     float x = 0.;
     float y = 70.7;
     float azimuth = 0.;
@@ -45,6 +47,9 @@ struct PannerSettings {
     int delayTime = 600;
     float delayDistance = 1.0;
 #endif
+
+    Mach1Encode<float> m1Encode;
+
 };
 
 struct MixerSettings {
