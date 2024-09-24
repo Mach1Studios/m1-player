@@ -53,6 +53,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     M1OrientationClientWindow* orientationControlWindow;
     bool showOrientationControlMenu = false;
     bool showedOrientationControlBefore = false;
+
     void draw_orientation_client(murka::Murka &m, M1OrientationClient &m1OrientationClient);
     
     // collect existing local panners for display
@@ -86,18 +87,28 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     int                         ffwdSpeed = 2;
 
     // Mach1Decode API
-    Mach1Decode m1Decode;
+    Mach1Decode<float> m1Decode;
     std::vector<float> spatialMixerCoeffs;
     std::vector<juce::LinearSmoothedValue<float>> smoothedChannelCoeffs;
     juce::AudioBuffer<float> readBuffer;
+    juce::AudioBuffer<float> intermediaryBuffer;
     int detectedNumInputChannels;
-    
+
     // Mach1Transcode API
-    Mach1Transcode m1Transcode;
-    void updateMach1Transcode();
+    Mach1Transcode<float> m1Transcode;
     std::vector<float> transcodeToDecodeCoeffs;
     std::vector< std::vector<float> > conversionMatrix;
-    
+
+    std::string transcodeSurroundInputFormatName;
+    std::string transcodeSurroundOutputFormatName;
+    const std::string DEFAULT_SURROUND_INPUT_FORMAT = "5.1_C";
+    const std::string DEFAULT_SURROUND_OUTPUT_FORMAT = "M1Spatial-14";
+
+    std::string transcodeAmbisonicInputFormatName;
+    std::string transcodeAmbisonicOutputFormatName;
+    const std::string DEFAULT_AMBISONIC_INPUT_FORMAT = "ACNSN3DO2A";
+    const std::string DEFAULT_AMBISONIC_OUTPUT_FORMAT = "M1Spatial-14";
+
     int secondsWithoutMouseMove = 0;
     MurkaPoint lastScrollValue;
     bool bHideUI = false;
@@ -108,7 +119,10 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     // Communication to Monitor and the rest of the M1SpatialSystem
     void timerCallback() override;
     PlayerOSC playerOSC;
-    
+
+    void (MainComponent::*m_decode_strategy)(const AudioSourceChannelInfo&, const AudioSourceChannelInfo&);
+    void (MainComponent::*m_transcode_strategy)(const AudioSourceChannelInfo&, const AudioSourceChannelInfo&);
+
     std::string formatTime(double seconds) {
         int hours = static_cast<int>(seconds) / 3600;
         int minutes = (static_cast<int>(seconds) % 3600) / 60;
@@ -122,7 +136,6 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
         oss << minutes << ':' << std::setw(2) << secs;
         return oss.str();
     }
- 
 public:
     //==============================================================================
     MainComponent();
@@ -137,11 +150,27 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
 
+    void reconfigureAudioDecode();
+
+
+    void reconfigureAudioTranscode();
+
+    void setDetectedInputChannelCount(int numberOfInputChannels);
+
     void openFile(juce::File filepath);
     void setStatus(bool success, std::string message);
 
     //==============================================================================
     void prepareToPlay(int samplesPerBlockExpected, double newSampleRate) override;
+
+    void fallbackDecodeStrategy(const AudioSourceChannelInfo& bufferToFill, const AudioSourceChannelInfo& info);
+    void stereoDecodeStrategy(const AudioSourceChannelInfo& bufferToFill, const AudioSourceChannelInfo& info);
+    void monoDecodeStrategy(const AudioSourceChannelInfo& bufferToFill, const AudioSourceChannelInfo& info);
+    void readBufferDecodeStrategy(const AudioSourceChannelInfo& bufferToFill, const AudioSourceChannelInfo& info);
+    void intermediaryBufferDecodeStrategy(const AudioSourceChannelInfo& bufferToFill, const AudioSourceChannelInfo& info);
+    void intermediaryBufferTranscodeStrategy(const AudioSourceChannelInfo & bufferToFill, const AudioSourceChannelInfo & info);
+    void nullStrategy(const AudioSourceChannelInfo& bufferToFill, const AudioSourceChannelInfo& info);
+
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
     void releaseResources() override;
     void timecodeChanged(int64_t, double seconds) override;
@@ -150,6 +179,23 @@ public:
     void showFileChooser();
     bool isInterestedInFileDrag(const juce::StringArray&) override;
     void filesDropped(const juce::StringArray& files, int, int) override;
+
+    std::string getTranscodeSurroundInputFormat() const;
+
+    std::string getTranscodeSurroundOutputFormat() const;
+
+    std::string getTranscodeAmbisonicInputFormat() const;
+
+    void setTranscodeSurroundInputFormat(const std::string &name);
+
+    void setTranscodeSurroundOutputFormat(const std::string &name);
+
+    void setTranscodeAmbisonicInputFormat(const std::string &name);
+
+    void setTranscodeAmbisonicOutputFormat(const std::string &name);
+
+    std::string getTranscodeAmbisonicOutputFormat() const;
+
 
 protected:
     void syncWithDAWPlayhead();
