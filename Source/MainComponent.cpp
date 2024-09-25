@@ -619,7 +619,6 @@ void MainComponent::draw() {
     if (b_standalone_mode) {
     } else {
         // check for monitor discovery to get DAW playhead pos
-        // sync with DAW
         syncWithDAWPlayhead();
     }
 
@@ -659,10 +658,8 @@ void MainComponent::draw() {
     if (m1OrientationClient.isConnectedToServer()) {
         // add server orientation to player via a calculated offset
         Mach1::Orientation oc_orientation = m1OrientationClient.getOrientation();
-
         Mach1::Quaternion ori_quat = oc_orientation.GetGlobalRotationAsQuaternion();
         Mach1::Float3 ori_vec_deg = oc_orientation.GetGlobalRotationAsEulerDegrees();
-
         Mach1::Quaternion last_quat = previousClientOrientation.GetGlobalRotationAsQuaternion();
 
         if (!ori_quat.IsApproximatelyEqual(last_quat)) {
@@ -740,8 +737,7 @@ void MainComponent::draw() {
                         },
                         [&](double newPositionNormalised) {
                             // refreshing player position
-                            //clip->setNextReadPosition(static_cast<juce::int64>(newPositionNormalised * clip->getLengthInSeconds() * clip->getSampleRate()));
-                            currentMedia.setTimelinePosition(newPositionNormalised * currentMedia.getLengthInSeconds());
+                            currentMedia.setCurrentTimelinePositionInSeconds(newPositionNormalised * currentMedia.getLengthInSeconds());
                         });
         playerControls.withVolumeData(currentMedia.getGain(),
                         [&](double newVolume){

@@ -76,14 +76,9 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     double currentPlayerWidgetFov = 0;
     bool drawReference = false;
     float mediaVolume = 1.0;
-
-//    foleys::VideoEngine videoEngine;
-//    std::shared_ptr<foleys::AVClip> clip;
-//    juce::AudioTransportSource  transportSource;
     
+    // Consolidate the media and transport into a single object class
     M1PlayerMediaObject currentMedia;
-    
-    juce::AudioBuffer<float> tempAudioBuffer;
 
     bool b_standalone_mode = false;
     bool b_wants_to_switch_to_standalone = false;
@@ -96,6 +91,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     Mach1Decode m1Decode;
     std::vector<float> spatialMixerCoeffs;
     std::vector<juce::LinearSmoothedValue<float>> smoothedChannelCoeffs;
+    juce::AudioBuffer<float> tempAudioBuffer;
     juce::AudioBuffer<float> readBuffer;
     int detectedNumInputChannels;
     
