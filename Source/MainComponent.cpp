@@ -284,7 +284,8 @@ void MainComponent::prepareToPlay(int samplesPerBlockExpected, double newSampleR
         smoothedChannelCoeffs[input_channel * 2 + 0].reset(sampleRate, (double) 0.01);
         smoothedChannelCoeffs[input_channel * 2 + 1].reset(sampleRate, (double) 0.01);
     }
-
+    
+    // restructure output buffer
     readBuffer.setSize(m1Decode.getFormatCoeffCount(), blockSize);
 }
 
@@ -1423,12 +1424,14 @@ void MainComponent::reconfigureAudioTranscode() {
         case 6:
             m1Transcode.setInputFormat(m1Transcode.getFormatFromString(getTranscodeSurroundInputFormat()));
             m1Transcode.setOutputFormat(m1Transcode.getFormatFromString(getTranscodeSurroundOutputFormat()));
+            m1Transcode.processConversionPath();
             m_transcode_strategy = &MainComponent::intermediaryBufferTranscodeStrategy;
             break;
 
         case 9:
             m1Transcode.setInputFormat(m1Transcode.getFormatFromString(getTranscodeAmbisonicInputFormat()));
             m1Transcode.setOutputFormat(m1Transcode.getFormatFromString(getTranscodeAmbisonicOutputFormat()));
+            m1Transcode.processConversionPath();
             m_transcode_strategy = &MainComponent::intermediaryBufferTranscodeStrategy;
             break;
 
@@ -1446,6 +1449,6 @@ void MainComponent::setDetectedInputChannelCount(int numberOfInputChannels) {
 
     detectedNumInputChannels = numberOfInputChannels;
 
-    reconfigureAudioDecode();
     reconfigureAudioTranscode();
+    reconfigureAudioDecode(); // can use intermediaryBuffer and should be called last
 }
