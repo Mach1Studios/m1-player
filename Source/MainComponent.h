@@ -151,10 +151,7 @@ public:
     void resized() override;
 
     void reconfigureAudioDecode();
-
-
     void reconfigureAudioTranscode();
-
     void setDetectedInputChannelCount(int numberOfInputChannels);
 
     void openFile(juce::File filepath);
@@ -181,21 +178,13 @@ public:
     void filesDropped(const juce::StringArray& files, int, int) override;
 
     std::string getTranscodeSurroundInputFormat() const;
-
     std::string getTranscodeSurroundOutputFormat() const;
-
     std::string getTranscodeAmbisonicInputFormat() const;
-
     void setTranscodeSurroundInputFormat(const std::string &name);
-
     void setTranscodeSurroundOutputFormat(const std::string &name);
-
     void setTranscodeAmbisonicInputFormat(const std::string &name);
-
     void setTranscodeAmbisonicOutputFormat(const std::string &name);
-
     std::string getTranscodeAmbisonicOutputFormat() const;
-
 
 protected:
     void syncWithDAWPlayhead();
