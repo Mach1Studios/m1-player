@@ -758,6 +758,7 @@ void MainComponent::draw() {
     }
 
     // draw panners
+    // TODO: add some protection here?
     videoPlayerWidget.pannerSettings = panners;
     videoPlayerWidget.draw();
 
