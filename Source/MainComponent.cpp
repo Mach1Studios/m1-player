@@ -307,8 +307,9 @@ void MainComponent::stereoDecodeStrategy(const AudioSourceChannelInfo &bufferToF
 }
 
 void MainComponent::monoDecodeStrategy(const AudioSourceChannelInfo &bufferToFill, const AudioSourceChannelInfo &info) {
-    bufferToFill.buffer->copyFrom(0, 0, readBuffer * MINUS_3DB_AMP, 0, 0, info.numSamples); // apply -3dB pan-law gain
-    bufferToFill.buffer->copyFrom(1, 0, readBuffer * MINUS_3DB_AMP, 0, 0, info.numSamples); // apply -3dB pan-law gain
+    bufferToFill.buffer->copyFrom(0, 0, readBuffer, 0, 0, info.numSamples);
+    bufferToFill.buffer->copyFrom(1, 0, readBuffer, 0, 0, info.numSamples);
+    bufferToFill.buffer->applyGain(MINUS_3DB_AMP); // apply -3dB pan-law gain to all channels
 }
 
 void MainComponent::readBufferDecodeStrategy(const AudioSourceChannelInfo &bufferToFill,
