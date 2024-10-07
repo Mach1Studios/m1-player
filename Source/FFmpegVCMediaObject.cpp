@@ -160,12 +160,13 @@ void FFmpegVCMediaObject::setPositionNormalized(double newPositionNormalized)
     transportSource->setPosition(newPositionNormalized * getLengthInSeconds());
 }
 
-bool FFmpegVCMediaObject::open(juce::URL filepath)
+bool FFmpegVCMediaObject::open(juce::URL url)
 {
-    auto result = load(juce::File(filepath.toString(false)));
-    if (result.wasOk())
+    if (url.isLocalFile())
     {
-        currentMediaFilePath = filepath;
+        const auto file = url.getLocalFile();
+        load(file);
+        currentMediaFilePath = url;
         return true;
     }
     return false;
@@ -182,7 +183,7 @@ juce::Result FFmpegVCMediaObject::load(const juce::File& file)
         currentMediaFilePath = juce::URL(file);
         return juce::Result::ok();
     }
-    return juce::Result::fail("Failed to load video file");
+    return juce::Result::fail("Failed to load file");
 }
 void FFmpegVCMediaObject::closeVideo()
 {

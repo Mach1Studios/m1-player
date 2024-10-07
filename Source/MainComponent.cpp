@@ -427,28 +427,8 @@ void MainComponent::openFile(juce::File filepath)
     
 	// Video Setup
     currentMedia.open(juce::URL(filepath));
-//    std::shared_ptr<foleys::AVClip> newClip = videoEngine.createClipFromFile(juce::URL(filepath));
-
-//    if (newClip.get() == nullptr)
-//        return;
-//
-//    /// Video Setup
-//    if (newClip.get() != nullptr) {
-//        
-//        // clear the old clip
-//        if (clip.get() != nullptr) {
-//            clip->removeTimecodeListener(this);
-//        }
-//        
-//        newClip->prepareToPlay(blockSize, sampleRate);
-//        clip = newClip;
-//        clip->setLooping(false); // TODO: change this for standalone mode with exposed setting
-//        clip->addTimecodeListener(this);
-//        transportSource.setSource(clip.get(), 0, nullptr);
-//    }
 
     // Audio Setup
-
     if (currentMedia.hasAudio()) {
 
         // at this point clip should be assigned but checking newClip anyone for easier reading
