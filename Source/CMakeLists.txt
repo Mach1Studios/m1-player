@@ -2,6 +2,8 @@ file(GLOB source_files  Config.h
                         Main.cpp
                         MainComponent.h
                         MainComponent.cpp
+                        FFmpegVCMediaObject.h
+                        FFmpegVCMediaObject.cpp
                         M1PlayerMediaObject.h
                         TypesForDataExchange.h
                         SphereMeshGenerator.h
