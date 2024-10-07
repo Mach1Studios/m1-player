@@ -1,3 +1,7 @@
+// M1PlayerMediaObject.cpp
+#pragma once
+
+#include "cb_ffmpeg/FFmpegVideoReader.h"
 
 class M1PlayerMediaObject {
 private:
@@ -17,30 +21,30 @@ public:
         releaseResources();
     }
     
-    void start() {
+    virtual void start() {
         transportSource.start();
     }
     
-    void stop() {
+    virtual void stop() {
         transportSource.stop();
     }
     
-    bool isPlaying() {
+    virtual bool isPlaying() {
         return transportSource.isPlaying();
     }
     
-    void releaseResources() {
+    virtual void releaseResources() {
         if (clipLoaded()) {
             clip->releaseResources();
         }
         transportSource.setSource(nullptr);
     }
     
-    int getNumChannels() {
+    virtual int getNumChannels() {
         return clip->getNumChannels();
     }
     
-    void prepareToPlay(int sessionBlockSize, int sessionSampleRate) {
+    virtual void prepareToPlay(int sessionBlockSize, int sessionSampleRate) {
         blockSize = sessionBlockSize;
         sampleRate = sessionSampleRate;
         if (clip.get() != nullptr && (clip->hasVideo() || clip->hasAudio())) {
@@ -49,67 +53,68 @@ public:
         }
     }
     
-    bool hasVideo() {
+    virtual bool hasVideo() {
         return clip->hasVideo();
     }
     
-    bool hasAudio() {
+    virtual bool hasAudio() {
         return clip->hasAudio();
     }
     
-    bool clipLoaded() {
+    virtual bool clipLoaded() {
         return clip.get() != nullptr;
     }
     
-    void getNextAudioBlock (const AudioSourceChannelInfo& info) {
+    virtual void getNextAudioBlock (const AudioSourceChannelInfo& info) {
         return transportSource.getNextAudioBlock(info);
     }
     
-    juce::URL getMediaFilePath() {
+    virtual juce::URL getMediaFilePath() {
         return clip->getMediaFile();
     }
     
-    int64 getNextReadPositionInSamples() {
+    virtual int64 getNextReadPositionInSamples() {
         return clip->getNextReadPosition();
     }
     
-    int64 getAudioSampleRate() {
+    virtual int64 getAudioSampleRate() {
         return clip->getSampleRate();
     }
     
-    foleys::VideoFrame& getFrame(double currentTimeInSeconds) {
-        return clip->getFrame(currentTimeInSeconds);
+    virtual juce::Image& getFrame(double currentTimeInSeconds) {
+//        FOLEYS_LOG ("transportSource.getCurrentPosition() =  " << transportSource.getCurrentPosition());
+        return clip->getFrame(currentTimeInSeconds).image;
     }
     
-    void setGain(float newGain) {
+    virtual void setGain(float newGain) {
         transportSource.setGain(newGain);
     }
     
-    float getGain() {
+    virtual float getGain() {
         return transportSource.getGain();
     }
     
-    double getLengthInSeconds() {
+    virtual double getLengthInSeconds() {
         return transportSource.getLengthInSeconds();
     }
     
-    double getCurrentTimelinePositionInSeconds() {
+    virtual double getCurrentTimelinePositionInSeconds() {
         return transportSource.getCurrentPosition();
     }
     
-    void setTimelinePosition(int64 timecodeInSamples) {
+    virtual void setTimelinePosition(int64 timecodeInSamples) {
         clip->setNextReadPosition(timecodeInSamples);
     }
     
-    void setCurrentTimelinePositionInSeconds(double newPositionInSeconds) {
+    virtual void setCurrentTimelinePositionInSeconds(double newPositionInSeconds) {
         transportSource.setPosition(newPositionInSeconds);
     }
     
-    void setPositionNormalized(double newPositionNormalized) {
+    virtual void setPositionNormalized(double newPositionNormalized) {
         transportSource.setPosition(newPositionNormalized * getLengthInSeconds());
     }
     
-    bool open(juce::URL filepath) {
+    virtual bool open(juce::URL filepath) {
         transportSource.stop();
         transportSource.setSource(nullptr);
 

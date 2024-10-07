@@ -30,6 +30,7 @@
 #include <string>
 
 #include "M1PlayerMediaObject.h"
+#include "FFmpegVCMediaObject.h"
 
 //==============================================================================
 /*
@@ -78,7 +79,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     float mediaVolume = 1.0;
     
     // Consolidate the media and transport into a single object class
-    M1PlayerMediaObject currentMedia;
+    FFmpegVCMediaObject currentMedia;
 
     bool b_standalone_mode = false;
     bool b_wants_to_switch_to_standalone = false;

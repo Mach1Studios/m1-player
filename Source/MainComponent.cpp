@@ -625,13 +625,13 @@ void MainComponent::draw() {
 	// update video frame
 	if (currentMedia.clipLoaded() && currentMedia.hasVideo()) {
         auto clipLengthInSeconds = currentMedia.getLengthInSeconds();
-		foleys::VideoFrame& frame = currentMedia.getFrame(currentMedia.getCurrentTimelinePositionInSeconds());
+        juce::Image& frame = currentMedia.getFrame(currentMedia.getCurrentTimelinePositionInSeconds());
         //DBG("[Video] Time: " + std::to_string(clip->getCurrentTimeInSeconds()) + ", Block:" + std::to_string(clip->getNextReadPosition()) + ", normalized: " + std::to_string( clip->getCurrentTimeInSeconds() /  clipLengthInSeconds ));
-		if (frame.image.getWidth() > 0 && frame.image.getHeight() > 0) {
-			if (imgVideo.getWidth() != frame.image.getWidth() || imgVideo.getHeight() != frame.image.getHeight()) {
-				imgVideo.allocate(frame.image.getWidth(), frame.image.getHeight());
+		if (frame.getWidth() > 0 && frame.getHeight() > 0) {
+			if (imgVideo.getWidth() != frame.getWidth() || imgVideo.getHeight() != frame.getHeight()) {
+				imgVideo.allocate(frame.getWidth(), frame.getHeight());
 			}
-			juce::Image::BitmapData srcData(frame.image, juce::Image::BitmapData::readOnly);
+			juce::Image::BitmapData srcData(frame, juce::Image::BitmapData::readOnly);
 			imgVideo.loadData(srcData.data, GL_BGRA);
 		}
 	}
