@@ -2,7 +2,7 @@
 
 #include <JuceHeader.h>
 
-#include "juce_ffmpeg/Source/cb_ffmpeg/FFmpegVideoReader.h"
+#include "juce_ffmpeg/Source/cb_ffmpeg/FFmpegMediaReader.h"
 #include "juce_ffmpeg/Source/cb_ffmpeg/FFmpegVideoScaler.h"
 #include "juce_ffmpeg/Source/cb_ffmpeg/FFmpegVideoListener.h"
 
@@ -56,7 +56,7 @@ public:
 
 private:
     std::unique_ptr<juce::AudioTransportSource> transportSource;
-    std::unique_ptr<FFmpegVideoReader> videoReader;
+    std::unique_ptr<FFmpegMediaReader> videoReader;
     juce::Image currentFrameAsImage;
     const AVFrame* currentAVFrame;
     FFmpegVideoScaler videoScaler;
