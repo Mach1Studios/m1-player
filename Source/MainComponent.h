@@ -13,7 +13,6 @@
 #include "TransportOSCServer.h"
 #include "PlayerOSC.h"
 
-#include "M1PlayerMediaObject.h"
 #include "FFmpegVCMediaObject.h"
 #include "UI/M1PlayerControls.h"
 

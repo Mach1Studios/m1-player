@@ -2,7 +2,6 @@
 
 #include <JuceHeader.h>
 
-#include "M1PlayerMediaObject.h"
 #include "juce_ffmpeg/Source/cb_ffmpeg/FFmpegVideoReader.h"
 #include "juce_ffmpeg/Source/cb_ffmpeg/FFmpegVideoScaler.h"
 #include "juce_ffmpeg/Source/cb_ffmpeg/FFmpegVideoListener.h"
