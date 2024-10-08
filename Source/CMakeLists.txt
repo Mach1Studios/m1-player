@@ -4,7 +4,6 @@ file(GLOB source_files  Config.h
                         MainComponent.cpp
                         FFmpegVCMediaObject.h
                         FFmpegVCMediaObject.cpp
-                        M1PlayerMediaObject.h
                         TypesForDataExchange.h
                         SphereMeshGenerator.h
                         TransportOSCServer.h
