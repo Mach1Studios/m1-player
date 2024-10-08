@@ -509,44 +509,7 @@ void MainComponent::openFile(juce::File filepath) {
 
     // Audio Setup
     if (currentMedia.hasAudio()) {
-
-        // at this point clip should be assigned but checking newClip anyone for easier reading
-        detectedNumInputChannels = currentMedia.getNumChannels();
-
-        // Setup for Mach1Decode API
-        m1Decode.setPlatformType(Mach1PlatformDefault);
-        m1Decode.setFilterSpeed(0.99f);
-
-        // TODO: Detect any Mach1Spatial comment metadata
-        // TODO: Mach1Transcode for common otherformats, setup temp UI for input->output format selection
-
-        // Mach1 Spatial Formats
-        if (detectedNumInputChannels == 4) {
-            m1Decode.setDecodeMode(M1DecodeSpatial_4);
-        }
-        else if (detectedNumInputChannels == 8) {
-            m1Decode.setDecodeMode(M1DecodeSpatial_8);
-        }
-        else if (detectedNumInputChannels == 12) {
-            m1Decode.setDecodeMode(M1DecodeSpatial_12);
-        }
-        else if (detectedNumInputChannels == 14) {
-            m1Decode.setDecodeMode(M1DecodeSpatial_14);
-        }
-        // Test Transcode Inputs
-        // TODO: Create UI for selecting input format
-        else if (detectedNumInputChannels == 6) {
-            // Assume 5.1
-            m1Transcode.setInputFormat(m1Transcode.getFormatFromString("5.1_C"));
-            m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-14"));
-            m1Decode.setDecodeMode(M1DecodeSpatial_14);
-        }
-        else if (detectedNumInputChannels == 9) {
-            // Assume 2OA ACN
-            m1Transcode.setInputFormat(m1Transcode.getFormatFromString("ACNSN3DO2A"));
-            m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-14"));
-            m1Decode.setDecodeMode(M1DecodeSpatial_14);
-        }
+        setDetectedInputChannelCount(currentMedia.getNumChannels());
     }
     
     // restart timeline
