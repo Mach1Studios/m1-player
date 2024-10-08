@@ -13,6 +13,7 @@
 #include "TransportOSCServer.h"
 #include "PlayerOSC.h"
 
+#include "FFmpegVCMediaObject.h"
 #include "UI/M1PlayerControls.h"
 
 #include "UI/M1Checkbox.h"
@@ -37,7 +38,6 @@
 class MainComponent : public murka::JuceMurkaBaseComponent,
     public juce::AudioAppComponent,
     public juce::FileDragAndDropTarget,
-    public foleys::TimeCodeAware::Listener,
     public juce::Timer
 {
     //==============================================================================
@@ -73,11 +73,9 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     float lastUpdateForPlayer = 0.0f;
     bool drawReference = false;
     float mediaVolume = 1.0;
-
-    foleys::VideoEngine videoEngine;
-    std::shared_ptr<foleys::AVClip> clip;
-    juce::AudioTransportSource  transportSource;
-    juce::AudioBuffer<float> tempBuffer;
+    
+    // Consolidate the media and transport into a single object class
+    FFmpegVCMediaObject currentMedia;
 
     bool b_standalone_mode = false;
     bool b_wants_to_switch_to_standalone = false;
@@ -90,6 +88,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     Mach1Decode<float> m1Decode;
     std::vector<float> spatialMixerCoeffs;
     std::vector<juce::LinearSmoothedValue<float>> smoothedChannelCoeffs;
+    juce::AudioBuffer<float> tempAudioBuffer;
     juce::AudioBuffer<float> readBuffer;
     juce::AudioBuffer<float> intermediaryBuffer;
     int detectedNumInputChannels;
@@ -170,7 +169,7 @@ public:
 
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
     void releaseResources() override;
-    void timecodeChanged(int64_t, double seconds) override;
+    void timecodeChanged(int64_t, double seconds);
 
     //==============================================================================
     void showFileChooser();
