@@ -7,7 +7,7 @@
 
 FFmpegVCMediaObject::FFmpegVCMediaObject()
     : transportSource(std::make_unique<juce::AudioTransportSource>())
-    , videoReader(std::make_unique<FFmpegVideoReader>(192000, 102))  // Same buffer sizes as in FFmpegVideoComponent
+    , videoReader(std::make_unique<FFmpegMediaReader>(192000, 102))  // Same buffer sizes as in FFmpegVideoComponent
     , currentAVFrame(nullptr)
     , playSpeed(1.0)
     , isPaused(true)
@@ -73,7 +73,7 @@ bool FFmpegVCMediaObject::isPlaying()
 void FFmpegVCMediaObject::releaseResources()
 {
     if (videoReader)
-        videoReader->closeVideoFile();
+        videoReader->closeMediaFile();
     
     transportSource->releaseResources();
 }
@@ -93,7 +93,7 @@ void FFmpegVCMediaObject::prepareToPlay(int sessionBlockSize, int sessionSampleR
 
 bool FFmpegVCMediaObject::hasVideo()
 {
-    return videoReader && videoReader->isVideoOpen();
+    return videoReader && videoReader->isMediaOpen();
 }
 
 bool FFmpegVCMediaObject::hasAudio()
@@ -103,7 +103,7 @@ bool FFmpegVCMediaObject::hasAudio()
 
 bool FFmpegVCMediaObject::clipLoaded()
 {
-    return videoReader && videoReader->isVideoOpen();
+    return videoReader && videoReader->isMediaOpen();
 }
 
 void FFmpegVCMediaObject::getNextAudioBlock(const juce::AudioSourceChannelInfo& info)
@@ -178,7 +178,7 @@ bool FFmpegVCMediaObject::open(juce::URL url)
 juce::Result FFmpegVCMediaObject::load(const juce::File& file)
 {
     transportSource->stop();
-    if (videoReader->loadVideoFile(file))
+    if (videoReader->loadMediaFile(file))
     {
         transportSource->setSource(videoReader.get(), 0, nullptr,
                                    videoReader->getSampleRate() * playSpeed,
@@ -192,7 +192,7 @@ void FFmpegVCMediaObject::closeVideo()
 {
     if (videoReader)
     {
-        videoReader->closeVideoFile();
+        videoReader->closeMediaFile();
         currentAVFrame = nullptr;
         currentFrameAsImage = juce::Image();
     }
@@ -209,7 +209,7 @@ juce::Image& FFmpegVCMediaObject::getFrame(double currentTimeInSeconds)
 
 bool FFmpegVCMediaObject::isVideoOpen() const
 {
-    return videoReader && videoReader->isVideoOpen();
+    return videoReader && videoReader->isMediaOpen();
 }
 
 double FFmpegVCMediaObject::getVideoDuration() const
