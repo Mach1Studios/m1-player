@@ -420,7 +420,7 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo &buffer
 
     // First read video.
     if (currentMedia.hasVideo()) {
-        readBuffer.setSize(currentMedia->getNumChannels(), bufferToFill.numSamples);
+        readBuffer.setSize(currentMedia.getNumChannels(), bufferToFill.numSamples);
         readBuffer.clear();
     }
 
@@ -436,7 +436,7 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo &buffer
     readBuffer.clear();
 
     // the AudioTransportSource takes care of start, stop and resample
-    transportSource.getNextAudioBlock(info);
+    currentMedia.getNextAudioBlock(info);
 
     tempBuffer.setSize(detectedNumInputChannels * 2, bufferToFill.numSamples);
     tempBuffer.clear();
@@ -485,7 +485,8 @@ void MainComponent::showFileChooser() {
             }
 
             juce::Process::makeForegroundProcess();
-        });
+        }
+    );
 }
 
 bool MainComponent::isInterestedInFileDrag(const juce::StringArray &) {
@@ -521,16 +522,16 @@ void MainComponent::openFile(juce::File filepath) {
 
         // Mach1 Spatial Formats
         if (detectedNumInputChannels == 4) {
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoHorizon_4);
+            m1Decode.setDecodeMode(M1DecodeSpatial_4);
         }
         else if (detectedNumInputChannels == 8) {
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_8);
+            m1Decode.setDecodeMode(M1DecodeSpatial_8);
         }
         else if (detectedNumInputChannels == 12) {
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_12);
+            m1Decode.setDecodeMode(M1DecodeSpatial_12);
         }
         else if (detectedNumInputChannels == 14) {
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
+            m1Decode.setDecodeMode(M1DecodeSpatial_14);
         }
         // Test Transcode Inputs
         // TODO: Create UI for selecting input format
@@ -538,13 +539,13 @@ void MainComponent::openFile(juce::File filepath) {
             // Assume 5.1
             m1Transcode.setInputFormat(m1Transcode.getFormatFromString("5.1_C"));
             m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-14"));
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
+            m1Decode.setDecodeMode(M1DecodeSpatial_14);
         }
         else if (detectedNumInputChannels == 9) {
             // Assume 2OA ACN
             m1Transcode.setInputFormat(m1Transcode.getFormatFromString("ACNSN3DO2A"));
             m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-14"));
-            m1Decode.setDecodeAlgoType(Mach1DecodeAlgoSpatial_14);
+            m1Decode.setDecodeMode(M1DecodeSpatial_14);
         }
     }
     
