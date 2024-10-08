@@ -88,7 +88,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     Mach1Decode<float> m1Decode;
     std::vector<float> spatialMixerCoeffs;
     std::vector<juce::LinearSmoothedValue<float>> smoothedChannelCoeffs;
-    juce::AudioBuffer<float> tempAudioBuffer;
+    juce::AudioBuffer<float> tempBuffer;
     juce::AudioBuffer<float> readBuffer;
     juce::AudioBuffer<float> intermediaryBuffer;
     int detectedNumInputChannels;
