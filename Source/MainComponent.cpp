@@ -485,8 +485,8 @@ void MainComponent::showFileChooser() {
             }
 
             juce::Process::makeForegroundProcess();
-        });
-    }
+        }
+    });
 }
 
 bool MainComponent::isInterestedInFileDrag(const juce::StringArray &) {
@@ -762,33 +762,17 @@ void MainComponent::draw() {
 	}
 	
 	// draw overlay if video empty
-	if (currentMedia.clipLoaded()) {
+	if (!currentMedia.clipLoaded()) {
 		videoPlayerWidget.drawOverlay = true;
 	}
 
 	// draw panners
+    // TODO: add some protection here?
 	videoPlayerWidget.pannerSettings = panners;
 	videoPlayerWidget.draw();
 	
 	// draw reference
     if (currentMedia.clipLoaded() && (currentMedia.hasVideo() || currentMedia.hasAudio())) {
-        float length = transportSource.getLengthInSeconds();
-        float playheadPosition = transportSource.getCurrentPosition() / length;
-        videoPlayerWidget.playheadPosition = (float) playheadPosition;
-    }
-
-    // draw overlay if video empty
-    if (clip.get() == nullptr) {
-        videoPlayerWidget.drawOverlay = true;
-    }
-
-    // draw panners
-    // TODO: add some protection here?
-    videoPlayerWidget.pannerSettings = panners;
-    videoPlayerWidget.draw();
-
-    // draw reference
-    if (clip.get() != nullptr && (clip->hasVideo() || clip->hasAudio())) {
         if (drawReference) {
             m.drawImage(imgVideo, 0, 0, imgVideo.getWidth() * 0.3f, imgVideo.getHeight() * 0.3f);
         }
@@ -991,7 +975,7 @@ void MainComponent::draw() {
     }
 
     if (bShowHelpUI) {
-        m.getCurrentFont()->drawString("Fov : " + std::to_string(currentPlayerWidgetFov), 10, 10);
+        m.getCurrentFont()->drawString("FOV : " + std::to_string(videoPlayerWidget.fov), 10, 10);
         m.getCurrentFont()->drawString("Frame: " + std::to_string(currentMedia.getCurrentTimelinePositionInSeconds()), 10, 30);
         m.getCurrentFont()->drawString("Standalone mode: " + std::to_string(b_standalone_mode), 10, 50);
         m.getCurrentFont()->drawString("Hotkeys:", 10, 130);
