@@ -13,6 +13,8 @@
 #include "TransportOSCServer.h"
 #include "PlayerOSC.h"
 
+#include "M1PlayerMediaObject.h"
+#include "FFmpegVCMediaObject.h"
 #include "UI/M1PlayerControls.h"
 
 #include "UI/M1Checkbox.h"
@@ -29,9 +31,6 @@
 #include <sstream>
 #include <string>
 
-#include "M1PlayerMediaObject.h"
-#include "FFmpegVCMediaObject.h"
-
 //==============================================================================
 /*
     This component lives inside our window, and this is where you should put all
@@ -40,7 +39,6 @@
 class MainComponent : public murka::JuceMurkaBaseComponent,
     public juce::AudioAppComponent,
     public juce::FileDragAndDropTarget,
-    public foleys::TimeCodeAware::Listener,
     public juce::Timer
 {
     //==============================================================================
@@ -148,7 +146,7 @@ public:
     void prepareToPlay(int samplesPerBlockExpected, double newSampleRate) override;
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
     void releaseResources() override;
-    void timecodeChanged(int64_t, double seconds) override;
+    void timecodeChanged(int64_t, double seconds);
 
     //==============================================================================
     void showFileChooser();

@@ -1,5 +1,3 @@
-// FFmpegVCMediaObject.cpp
-
 #include "FFmpegVCMediaObject.h"
 
 FFmpegVCMediaObject::FFmpegVCMediaObject()

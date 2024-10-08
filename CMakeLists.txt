@@ -104,7 +104,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         juce_murka 
         m1_orientation_client
         m1_mathematics
-        foleys_video_engine
+        juce_ffmpeg
         )
 
 # definitions to replace the `JucePluginDefines.h`
@@ -145,9 +145,9 @@ if(APPLE)
     endforeach()
 
 else()
-    target_link_directories(${CMAKE_PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/Modules/foleys_video_engine/_deps/ffmpeg-build/lib")
+    target_link_directories(${CMAKE_PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/Modules/juce_ffmpeg/_deps/ffmpeg-build/lib")
     add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_BINARY_DIR}/Modules/foleys_video_engine/_deps/ffmpeg-build/bin" "${CMAKE_CURRENT_BINARY_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_BINARY_DIR}/Modules/juce_ffmpeg/_deps/ffmpeg-build/bin" "${CMAKE_CURRENT_BINARY_DIR}"
     )
 endif()
 

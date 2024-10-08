@@ -1,14 +1,11 @@
-
 #pragma once
 
-#include "cb_ffmpeg/FFmpegVideoReader.h"
-#include "M1PlayerMediaObject.h"
-
 #include <JuceHeader.h>
+
 #include "M1PlayerMediaObject.h"
-#include "cb_ffmpeg/FFmpegVideoReader.h"
-#include "cb_ffmpeg/FFmpegVideoScaler.h"
-#include "cb_ffmpeg/FFmpegVideoListener.h"
+#include "juce_ffmpeg/Source/cb_ffmpeg/FFmpegVideoReader.h"
+#include "juce_ffmpeg/Source/cb_ffmpeg/FFmpegVideoScaler.h"
+#include "juce_ffmpeg/Source/cb_ffmpeg/FFmpegVideoListener.h"
 
 class FFmpegVCMediaObject : public M1PlayerMediaObject, public FFmpegVideoListener
 {
