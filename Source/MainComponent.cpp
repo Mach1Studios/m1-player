@@ -485,8 +485,8 @@ void MainComponent::showFileChooser() {
             }
 
             juce::Process::makeForegroundProcess();
-        }
-    );
+        });
+    }
 }
 
 bool MainComponent::isInterestedInFileDrag(const juce::StringArray &) {
