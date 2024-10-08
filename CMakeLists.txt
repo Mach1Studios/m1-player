@@ -104,7 +104,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         juce_murka 
         m1_orientation_client
         m1_mathematics
-        foleys_video_engine
+        juce_ffmpeg
         )
 
 # definitions to replace the `JucePluginDefines.h`
@@ -140,15 +140,15 @@ if(APPLE)
     endforeach()
 
 else()
-    target_link_directories(${CMAKE_PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/Modules/foleys_video_engine/_deps/ffmpeg-build/lib")
+    target_link_directories(${CMAKE_PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/Modules/juce_ffmpeg/_deps/ffmpeg-build/lib")
     add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_BINARY_DIR}/Modules/foleys_video_engine/_deps/ffmpeg-build/bin" "${CMAKE_CURRENT_BINARY_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_BINARY_DIR}/Modules/juce_ffmpeg/_deps/ffmpeg-build/bin" "${CMAKE_CURRENT_BINARY_DIR}"
     )
 endif()
 
 if(APPLE)
     ### setup info.plist and entitlements for macos
-    set_target_properties("${CMAKE_PROJECT_NAME}" PROPERTIES
+    set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Resources/${CMAKE_PROJECT_NAME}-Info.plist"
         MACOSX_BUNDLE_BUNDLE_NAME ${CMAKE_PROJECT_NAME}
@@ -157,6 +157,9 @@ if(APPLE)
         XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/Resources/${CMAKE_PROJECT_NAME}.entitlements"
         XCODE_ATTRIBUTE_INFOPLIST_KEY_LSApplicationCategoryType "public.app-category.utilities"
     )
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
+        "-framework Security"
+        )
 elseif(MSVC OR WIN32 OR MINGW)
     message(STATUS "Adding windows OS flag for httplib")
     add_compile_definitions(WIN32_LEAN_AND_MEAN)    
