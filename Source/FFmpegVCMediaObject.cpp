@@ -177,9 +177,18 @@ bool FFmpegVCMediaObject::open(juce::URL url)
 juce::Result FFmpegVCMediaObject::load(const juce::File& file)
 {
     transportSource->stop();
-    
+    transportSource->setSource(nullptr); // Reset the source
+
+    // Reset state variables
+    currentAVFrame = nullptr;
+    currentFrameAsImage = juce::Image();
+    playSpeed = 1.0;
+    isPaused = true;
+    readBuffer.clear();
+
     if (videoReader->loadMediaFile(file))
     {
+        // Ensure prepareToPlay is called with the correct sample rate and block size
         videoReader->prepareToPlay(blockSize, sampleRate);
         
         transportSource->setSource(videoReader.get(), 0, nullptr,
