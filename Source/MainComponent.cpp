@@ -43,6 +43,7 @@ void MainComponent::initialise() {
         settingsFile = m1SupportDirectory.getChildFile("Mach1");
     } else {
         settingsFile = m1SupportDirectory.getChildFile("Mach1");
+        // TODO: We can hit this on macos if we are running on a newer macos than what JUCE has defined!!!!
     }
     settingsFile = settingsFile.getChildFile("settings.json");
     DBG("Opening settings file: " + settingsFile.getFullPathName().quoted());
@@ -661,7 +662,12 @@ void MainComponent::draw() {
 			juce::Image::BitmapData srcData(frame, juce::Image::BitmapData::readOnly);
 			imgVideo.loadData(srcData.data, GL_BGRA);
 		}
-	}
+	} else {
+        // No video, clear imgVideo
+        if (imgVideo.isAllocated()) {
+            imgVideo.clear(); // Or reset imgVideo to an empty state
+        }
+    }
 
 	m.clear(20);
 	m.setColor(255);
