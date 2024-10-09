@@ -2,7 +2,6 @@
 
 // TODO:
 // - Video without audio needs to still play
-// - Audio (no video) needs to be accepted
 // - Control flow for waiting for decode buffer sometimes trips because we seek at an unexpected time
 
 FFmpegVCMediaObject::FFmpegVCMediaObject()
@@ -275,8 +274,11 @@ void FFmpegVCMediaObject::videoFileChanged(const juce::File& newSource)
 
 void FFmpegVCMediaObject::videoSizeChanged(const int width, const int height, const AVPixelFormat format)
 {
-    videoScaler.setupScaler(width, height, format, width, height, AV_PIX_FMT_BGR0);
-    currentFrameAsImage = juce::Image(juce::Image::PixelFormat::ARGB, width, height, true);
+    if (width > 0 && height > 0) 
+    {
+        videoScaler.setupScaler(width, height, format, width, height, AV_PIX_FMT_BGR0);
+        currentFrameAsImage = juce::Image(juce::Image::PixelFormat::ARGB, width, height, true);
+    }
 }
 
 void FFmpegVCMediaObject::displayNewFrame(const AVFrame* frame)
