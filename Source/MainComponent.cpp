@@ -562,17 +562,33 @@ void MainComponent::syncWithDAWPlayhead() {
     //DBG("Playhead Pos: "+std::to_string(playback_delta));
     if (std::fabs(playback_delta) > 0.05 && !end_reached) {
         if (currentMedia.clipLoaded()) {
-            currentMedia.setTimelinePosition(static_cast<juce::int64>(daw_ph_pos * currentMedia.getAudioSampleRate()));
+            auto currentTime = Time::currentTimeMillis();
+            if ((currentTime - lastTimeDAWSyncHappened) > smallestDAWSyncInterval) {
+//                currentMedia.setTimelinePosition(static_cast<juce::int64>(daw_ph_pos * currentMedia.getAudioSampleRate()));
+                lastTimeDAWSyncHappened = currentTime;
+            }
         }
     }
 
     // play / stop sync
-    bool video_not_synced = (currentMedia.clipLoaded() && m1OrientationClient.getPlayerIsPlaying() != currentMedia.isPlaying());
-    if (video_not_synced) {
+    bool daw_playstate_not_synced = (currentMedia.clipLoaded() && m1OrientationClient.getPlayerIsPlaying() != currentMedia.isPlaying());
+    if (daw_playstate_not_synced) {
         if (m1OrientationClient.getPlayerIsPlaying()) {
+            DBG("Start due to desync:");
+            std::string dbgstring = m1OrientationClient.getPlayerIsPlaying() ? "DAW is playing" : "DAW not playing";
+            DBG(dbgstring);
+            dbgstring = currentMedia.isPlaying() ? "current media is playing" : "current media not playing";
+            DBG(dbgstring);
+            DBG("-------");
             currentMedia.start();
         }
         else {
+            DBG("Stop due to desync");
+            std::string dbgstring = m1OrientationClient.getPlayerIsPlaying() ? "DAW is playing" : "DAW not playing";
+            DBG(dbgstring);
+            dbgstring = currentMedia.isPlaying() ? "current media is playing" : "current media not playing";
+            DBG(dbgstring);
+            DBG("-------");
             currentMedia.stop();
         }
     }
