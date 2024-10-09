@@ -87,6 +87,7 @@ public:
         }
 
         // Connect button
+        // TODO: fix placement (too far right)
         m.prepare<M1PlayerControlButton>({getSize().x * 0.85 - 15,
             getSize().y * 0.4 + 12,
             10, 10})
