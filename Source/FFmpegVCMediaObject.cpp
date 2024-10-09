@@ -92,7 +92,7 @@ void FFmpegVCMediaObject::prepareToPlay(int sessionBlockSize, int sessionSampleR
 
 bool FFmpegVCMediaObject::hasVideo()
 {
-    return videoReader && videoReader->isMediaOpen();
+    return videoReader && videoReader->getVideoStreamIndex() >= 0;
 }
 
 bool FFmpegVCMediaObject::hasAudio()

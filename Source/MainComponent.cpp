@@ -664,9 +664,7 @@ void MainComponent::draw() {
 		}
 	} else {
         // No video, clear imgVideo
-        if (imgVideo.isAllocated()) {
-            imgVideo.clear(); // Or reset imgVideo to an empty state
-        }
+        imgVideo.clear();
     }
 
 	m.clear(20);
