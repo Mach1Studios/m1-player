@@ -178,8 +178,11 @@ bool FFmpegVCMediaObject::open(juce::URL url)
 juce::Result FFmpegVCMediaObject::load(const juce::File& file)
 {
     transportSource->stop();
+    
     if (videoReader->loadMediaFile(file))
     {
+        videoReader->prepareToPlay(blockSize, sampleRate);
+        
         transportSource->setSource(videoReader.get(), 0, nullptr,
                                    videoReader->getSampleRate() * playSpeed,
                                    videoReader->getNumberOfAudioChannels());
