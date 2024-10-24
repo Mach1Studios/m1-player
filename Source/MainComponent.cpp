@@ -579,19 +579,25 @@ void MainComponent::syncWithDAWPlayhead() {
     }
     
     // Define thresholds
-    const double smallDifferenceThreshold = frameDuration;
-    const double seekThreshold = 0.5; // Seek if time difference exceeds 0.5 seconds
-    const int minSeekIntervalMs = 500; // Minimum interval between seeks in milliseconds
-
-    auto currentTime = juce::Time::currentTimeMillis();
+    const double maxSpeedAdjustment = 0.5; // Max speed adjustment (e.g., ±50%)
+    const double maxAllowedTimeDifference = frameDuration*10; // Max time difference before seeking (in seconds)
+    const double minTimeDifferenceForSpeedAdjustment = frameDuration; // Minimum time difference to adjust speed
 
     // Synchronization logic
-    if (std::fabs(timeDifference) > seekThreshold &&
-        (currentTime - lastTimeDAWSyncHappened) > minSeekIntervalMs)
-    {
-        // Perform a seek to the external timecode position
+    if (std::fabs(timeDifference) > maxAllowedTimeDifference) {
+        // Time difference too large; perform a seek
         currentMedia.setTimelinePosition(static_cast<juce::int64>(externalTimecode * currentMedia.getAudioSampleRate()));
-        lastTimeDAWSyncHappened = currentTime;
+        // Reset playback speed to normal
+        currentMedia.setPlaySpeed(1.0);
+    } else if (std::fabs(timeDifference) > minTimeDifferenceForSpeedAdjustment) {
+        // Adjust playback speed to catch up or slow down
+        double speedAdjustment = 1.0 + (timeDifference * 0.5); // Scale factor to adjust speed
+        // Limit the speed adjustment to prevent extreme changes
+        speedAdjustment = juce::jlimit(1.0 - maxSpeedAdjustment, 1.0 + maxSpeedAdjustment, speedAdjustment);
+        currentMedia.setPlaySpeed(speedAdjustment);
+    } else {
+        // Time difference is negligible; play at normal speed
+        currentMedia.setPlaySpeed(1.0);
     }
 
     // Synchronize play/pause state with the external application
@@ -672,8 +678,10 @@ void MainComponent::draw() {
     }
 
     if (b_standalone_mode) {
+        currentMedia.setDecodeAudio(true); // enable audio
     } else {
         // check for monitor discovery to get DAW playhead pos
+        currentMedia.setDecodeAudio(false); // disable audio for DAW sync mode
         syncWithDAWPlayhead();
     }
 

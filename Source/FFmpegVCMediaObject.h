@@ -38,6 +38,7 @@ public:
     void setCurrentTimelinePositionInSeconds(double newPositionInSeconds);
     void setPositionNormalized(double newPositionNormalized);
     bool open(juce::URL filepath);
+    void setDecodeAudio(bool shouldDecodeAudio);
 
     juce::Result load(const juce::File& file);
     void closeVideo();
