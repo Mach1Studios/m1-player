@@ -239,18 +239,11 @@ void FFmpegVCMediaObject::setPlaySpeed(double newSpeed)
         playSpeed = newSpeed;
         if (isVideoOpen())
         {
-            bool wasPlaying = isPlaying();
-            if (wasPlaying)
-                transportSource->stop();
-            
             juce::int64 lastPos = videoReader->getNextReadPosition();
             transportSource->setSource(videoReader.get(), 0, nullptr,
                                        videoReader->getSampleRate() * playSpeed,
                                        videoReader->getNumberOfAudioChannels());
             videoReader->setNextReadPosition(lastPos);
-            
-            if (wasPlaying)
-                transportSource->start();
         }
     }
 }
@@ -307,4 +300,12 @@ void FFmpegVCMediaObject::positionSecondsChanged(const double position)
 void FFmpegVCMediaObject::videoEnded()
 {
     stop();
+}
+
+void FFmpegVCMediaObject::setDecodeAudio(bool shouldDecodeAudio)
+{
+    if (videoReader)
+    {
+        videoReader->setDecodeAudio(shouldDecodeAudio);
+    }
 }
