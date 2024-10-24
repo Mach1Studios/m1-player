@@ -28,6 +28,7 @@ public:
     juce::URL getMediaFilePath();
     juce::int64 getNextReadPositionInSamples();
     juce::int64 getAudioSampleRate();
+    juce::int64 getVideoFrameRate();
     juce::Image& getFrame(double currentTimeInSeconds);
     void setGain(float newGain);
     float getGain();
