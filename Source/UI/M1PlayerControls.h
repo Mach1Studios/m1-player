@@ -152,7 +152,7 @@ public:
             // Position slider
             m.setColor(M1_ACTION_YELLOW);
             float positionSliderWIdth = getSize().x - 40 - 40;
-            float cursorPositionInPixels = currentPositionNormalized * (positionSliderWIdth + 20);
+            float cursorPositionInPixels = currentPositionNormalized * (positionSliderWIdth);
             float sliderHeight = 20;
             m.drawLine(40 + cursorPositionInPixels, 25 - sliderHeight / 2,
                        40 + cursorPositionInPixels, 25 + sliderHeight / 2);
