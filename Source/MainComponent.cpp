@@ -534,61 +534,72 @@ void MainComponent::shutdown()
 }
 
 void MainComponent::syncWithDAWPlayhead() {
+    // Check if there's a new timecode update from the external application
     if (std::fabs(m1OrientationClient.getPlayerLastUpdate() - lastUpdateForPlayer) < 0.001f) {
-        // Sync already established
-        return;
-    }
-    
-    if (!currentMedia.clipLoaded()) {
-        // no video loaded yet so no reason to sync in this mode
+        // No new update; skip synchronization
         return;
     }
 
+    if (!currentMedia.clipLoaded()) {
+        // No media loaded; no synchronization needed
+        return;
+    }
+
+    // Update the last received timecode
     lastUpdateForPlayer = m1OrientationClient.getPlayerLastUpdate();
 
-    auto length = currentMedia.getLengthInSeconds();
-    auto player_ph_pos = currentMedia.getNextReadPositionInSamples() / currentMedia.getAudioSampleRate();
-    float daw_ph_pos = m1OrientationClient.getPlayerPositionInSeconds(); // this incorporates the offset (daw_ph - offset)
-    bool end_reached = daw_ph_pos >= length;
+    double mediaLength = currentMedia.getLengthInSeconds();
+    double playerPosition = currentMedia.getCurrentTimelinePositionInSeconds();
+    double externalTimecode = m1OrientationClient.getPlayerPositionInSeconds();
 
-    // Prevent playback from continuing if we reached the end of the loaded video clip's length
-    if (end_reached && !(currentMedia.isPlaying())) {
-        DBG("[Playhead] Reached end of video length.");
+    // Ensure we don't go beyond the media length
+    if (externalTimecode >= mediaLength) {
+        if (currentMedia.isPlaying()) {
+            currentMedia.stop();
+        }
         return;
     }
 
-    // seek sync
-    auto playback_delta = static_cast<float>(daw_ph_pos - player_ph_pos);
-    //DBG("Playhead Pos: "+std::to_string(playback_delta));
-    if (std::fabs(playback_delta) > 0.05 && !end_reached) {
-        if (currentMedia.clipLoaded()) {
-            auto currentTime = Time::currentTimeMillis();
-            if ((currentTime - lastTimeDAWSyncHappened) > smallestDAWSyncInterval) {
-//                currentMedia.setTimelinePosition(static_cast<juce::int64>(daw_ph_pos * currentMedia.getAudioSampleRate()));
-                lastTimeDAWSyncHappened = currentTime;
-            }
+    double timeDifference = externalTimecode - playerPosition;
+
+    // Determine frame duration
+    double frameDuration = 0.1; // Default to 100 milliseconds if frame rate is unavailable
+
+    if (currentMedia.hasVideo()) {
+        double frameRate = currentMedia.getVideoFrameRate();
+        if (frameRate > 0.0) {
+            frameDuration = 1.0 / frameRate;
+        } else {
+            // Handle case where frame rate is zero or undefined
+            frameDuration = 0.1; // Default to 100 milliseconds
         }
+    } else {
+        // For audio-only media, you might choose a different threshold
+        frameDuration = 0.1; // 100 milliseconds
+    }
+    
+    // Define thresholds
+    const double smallDifferenceThreshold = frameDuration;
+    const double seekThreshold = 0.5; // Seek if time difference exceeds 0.5 seconds
+    const int minSeekIntervalMs = 500; // Minimum interval between seeks in milliseconds
+
+    auto currentTime = juce::Time::currentTimeMillis();
+
+    // Synchronization logic
+    if (std::fabs(timeDifference) > seekThreshold &&
+        (currentTime - lastTimeDAWSyncHappened) > minSeekIntervalMs)
+    {
+        // Perform a seek to the external timecode position
+        currentMedia.setTimelinePosition(static_cast<juce::int64>(externalTimecode * currentMedia.getAudioSampleRate()));
+        lastTimeDAWSyncHappened = currentTime;
     }
 
-    // play / stop sync
-    bool daw_playstate_not_synced = (currentMedia.clipLoaded() && m1OrientationClient.getPlayerIsPlaying() != currentMedia.isPlaying());
-    if (daw_playstate_not_synced) {
-        if (m1OrientationClient.getPlayerIsPlaying()) {
-            DBG("Start due to desync:");
-            std::string dbgstring = m1OrientationClient.getPlayerIsPlaying() ? "DAW is playing" : "DAW not playing";
-            DBG(dbgstring);
-            dbgstring = currentMedia.isPlaying() ? "current media is playing" : "current media not playing";
-            DBG(dbgstring);
-            DBG("-------");
+    // Synchronize play/pause state with the external application
+    bool shouldBePlaying = m1OrientationClient.getPlayerIsPlaying();
+    if (currentMedia.isPlaying() != shouldBePlaying) {
+        if (shouldBePlaying) {
             currentMedia.start();
-        }
-        else {
-            DBG("Stop due to desync");
-            std::string dbgstring = m1OrientationClient.getPlayerIsPlaying() ? "DAW is playing" : "DAW not playing";
-            DBG(dbgstring);
-            dbgstring = currentMedia.isPlaying() ? "current media is playing" : "current media not playing";
-            DBG(dbgstring);
-            DBG("-------");
+        } else {
             currentMedia.stop();
         }
     }

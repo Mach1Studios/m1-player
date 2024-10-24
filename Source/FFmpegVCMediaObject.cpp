@@ -125,6 +125,10 @@ juce::int64 FFmpegVCMediaObject::getAudioSampleRate()
     return videoReader ? videoReader->getSampleRate() : 0;
 }
 
+juce::int64 FFmpegVCMediaObject::getVideoFrameRate()
+{
+    return videoReader ? videoReader->getFramesPerSecond() : 0;
+}
 
 void FFmpegVCMediaObject::setGain(float newGain)
 {
