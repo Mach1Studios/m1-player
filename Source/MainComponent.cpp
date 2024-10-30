@@ -147,15 +147,6 @@ void MainComponent::initialise() {
                                     panner.color.a = msg[3].getColour().alpha;
                                 }
 
-                                // randomize the color if one isnt assigned yet
-                                if (panner.color.a == 0) {
-                                    // randomize a color
-                                    panner.color.r = juce::Random().nextInt(255);
-                                    panner.color.g = juce::Random().nextInt(255);
-                                    panner.color.b = juce::Random().nextInt(255);
-                                    panner.color.a = 255;
-                                }
-
                                 panner.m1Encode.setInputMode((Mach1EncodeInputMode) input_mode);
                                 panner.m1Encode.setAzimuthDegrees(azi);
                                 panner.m1Encode.setElevationDegrees(ele);
@@ -202,15 +193,6 @@ void MainComponent::initialise() {
                         panner.color.g = msg[3].getColour().green;
                         panner.color.b = msg[3].getColour().blue;
                         panner.color.a = msg[3].getColour().alpha;
-                    }
-
-                    // randomize the color if one isnt assigned yet
-                    if (panner.color.a == 0) {
-                        // randomize a color
-                        panner.color.r = juce::Random().nextInt(255);
-                        panner.color.g = juce::Random().nextInt(255);
-                        panner.color.b = juce::Random().nextInt(255);
-                        panner.color.a = 255;
                     }
 
                     panner.m1Encode.setInputMode((Mach1EncodeInputMode) input_mode);
