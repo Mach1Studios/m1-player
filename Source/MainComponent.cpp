@@ -531,7 +531,6 @@ void MainComponent::syncWithDAWPlayhead() {
     lastUpdateForPlayer = m1OrientationClient.getPlayerLastUpdate();
 
     double mediaLength = currentMedia.getLengthInSeconds();
-    double playerPosition = currentMedia.getCurrentTimelinePositionInSeconds();
     double externalTimecode = m1OrientationClient.getPlayerPositionInSeconds();
 
     // Ensure we don't go beyond the media length
@@ -542,6 +541,18 @@ void MainComponent::syncWithDAWPlayhead() {
         return;
     }
 
+    // Synchronize play/pause state with the external application
+    bool shouldBePlaying = m1OrientationClient.getPlayerIsPlaying();
+    if (currentMedia.isPlaying() != shouldBePlaying) {
+        if (shouldBePlaying) {
+            currentMedia.start();
+        } else {
+            currentMedia.stop();
+            return; // Exit early if we just stopped playback
+        }
+    }
+
+    double playerPosition = currentMedia.getCurrentTimelinePositionInSeconds();
     double timeDifference = externalTimecode - playerPosition;
 
     // Determine frame duration
@@ -580,16 +591,6 @@ void MainComponent::syncWithDAWPlayhead() {
     } else {
         // Time difference is negligible; play at normal speed
         currentMedia.setPlaySpeed(1.0);
-    }
-
-    // Synchronize play/pause state with the external application
-    bool shouldBePlaying = m1OrientationClient.getPlayerIsPlaying();
-    if (currentMedia.isPlaying() != shouldBePlaying) {
-        if (shouldBePlaying) {
-            currentMedia.start();
-        } else {
-            currentMedia.stop();
-        }
     }
 }
 
