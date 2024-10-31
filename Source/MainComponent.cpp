@@ -691,7 +691,7 @@ void MainComponent::draw() {
 
 	auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
 
-    auto vid_rot = Mach1::Float3{ videoPlayerWidget.rotationCurrent.y, videoPlayerWidget.rotationCurrent.x, videoPlayerWidget.rotationCurrent.z }.EulerRadians();
+    auto vid_rot = Mach1::Float3{ videoPlayerWidget.rotationCurrent.x, videoPlayerWidget.rotationCurrent.y, videoPlayerWidget.rotationCurrent.z }.EulerRadians();
     currentOrientation.SetRotation(vid_rot);
 
     if (playerOSC.IsConnected() && playerOSC.IsActivePlayer()) {
