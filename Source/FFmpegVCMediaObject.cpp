@@ -192,18 +192,47 @@ juce::Result FFmpegVCMediaObject::load(const juce::File& file)
 
     if (videoReader->loadMediaFile(file))
     {
-        // Ensure prepareToPlay is called with the correct sample rate and block size
-        videoReader->prepareToPlay(blockSize, sampleRate);
-        
+        // Ensure blockSize and sampleRate are initialized
+        if (blockSize > 0 && sampleRate > 0)
+        {
+            // Ensure prepareToPlay is called with the correct sample rate and block size
+            videoReader->prepareToPlay(blockSize, sampleRate);
+        }
+        else
+        {
+            // Set default values or handle the error
+            DBG("blockSize or sampleRate not initialized properly.");
+            return juce::Result::fail("Invalid blockSize or sampleRate");
+        }
+
+        double sourceSampleRateToCorrectFor = videoReader->getSampleRate() * playSpeed;
+        int maxNumChannels = videoReader->getNumberOfAudioChannels();
+
+        if (videoReader->getSampleRate() <= 0 || videoReader->getNumberOfAudioChannels() <= 0)
+        {
+            // No audio stream, set sample rate and channels to zero
+            sourceSampleRateToCorrectFor = 0.0;
+            maxNumChannels = 0;
+        }
+
         transportSource->setSource(videoReader.get(), 0, nullptr,
                                    videoReader->getSampleRate() * playSpeed,
                                    videoReader->getNumberOfAudioChannels());
         currentMediaFilePath = juce::URL(file);
+        
+        // Check if the new file has video
+        if (videoReader->getVideoStreamIndex() < 0)
+        {
+            // No video, clear current frame
+            currentAVFrame = nullptr;
+            currentFrameAsImage = juce::Image();
+        }
+
         return juce::Result::ok();
     }
     return juce::Result::fail("Failed to load file");
 }
-void FFmpegVCMediaObject::closeVideo()
+void FFmpegVCMediaObject::closeMedia()
 {
     if (videoReader)
     {

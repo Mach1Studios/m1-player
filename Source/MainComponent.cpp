@@ -487,6 +487,9 @@ void MainComponent::filesDropped(const juce::StringArray &files, int, int) {
 void MainComponent::openFile(juce::File filepath) {
     // TODO: test new dropped files first before clearing
     
+    currentMedia.stop();
+    currentMedia.closeMedia();
+    
   	// Video Setup
     currentMedia.open(juce::URL(filepath));
 

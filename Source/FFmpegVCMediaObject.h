@@ -41,7 +41,7 @@ public:
     void setDecodeAudio(bool shouldDecodeAudio);
 
     juce::Result load(const juce::File& file);
-    void closeVideo();
+    void closeMedia();
     bool isVideoOpen() const;
     double getVideoDuration() const;
     void setPlaySpeed(double newSpeed);
