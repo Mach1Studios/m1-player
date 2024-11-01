@@ -486,7 +486,9 @@ void MainComponent::filesDropped(const juce::StringArray &files, int, int) {
 
 void MainComponent::openFile(juce::File filepath) {
     // TODO: test new dropped files first before clearing
-    
+    currentMedia.stop();
+    currentMedia.closeMedia();
+
   	// Video Setup
     currentMedia.open(juce::URL(filepath));
 
@@ -661,10 +663,8 @@ void MainComponent::draw() {
     }
 
     if (b_standalone_mode) {
-        currentMedia.setDecodeAudio(true); // enable audio
     } else {
         // check for monitor discovery to get DAW playhead pos
-        currentMedia.setDecodeAudio(false); // disable audio for DAW sync mode
         syncWithDAWPlayhead();
     }
 
@@ -1355,7 +1355,8 @@ void MainComponent::paint (juce::Graphics& g)
     // This will draw over the top of the openGL background.
 }
 
-void MainComponent::resized() {
+void MainComponent::resized() 
+{
     // This is called when the MainComponent is resized.
 }
 
