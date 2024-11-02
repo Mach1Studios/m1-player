@@ -66,7 +66,15 @@ void FFmpegVCMediaObject::stop()
 
 bool FFmpegVCMediaObject::isPlaying()
 {
-    return transportSource->isPlaying();
+    if (videoReader->getNumberOfAudioChannels() > 0)
+    {
+        // track via audiostream
+        return transportSource->isPlaying();
+    }
+    else
+    {
+        return videoReader->isThreadRunning() && !isPaused;
+    }
 }
 
 void FFmpegVCMediaObject::releaseResources()
@@ -205,19 +213,10 @@ juce::Result FFmpegVCMediaObject::load(const juce::File& file)
             return juce::Result::fail("Invalid blockSize or sampleRate");
         }
 
-        double sourceSampleRateToCorrectFor = videoReader->getSampleRate() * playSpeed;
-        int maxNumChannels = videoReader->getNumberOfAudioChannels();
-
-        if (videoReader->getSampleRate() <= 0 || videoReader->getNumberOfAudioChannels() <= 0)
-        {
-            // No audio stream, set sample rate and channels to zero
-            sourceSampleRateToCorrectFor = 0.0;
-            maxNumChannels = 0;
-        }
-
         transportSource->setSource(videoReader.get(), 0, nullptr,
                                    videoReader->getSampleRate() * playSpeed,
                                    videoReader->getNumberOfAudioChannels());
+
         currentMediaFilePath = juce::URL(file);
         
         // Check if the new file has video
@@ -227,11 +226,26 @@ juce::Result FFmpegVCMediaObject::load(const juce::File& file)
             currentAVFrame = nullptr;
             currentFrameAsImage = juce::Image();
         }
+        else
+        {
+            // resize because we have a video stream
+            videoSizeChanged(videoReader->getVideoWidth(), videoReader->getVideoHeight(), videoReader->getPixelFormat());
+        }
+        
+        // Start the decoding thread if there's no audio
+        if (videoReader->getNumberOfAudioChannels() <= 0)
+        {
+            if (!videoReader->isThreadRunning())
+            {
+                videoReader->startThread();
+            }
+        }
 
         return juce::Result::ok();
     }
     return juce::Result::fail("Failed to load file");
 }
+
 void FFmpegVCMediaObject::closeMedia()
 {
     if (videoReader)
@@ -309,10 +323,24 @@ void FFmpegVCMediaObject::videoFileChanged(const juce::File& newSource)
 
 void FFmpegVCMediaObject::videoSizeChanged(const int width, const int height, const AVPixelFormat format)
 {
-    if (width > 0 && height > 0) 
+    double aspectRatio = videoReader->getVideoAspectRatio() * videoReader->getPixelAspectRatio();
+    int w = width;
+    int h = height;
+    
+    if (aspectRatio > 0.0)
     {
-        videoScaler.setupScaler(width, height, format, width, height, AV_PIX_FMT_BGR0);
-        currentFrameAsImage = juce::Image(juce::Image::PixelFormat::ARGB, width, height, true);
+        if (width / height > aspectRatio)
+            w = height * aspectRatio;
+        else
+            h = width / aspectRatio;
+
+        currentFrameAsImage = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
+        videoScaler.setupScaler(width, height, format, currentFrameAsImage.getWidth(), currentFrameAsImage.getHeight(), AV_PIX_FMT_BGR0);
+    }
+    else
+    {
+        // Clear the current frame
+        currentFrameAsImage = juce::Image();
     }
 }
 
