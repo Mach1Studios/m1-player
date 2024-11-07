@@ -6,23 +6,23 @@
 
 FFmpegVCMediaObject::FFmpegVCMediaObject()
     : transportSource(std::make_unique<juce::AudioTransportSource>())
-    , videoReader(std::make_unique<FFmpegMediaReader>(192000, 102))  // Same buffer sizes as in FFmpegVideoComponent
+    , mediaReader(std::make_unique<FFmpegMediaReader>(192000, 102))  // Same buffer sizes as in FFmpegVideoComponent
     , currentAVFrame(nullptr)
     , playSpeed(1.0)
     , isPaused(true)
     , blockSize(0)
     , sampleRate(0)
 {
-    if (videoReader)
-        videoReader->addVideoListener(this);
+    if (mediaReader)
+        mediaReader->addVideoListener(this);
     
-    transportSource->setSource(videoReader.get(), 0, nullptr);
+    transportSource->setSource(mediaReader.get(), 0, nullptr);
 }
 
 FFmpegVCMediaObject::~FFmpegVCMediaObject()
 {
-    if (videoReader)
-        videoReader->removeVideoListener(this);
+    if (mediaReader)
+        mediaReader->removeVideoListener(this);
     
     transportSource->setSource(nullptr);
     releaseResources();
@@ -33,8 +33,26 @@ void FFmpegVCMediaObject::start()
     DBG("FFmpegVCMediaObject::start() at " + juce::String(getPlayPosition()));
     if (isPaused && !isPlaying())
     {
-        transportSource->start();
+        if (mediaReader->getNumberOfAudioChannels() > 0)
+        {
+            // run as usual if there is audio to decode
+            transportSource->start();
+        }
+        else
+        {
+            // No audio, start decoding thread if not already running
+            if (!mediaReader->isThreadRunning())
+            {
+                mediaReader->startThread();
+            }
+            else
+            {
+                mediaReader->continueDecoding();
+            }
+        }
+        
         isPaused = false;
+        
         // Invoke callback for onPlaybackStarted, this must be thread safe
         if (onPlaybackStarted != nullptr)
         {
@@ -49,10 +67,24 @@ void FFmpegVCMediaObject::start()
 void FFmpegVCMediaObject::stop()
 {
     DBG("FFmpegVCMediaObject::stop() at " + juce::String(getPlayPosition()));
-    if (isPlaying() && !isPaused && isVideoOpen())
+    
+    if (isPlaying() && !isPaused && isOpen())
     {
-        transportSource->stop();
+        if (mediaReader->getNumberOfAudioChannels() > 0)
+        {
+            transportSource->stop();
+        }
+        else
+        {
+            // No audio, stop decoding thread and timer
+            if (mediaReader->isThreadRunning())
+            {
+                mediaReader->stopThread(1000);
+            }
+        }
+
         isPaused = true;
+
         // Invoke callback for onPlaybackStopped, this must be thread safe
         if (onPlaybackStopped != nullptr)
         {
@@ -66,28 +98,28 @@ void FFmpegVCMediaObject::stop()
 
 bool FFmpegVCMediaObject::isPlaying()
 {
-    if (videoReader->getNumberOfAudioChannels() > 0)
+    if (mediaReader->getNumberOfAudioChannels() > 0)
     {
         // track via audiostream
         return transportSource->isPlaying();
     }
     else
     {
-        return videoReader->isThreadRunning() && !isPaused;
+        return mediaReader->isThreadRunning() && !isPaused;
     }
 }
 
 void FFmpegVCMediaObject::releaseResources()
 {
-    if (videoReader)
-        videoReader->closeMediaFile();
+    if (mediaReader)
+        mediaReader->closeMediaFile();
     
     transportSource->releaseResources();
 }
 
 int FFmpegVCMediaObject::getNumChannels()
 {
-    return videoReader ? videoReader->getNumberOfAudioChannels() : 0;
+    return mediaReader ? mediaReader->getNumberOfAudioChannels() : 0;
 }
 
 void FFmpegVCMediaObject::prepareToPlay(int sessionBlockSize, int sessionSampleRate)
@@ -100,17 +132,17 @@ void FFmpegVCMediaObject::prepareToPlay(int sessionBlockSize, int sessionSampleR
 
 bool FFmpegVCMediaObject::hasVideo()
 {
-    return videoReader && videoReader->getVideoStreamIndex() >= 0;
+    return mediaReader && mediaReader->getVideoStreamIndex() >= 0;
 }
 
 bool FFmpegVCMediaObject::hasAudio()
 {
-    return videoReader && videoReader->getNumberOfAudioChannels() > 0;
+    return mediaReader && mediaReader->getNumberOfAudioChannels() > 0;
 }
 
 bool FFmpegVCMediaObject::clipLoaded()
 {
-    return videoReader && videoReader->isMediaOpen();
+    return mediaReader && mediaReader->isMediaOpen();
 }
 
 void FFmpegVCMediaObject::getNextAudioBlock(const juce::AudioSourceChannelInfo& info)
@@ -125,17 +157,17 @@ juce::URL FFmpegVCMediaObject::getMediaFilePath()
 
 juce::int64 FFmpegVCMediaObject::getNextReadPositionInSamples()
 {
-    return videoReader ? videoReader->getNextReadPosition() : 0;
+    return mediaReader ? mediaReader->getNextReadPosition() : 0;
 }
 
 juce::int64 FFmpegVCMediaObject::getAudioSampleRate()
 {
-    return videoReader ? videoReader->getSampleRate() : 0;
+    return mediaReader ? mediaReader->getSampleRate() : 0;
 }
 
 juce::int64 FFmpegVCMediaObject::getVideoFrameRate()
 {
-    return videoReader ? videoReader->getFramesPerSecond() : 0;
+    return mediaReader ? mediaReader->getFramesPerSecond() : 0;
 }
 
 void FFmpegVCMediaObject::setGain(float newGain)
@@ -150,7 +182,7 @@ float FFmpegVCMediaObject::getGain()
 
 double FFmpegVCMediaObject::getLengthInSeconds()
 {
-    return videoReader ? videoReader->getDuration() : 0.0;
+    return mediaReader ? mediaReader->getDuration() : 0.0;
 }
 
 double FFmpegVCMediaObject::getCurrentTimelinePositionInSeconds()
@@ -160,16 +192,16 @@ double FFmpegVCMediaObject::getCurrentTimelinePositionInSeconds()
 
 void FFmpegVCMediaObject::setTimelinePosition(juce::int64 timecodeInSamples)
 {
-    if (videoReader)
-        videoReader->setNextReadPosition(timecodeInSamples);
+    if (mediaReader)
+        mediaReader->setNextReadPosition(timecodeInSamples);
 }
 
-void FFmpegVCMediaObject::setCurrentTimelinePositionInSeconds(double newPositionInSeconds)
+void FFmpegVCMediaObject::setTimelinePositionInSeconds(double newPositionInSeconds)
 {
     transportSource->setPosition(newPositionInSeconds);
 }
 
-void FFmpegVCMediaObject::setPositionNormalized(double newPositionNormalized)
+void FFmpegVCMediaObject::setTimelinePositionNormalized(double newPositionNormalized)
 {
     transportSource->setPosition(newPositionNormalized * getLengthInSeconds());
 }
@@ -198,13 +230,13 @@ juce::Result FFmpegVCMediaObject::load(const juce::File& file)
     isPaused = true;
     readBuffer.clear();
 
-    if (videoReader->loadMediaFile(file))
+    if (mediaReader->loadMediaFile(file))
     {
         // Ensure blockSize and sampleRate are initialized
         if (blockSize > 0 && sampleRate > 0)
         {
             // Ensure prepareToPlay is called with the correct sample rate and block size
-            videoReader->prepareToPlay(blockSize, sampleRate);
+            mediaReader->prepareToPlay(blockSize, sampleRate);
         }
         else
         {
@@ -213,14 +245,14 @@ juce::Result FFmpegVCMediaObject::load(const juce::File& file)
             return juce::Result::fail("Invalid blockSize or sampleRate");
         }
 
-        transportSource->setSource(videoReader.get(), 0, nullptr,
-                                   videoReader->getSampleRate() * playSpeed,
-                                   videoReader->getNumberOfAudioChannels());
+        transportSource->setSource(mediaReader.get(), 0, nullptr,
+                                   mediaReader->getSampleRate() * playSpeed,
+                                   mediaReader->getNumberOfAudioChannels());
 
         currentMediaFilePath = juce::URL(file);
-        
+
         // Check if the new file has video
-        if (videoReader->getVideoStreamIndex() < 0)
+        if (mediaReader->getVideoStreamIndex() < 0)
         {
             // No video, clear current frame
             currentAVFrame = nullptr;
@@ -229,15 +261,15 @@ juce::Result FFmpegVCMediaObject::load(const juce::File& file)
         else
         {
             // resize because we have a video stream
-            videoSizeChanged(videoReader->getVideoWidth(), videoReader->getVideoHeight(), videoReader->getPixelFormat());
+            videoSizeChanged(mediaReader->getVideoWidth(), mediaReader->getVideoHeight(), mediaReader->getPixelFormat());
         }
         
         // Start the decoding thread if there's no audio
-        if (videoReader->getNumberOfAudioChannels() <= 0)
+        if (mediaReader->getNumberOfAudioChannels() <= 0)
         {
-            if (!videoReader->isThreadRunning())
+            if (!mediaReader->isThreadRunning())
             {
-                videoReader->startThread();
+                mediaReader->startThread();
             }
         }
 
@@ -248,9 +280,9 @@ juce::Result FFmpegVCMediaObject::load(const juce::File& file)
 
 void FFmpegVCMediaObject::closeMedia()
 {
-    if (videoReader)
+    if (mediaReader)
     {
-        videoReader->closeMediaFile();
+        mediaReader->closeMediaFile();
         currentAVFrame = nullptr;
         currentFrameAsImage = juce::Image();
     }
@@ -265,14 +297,14 @@ juce::Image& FFmpegVCMediaObject::getFrame(double currentTimeInSeconds)
     return currentFrameAsImage;
 }
 
-bool FFmpegVCMediaObject::isVideoOpen() const
+bool FFmpegVCMediaObject::isOpen() const
 {
-    return videoReader && videoReader->isMediaOpen();
+    return mediaReader && mediaReader->isMediaOpen();
 }
 
 double FFmpegVCMediaObject::getVideoDuration() const
 {
-    return videoReader ? videoReader->getDuration() : 0.0;
+    return mediaReader ? mediaReader->getDuration() : 0.0;
 }
 
 void FFmpegVCMediaObject::setPlaySpeed(double newSpeed)
@@ -280,13 +312,21 @@ void FFmpegVCMediaObject::setPlaySpeed(double newSpeed)
     if (newSpeed != playSpeed)
     {
         playSpeed = newSpeed;
-        if (isVideoOpen())
+        if (isOpen())
         {
-            juce::int64 lastPos = videoReader->getNextReadPosition();
-            transportSource->setSource(videoReader.get(), 0, nullptr,
-                                       videoReader->getSampleRate() * playSpeed,
-                                       videoReader->getNumberOfAudioChannels());
-            videoReader->setNextReadPosition(lastPos);
+            bool wasPlaying = isPlaying();
+            if (wasPlaying)
+                transportSource->stop();
+            
+            juce::int64 lastPos = mediaReader->getNextReadPosition();
+            transportSource->setSource(mediaReader.get(), 0, nullptr,
+                                       mediaReader->getSampleRate() * playSpeed,
+                                       mediaReader->getNumberOfAudioChannels());
+            
+            if (wasPlaying)
+                transportSource->start();
+            
+            mediaReader->setNextReadPosition(lastPos);
         }
     }
 }
@@ -298,14 +338,14 @@ double FFmpegVCMediaObject::getPlaySpeed() const
 
 void FFmpegVCMediaObject::setPlayPosition(double newPositionSeconds)
 {
-    if (!isVideoOpen())
+    if (!isOpen())
         return;
 
     bool wasPlaying = isPlaying();
     if (wasPlaying)
         transportSource->stop();
     
-    videoReader->setNextReadPosition(newPositionSeconds * videoReader->getSampleRate());
+    mediaReader->setNextReadPosition(newPositionSeconds * mediaReader->getSampleRate());
 
     if (wasPlaying)
         transportSource->start();
@@ -323,7 +363,7 @@ void FFmpegVCMediaObject::videoFileChanged(const juce::File& newSource)
 
 void FFmpegVCMediaObject::videoSizeChanged(const int width, const int height, const AVPixelFormat format)
 {
-    double aspectRatio = videoReader->getVideoAspectRatio() * videoReader->getPixelAspectRatio();
+    double aspectRatio = mediaReader->getVideoAspectRatio() * mediaReader->getPixelAspectRatio();
     int w = width;
     int h = height;
     
