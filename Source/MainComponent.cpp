@@ -401,12 +401,6 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo &buffer
     // The TransportSource takes care of start, stop and resample.
     juce::AudioSourceChannelInfo info(&readBuffer, bufferToFill.startSample, bufferToFill.numSamples);
 
-    // First read video.
-    if (currentMedia.hasVideo()) {
-        readBuffer.setSize(currentMedia.getNumChannels(), bufferToFill.numSamples);
-        readBuffer.clear();
-    }
-
     // If standalone mode is active, or the loaded clip has no audio, exit this routine.
     if (!b_standalone_mode || !currentMedia.hasAudio()) {
         return;
@@ -419,28 +413,36 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo &buffer
     readBuffer.clear();
 
     // the AudioTransportSource takes care of start, stop and resample
-    currentMedia.getNextAudioBlock(info);
+    if (currentMedia.hasAudio())
+    {
+        currentMedia.getNextAudioBlock(info);
 
-    tempBuffer.setSize(detectedNumInputChannels * 2, bufferToFill.numSamples);
-    tempBuffer.clear();
+        tempBuffer.setSize(detectedNumInputChannels * 2, bufferToFill.numSamples);
+        tempBuffer.clear();
 
-    if (detectedNumInputChannels <= 0) {
+        if (detectedNumInputChannels <= 0) {
+            bufferToFill.clearActiveBufferRegion();
+            return;
+        }
+
+        // if you've got more output channels than input clears extra outputs
+        for (auto channel = detectedNumInputChannels; channel < 2 && channel < detectedNumInputChannels; ++channel) {
+            readBuffer.clear(channel, 0, bufferToFill.numSamples);
+        }
+
+        // Processing loop
+        (this->*m_transcode_strategy)(bufferToFill, info);
+        (this->*m_decode_strategy)(bufferToFill, info);
+
+        // clear remaining input channels
+        for (auto channel = 2; channel < detectedNumInputChannels; ++channel) {
+            readBuffer.clear(channel, 0, bufferToFill.numSamples);
+        }
+    }
+    else
+    {
+        // no audio, clear the buffer
         bufferToFill.clearActiveBufferRegion();
-        return;
-    }
-
-    // if you've got more output channels than input clears extra outputs
-    for (auto channel = detectedNumInputChannels; channel < 2 && channel < detectedNumInputChannels; ++channel) {
-        readBuffer.clear(channel, 0, bufferToFill.numSamples);
-    }
-
-    // Processing loop
-    (this->*m_transcode_strategy)(bufferToFill, info);
-    (this->*m_decode_strategy)(bufferToFill, info);
-
-    // clear remaining input channels
-    for (auto channel = 2; channel < detectedNumInputChannels; ++channel) {
-        readBuffer.clear(channel, 0, bufferToFill.numSamples);
     }
 }
 
@@ -525,7 +527,12 @@ void MainComponent::syncWithDAWPlayhead() {
     }
 
     if (!currentMedia.clipLoaded()) {
-        // No media loaded; no synchronization needed
+        // No media loaded; no sync needed
+        return;
+    }
+    
+    if (!currentMedia.hasVideo()) {
+        // No video loaded, no sync needed
         return;
     }
 
@@ -553,25 +560,13 @@ void MainComponent::syncWithDAWPlayhead() {
             return; // Exit early if we just stopped playback
         }
     }
+    DBG("Should be playing: " + std::to_string(shouldBePlaying) + ", is playing: " + std::to_string(currentMedia.isPlaying()));
 
     double playerPosition = currentMedia.getCurrentTimelinePositionInSeconds();
     double timeDifference = externalTimecode - playerPosition;
 
     // Determine frame duration
-    double frameDuration = 0.1; // Default to 100 milliseconds if frame rate is unavailable
-
-    if (currentMedia.hasVideo()) {
-        double frameRate = currentMedia.getVideoFrameRate();
-        if (frameRate > 0.0) {
-            frameDuration = 1.0 / frameRate;
-        } else {
-            // Handle case where frame rate is zero or undefined
-            frameDuration = 0.1; // Default to 100 milliseconds
-        }
-    } else {
-        // For audio-only media, you might choose a different threshold
-        frameDuration = 0.1; // 100 milliseconds
-    }
+    double frameDuration = 1.0 / currentMedia.getVideoFrameRate();
     
     // Define thresholds
     const double maxSpeedAdjustment = 0.5; // Max speed adjustment (e.g., ±50%)
@@ -797,7 +792,7 @@ void MainComponent::draw() {
                         },
                         [&](double newPositionNormalised) {
                             // refreshing player position
-                            currentMedia.setCurrentTimelinePositionInSeconds(newPositionNormalised * currentMedia.getLengthInSeconds());
+                            currentMedia.setTimelinePositionInSeconds(newPositionNormalised * currentMedia.getLengthInSeconds());
                         });
         playerControls.withVolumeData(currentMedia.getGain(),
                         [&](double newVolume){
@@ -820,7 +815,7 @@ void MainComponent::draw() {
                         },
                         [&](double newPositionNormalised) {
             // refreshing player position
-            currentMedia.setPositionNormalized(newPositionNormalised);
+            currentMedia.setTimelinePositionNormalized(newPositionNormalised);
         });
         playerControls.withVolumeData(0.5,
                         [&](double newVolume){

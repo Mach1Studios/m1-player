@@ -35,13 +35,13 @@ public:
     double getLengthInSeconds();
     double getCurrentTimelinePositionInSeconds();
     void setTimelinePosition(juce::int64 timecodeInSamples);
-    void setCurrentTimelinePositionInSeconds(double newPositionInSeconds);
-    void setPositionNormalized(double newPositionNormalized);
+    void setTimelinePositionInSeconds(double newPositionInSeconds);
+    void setTimelinePositionNormalized(double newPositionNormalized);
     bool open(juce::URL filepath);
 
     juce::Result load(const juce::File& file);
     void closeMedia();
-    bool isVideoOpen() const;
+    bool isOpen() const;
     double getVideoDuration() const;
     void setPlaySpeed(double newSpeed);
     double getPlaySpeed() const;
@@ -57,7 +57,7 @@ public:
 
 private:
     std::unique_ptr<juce::AudioTransportSource> transportSource;
-    std::unique_ptr<FFmpegMediaReader> videoReader;
+    std::unique_ptr<FFmpegMediaReader> mediaReader;
     juce::Image currentFrameAsImage;
     const AVFrame* currentAVFrame;
     FFmpegVideoScaler videoScaler;
