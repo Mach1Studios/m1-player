@@ -288,7 +288,7 @@ void FFmpegVCMediaObject::closeMedia()
     }
 }
 
-juce::Image& FFmpegVCMediaObject::getFrame(double currentTimeInSeconds)
+juce::Image& FFmpegVCMediaObject::getFrame()
 {
     if (currentAVFrame)
     {
@@ -300,11 +300,6 @@ juce::Image& FFmpegVCMediaObject::getFrame(double currentTimeInSeconds)
 bool FFmpegVCMediaObject::isOpen() const
 {
     return mediaReader && mediaReader->isMediaOpen();
-}
-
-double FFmpegVCMediaObject::getVideoDuration() const
-{
-    return mediaReader ? mediaReader->getDuration() : 0.0;
 }
 
 void FFmpegVCMediaObject::setPlaySpeed(double newSpeed)

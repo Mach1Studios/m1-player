@@ -665,6 +665,8 @@ void MainComponent::draw_orientation_client(murka::Murka &m, M1OrientationClient
 }
 
 void MainComponent::draw() {
+    
+    // countdown for hiding UI when mouse is not active in window
     if ((m.mouseDelta().x != 0) || (m.mouseDelta().y != 0)) {
         secondsWithoutMouseMove = 0;
     }
@@ -689,7 +691,7 @@ void MainComponent::draw() {
 	// update video frame
 	if (currentMedia.clipLoaded() && currentMedia.hasVideo()) {
         auto clipLengthInSeconds = currentMedia.getLengthInSeconds();
-        juce::Image& frame = currentMedia.getFrame(currentMedia.getCurrentTimelinePositionInSeconds());
+        juce::Image& frame = currentMedia.getFrame();
         //DBG("[Video] Time: " + std::to_string(clip->getCurrentTimeInSeconds()) + ", Block:" + std::to_string(clip->getNextReadPosition()) + ", normalized: " + std::to_string( clip->getCurrentTimeInSeconds() /  clipLengthInSeconds ));
 		if (frame.getWidth() > 0 && frame.getHeight() > 0) {
 			if (imgVideo.getWidth() != frame.getWidth() || imgVideo.getHeight() != frame.getHeight()) {

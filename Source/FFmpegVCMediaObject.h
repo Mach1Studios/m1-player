@@ -29,7 +29,7 @@ public:
     juce::int64 getNextReadPositionInSamples();
     juce::int64 getAudioSampleRate();
     juce::int64 getVideoFrameRate();
-    juce::Image& getFrame(double currentTimeInSeconds);
+    juce::Image& getFrame();
     void setGain(float newGain);
     float getGain();
     double getLengthInSeconds();
@@ -42,7 +42,6 @@ public:
     juce::Result load(const juce::File& file);
     void closeMedia();
     bool isOpen() const;
-    double getVideoDuration() const;
     void setPlaySpeed(double newSpeed);
     double getPlaySpeed() const;
     void setPlayPosition(double newPositionSeconds);
