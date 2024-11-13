@@ -275,19 +275,28 @@ void MainComponent::fallbackDecodeStrategy(const AudioSourceChannelInfo &bufferT
                                            const AudioSourceChannelInfo &info) {
     // Invalid Decode I/O; clear buffers
     for (auto channel = detectedNumInputChannels; channel < 2; ++channel) {
-        bufferToFill.buffer->clear(channel, 0, bufferToFill.numSamples);
+        if (channel < bufferToFill.buffer->getNumChannels())
+        {
+            bufferToFill.buffer->clear(channel, 0, bufferToFill.numSamples);
+        }
     }
 }
 
 void MainComponent::stereoDecodeStrategy(const AudioSourceChannelInfo &bufferToFill,
                                          const AudioSourceChannelInfo &info) {
     bufferToFill.buffer->copyFrom(0, 0, readBuffer, 0, 0, info.numSamples);
-    bufferToFill.buffer->copyFrom(1, 0, readBuffer, 1, 0, info.numSamples);
+    if (bufferToFill.buffer->getNumChannels() > 1)
+    {
+        bufferToFill.buffer->copyFrom(1, 0, readBuffer, 1, 0, info.numSamples);
+    }
 }
 
 void MainComponent::monoDecodeStrategy(const AudioSourceChannelInfo &bufferToFill, const AudioSourceChannelInfo &info) {
     bufferToFill.buffer->copyFrom(0, 0, readBuffer, 0, 0, info.numSamples);
-    bufferToFill.buffer->copyFrom(1, 0, readBuffer, 0, 0, info.numSamples);
+    if (bufferToFill.buffer->getNumChannels() > 1)
+    {
+        bufferToFill.buffer->copyFrom(1, 0, readBuffer, 0, 0, info.numSamples);
+    }
     bufferToFill.buffer->applyGain(MINUS_3DB_AMP); // apply -3dB pan-law gain to all channels
 }
 
@@ -295,8 +304,12 @@ void MainComponent::readBufferDecodeStrategy(const AudioSourceChannelInfo &buffe
                                              const AudioSourceChannelInfo &info) {
     auto sample_count = bufferToFill.numSamples;
     auto channel_count = detectedNumInputChannels;
+    float *outBufferR = nullptr;
     float *outBufferL = bufferToFill.buffer->getWritePointer(0);
-    float *outBufferR = bufferToFill.buffer->getWritePointer(1);
+    if (bufferToFill.buffer->getNumChannels() > 1)
+    {
+        outBufferR = bufferToFill.buffer->getWritePointer(1);
+    }
     auto ori_deg = currentOrientation.GetGlobalRotationAsEulerDegrees();
     m1Decode.setRotationDegrees({ori_deg.GetYaw(), ori_deg.GetPitch(), ori_deg.GetRoll()});
     spatialMixerCoeffs = m1Decode.decodeCoeffs();
@@ -319,7 +332,10 @@ void MainComponent::readBufferDecodeStrategy(const AudioSourceChannelInfo &buffe
             auto left_sample = tempBuffer.getReadPointer(channel * 2 + 0)[sample];
             auto right_sample = tempBuffer.getReadPointer(channel * 2 + 1)[sample];
             outBufferL[sample] += left_sample * smoothedChannelCoeffs[channel * 2 + 0].getNextValue();
-            outBufferR[sample] += right_sample * smoothedChannelCoeffs[channel * 2 + 1].getNextValue();
+            if (bufferToFill.buffer->getNumChannels() > 1)
+            {
+                outBufferR[sample] += right_sample * smoothedChannelCoeffs[channel * 2 + 1].getNextValue();
+            }
         }
     }
 }
@@ -328,8 +344,12 @@ void MainComponent::intermediaryBufferDecodeStrategy(const AudioSourceChannelInf
                                                      const AudioSourceChannelInfo &info) {
     auto sample_count = bufferToFill.numSamples;
     auto channel_count = detectedNumInputChannels;
+    float *outBufferR = nullptr;
     float *outBufferL = bufferToFill.buffer->getWritePointer(0);
-    float *outBufferR = bufferToFill.buffer->getWritePointer(1);
+    if (bufferToFill.buffer->getNumChannels() > 1)
+    {
+        outBufferR = bufferToFill.buffer->getWritePointer(1);
+    }
     auto ori_deg = currentOrientation.GetGlobalRotationAsEulerDegrees();
     m1Decode.setRotationDegrees({ori_deg.GetYaw(), ori_deg.GetPitch(), ori_deg.GetRoll()});
     spatialMixerCoeffs = m1Decode.decodeCoeffs();
@@ -352,7 +372,10 @@ void MainComponent::intermediaryBufferDecodeStrategy(const AudioSourceChannelInf
             auto left_sample = tempBuffer.getReadPointer(channel * 2 + 0)[sample];
             auto right_sample = tempBuffer.getReadPointer(channel * 2 + 1)[sample];
             outBufferL[sample] += left_sample * smoothedChannelCoeffs[channel * 2 + 0].getNextValue();
-            outBufferR[sample] += right_sample * smoothedChannelCoeffs[channel * 2 + 1].getNextValue();
+            if (bufferToFill.buffer->getNumChannels() > 1)
+            {
+                outBufferR[sample] += right_sample * smoothedChannelCoeffs[channel * 2 + 1].getNextValue();
+            }
         }
     }
 }
