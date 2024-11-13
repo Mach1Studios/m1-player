@@ -30,7 +30,7 @@ FFmpegVCMediaObject::~FFmpegVCMediaObject()
 
 void FFmpegVCMediaObject::start()
 {
-    DBG("FFmpegVCMediaObject::start() at " + juce::String(getPlayPosition()));
+    DBG("FFmpegVCMediaObject::start() at " + juce::String(getPositionInSeconds()));
     if (isPaused && !isPlaying())
     {
         if (mediaReader->getNumberOfAudioChannels() > 0)
@@ -66,7 +66,7 @@ void FFmpegVCMediaObject::start()
 
 void FFmpegVCMediaObject::stop()
 {
-    DBG("FFmpegVCMediaObject::stop() at " + juce::String(getPlayPosition()));
+    DBG("FFmpegVCMediaObject::stop() at " + juce::String(getPositionInSeconds()));
     
     if (isPlaying() && !isPaused && isOpen())
     {
@@ -185,25 +185,36 @@ double FFmpegVCMediaObject::getLengthInSeconds()
     return mediaReader ? mediaReader->getDuration() : 0.0;
 }
 
-double FFmpegVCMediaObject::getCurrentTimelinePositionInSeconds()
+double FFmpegVCMediaObject::getPositionInSeconds()
 {
-    return transportSource->getCurrentPosition();
+    if (hasAudio())
+    {
+        return transportSource->getCurrentPosition();
+    }
+    else
+    {
+        return mediaReader->getCurrentPositionSeconds();
+    }
 }
 
-void FFmpegVCMediaObject::setTimelinePosition(juce::int64 timecodeInSamples)
+void FFmpegVCMediaObject::setPosition(double newPositionInSeconds)
 {
-    if (mediaReader)
-        mediaReader->setNextReadPosition(timecodeInSamples);
+    if (!isOpen())
+        return;
+    
+    if (hasAudio())
+    {
+        transportSource->setPosition(newPositionInSeconds);
+    }
+    else
+    {
+        mediaReader->setPositionSeconds(newPositionInSeconds);
+    }
 }
 
-void FFmpegVCMediaObject::setTimelinePositionInSeconds(double newPositionInSeconds)
+void FFmpegVCMediaObject::setPositionNormalized(double newPositionNormalized)
 {
-    transportSource->setPosition(newPositionInSeconds);
-}
-
-void FFmpegVCMediaObject::setTimelinePositionNormalized(double newPositionNormalized)
-{
-    transportSource->setPosition(newPositionNormalized * getLengthInSeconds());
+    setPosition(newPositionNormalized * getLengthInSeconds());
 }
 
 bool FFmpegVCMediaObject::open(juce::URL url)
@@ -329,26 +340,6 @@ void FFmpegVCMediaObject::setPlaySpeed(double newSpeed)
 double FFmpegVCMediaObject::getPlaySpeed() const
 {
     return playSpeed;
-}
-
-void FFmpegVCMediaObject::setPlayPosition(double newPositionSeconds)
-{
-    if (!isOpen())
-        return;
-
-    bool wasPlaying = isPlaying();
-    if (wasPlaying)
-        transportSource->stop();
-    
-    mediaReader->setNextReadPosition(newPositionSeconds * mediaReader->getSampleRate());
-
-    if (wasPlaying)
-        transportSource->start();
-}
-
-double FFmpegVCMediaObject::getPlayPosition() const
-{
-    return transportSource->getCurrentPosition();
 }
 
 void FFmpegVCMediaObject::videoFileChanged(const juce::File& newSource)
