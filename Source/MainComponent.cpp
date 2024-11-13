@@ -489,7 +489,7 @@ void MainComponent::showFileChooser() {
             openFile(fileUrl.getLocalFile());
             
             if (currentMedia.clipLoaded()) {
-                currentMedia.setTimelinePosition(0);
+                currentMedia.setPosition(0);
             }
 
             juce::Process::makeForegroundProcess();
@@ -525,7 +525,7 @@ void MainComponent::openFile(juce::File filepath) {
     // restart timeline
     if (b_standalone_mode) {
         if (currentMedia.clipLoaded()) {
-            currentMedia.setTimelinePosition(0);
+            currentMedia.setPosition(0);
         }
     }
     
@@ -585,7 +585,7 @@ void MainComponent::syncWithDAWPlayhead() {
     }
     DBG("Should be playing: " + std::to_string(shouldBePlaying) + ", is playing: " + std::to_string(currentMedia.isPlaying()));
 
-    double playerPosition = currentMedia.getCurrentTimelinePositionInSeconds();
+    double playerPosition = currentMedia.getPositionInSeconds();
     double timeDifference = externalTimecode - playerPosition;
 
     // Determine frame duration
@@ -599,7 +599,7 @@ void MainComponent::syncWithDAWPlayhead() {
     // Synchronization logic
     if (std::fabs(timeDifference) > maxAllowedTimeDifference) {
         // Time difference too large; perform a seek
-        currentMedia.setTimelinePosition(static_cast<juce::int64>(externalTimecode * currentMedia.getAudioSampleRate()));
+        currentMedia.setPosition(static_cast<juce::int64>(externalTimecode * currentMedia.getAudioSampleRate()));
         // Reset playback speed to normal
         currentMedia.setPlaySpeed(1.0);
     } else if (std::fabs(timeDifference) > minTimeDifferenceForSpeedAdjustment) {
@@ -762,7 +762,7 @@ void MainComponent::draw() {
 		}
 
 		float length = currentMedia.getLengthInSeconds();
-		float playheadPosition = currentMedia.getCurrentTimelinePositionInSeconds() / length;
+		float playheadPosition = currentMedia.getPositionInSeconds() / length;
 		videoPlayerWidget.playheadPosition = (float)playheadPosition;
 	}
 	
@@ -796,9 +796,9 @@ void MainComponent::draw() {
     if (b_standalone_mode) { // Standalone mode
         double currentPosition = 0.0;
         if (currentMedia.clipLoaded() && (currentMedia.hasVideo() || currentMedia.hasAudio())) {
-            currentPosition = currentMedia.getCurrentTimelinePositionInSeconds() / currentMedia.getLengthInSeconds();
+            currentPosition = currentMedia.getPositionInSeconds() / currentMedia.getLengthInSeconds();
         }
-        playerControls.withPlayerData((currentMedia.clipLoaded() && currentMedia.hasVideo()) ? formatTime(currentMedia.getCurrentTimelinePositionInSeconds()) : "00:00", formatTime(currentMedia.getLengthInSeconds()),
+        playerControls.withPlayerData((currentMedia.clipLoaded() && currentMedia.hasVideo()) ? formatTime(currentMedia.getPositionInSeconds()) : "00:00", formatTime(currentMedia.getLengthInSeconds()),
                         true, // showPositionReticle
                         currentPosition, // currentPosition
                         currentMedia.isPlaying(), // playing
@@ -817,7 +817,7 @@ void MainComponent::draw() {
                         },
                         [&](double newPositionNormalised) {
                             // refreshing player position
-                            currentMedia.setTimelinePositionInSeconds(newPositionNormalised * currentMedia.getLengthInSeconds());
+                            currentMedia.setPosition(newPositionNormalised * currentMedia.getLengthInSeconds());
                         });
         playerControls.withVolumeData(currentMedia.getGain(),
                         [&](double newVolume){
@@ -840,7 +840,7 @@ void MainComponent::draw() {
                         },
                         [&](double newPositionNormalised) {
             // refreshing player position
-            currentMedia.setTimelinePositionNormalized(newPositionNormalised);
+            currentMedia.setPositionNormalized(newPositionNormalised);
         });
         playerControls.withVolumeData(0.5,
                         [&](double newVolume){
@@ -973,7 +973,7 @@ void MainComponent::draw() {
             }
             else {
                 if (currentMedia.clipLoaded()) {
-                    currentMedia.setTimelinePosition(0);
+                    currentMedia.setPosition(0);
                 }
             }
         }
@@ -981,7 +981,7 @@ void MainComponent::draw() {
 
     if (bShowHelpUI) {
         m.getCurrentFont()->drawString("FOV : " + std::to_string(videoPlayerWidget.fov), 10, 10);
-        m.getCurrentFont()->drawString("Frame: " + std::to_string(currentMedia.getCurrentTimelinePositionInSeconds()), 10, 30);
+        m.getCurrentFont()->drawString("Frame: " + std::to_string(currentMedia.getPositionInSeconds()), 10, 30);
         m.getCurrentFont()->drawString("Standalone mode: " + std::to_string(b_standalone_mode), 10, 50);
         m.getCurrentFont()->drawString("Hotkeys:", 10, 130);
         m.getCurrentFont()->drawString("[w] - FOV+", 10, 150);

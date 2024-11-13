@@ -30,23 +30,20 @@ public:
     juce::int64 getAudioSampleRate();
     juce::int64 getVideoFrameRate();
     juce::Image& getFrame();
+    double getLengthInSeconds();
+    double getPositionInSeconds();
+    void setPosition(double newPositionInSeconds);
+    void setPositionNormalized(double newPositionNormalized);
+    void setPlaySpeed(double newSpeed);
+    double getPlaySpeed() const;
     void setGain(float newGain);
     float getGain();
-    double getLengthInSeconds();
-    double getCurrentTimelinePositionInSeconds();
-    void setTimelinePosition(juce::int64 timecodeInSamples);
-    void setTimelinePositionInSeconds(double newPositionInSeconds);
-    void setTimelinePositionNormalized(double newPositionNormalized);
+    
     bool open(juce::URL filepath);
-
     juce::Result load(const juce::File& file);
     void closeMedia();
     bool isOpen() const;
-    void setPlaySpeed(double newSpeed);
-    double getPlaySpeed() const;
-    void setPlayPosition(double newPositionSeconds);
-    double getPlayPosition() const;
-
+    
     // FFmpegVideoListener implementation
     void videoFileChanged(const juce::File& newSource) override;
     void videoSizeChanged(const int width, const int height, const AVPixelFormat format) override;
