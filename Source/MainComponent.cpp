@@ -1066,6 +1066,43 @@ void MainComponent::draw() {
             m.drawPath(triangle);
         }
     }
+    
+    // SYNC TO DAW error vars
+    static bool showErrorPopup = false;
+    static std::string errorMessage = "SYNC TO DAW failed";
+    static constexpr float fadeDuration = 5.0f;
+    static constexpr int popupWidth = 150;
+    static constexpr int popupHeight = 25;
+    static constexpr int popupYOffset = 20;
+    static float errorOpacity = 1.0f;
+    static std::chrono::time_point<std::chrono::steady_clock> errorStartTime;
+
+    // Display SYNC TO DAW error popup
+    if (showErrorPopup) {
+        auto currentTime = std::chrono::steady_clock::now();
+        float elapsedSeconds = std::chrono::duration<float>(currentTime - errorStartTime).count();
+
+        if (elapsedSeconds < fadeDuration) {
+            errorOpacity = 1.0f - (elapsedSeconds / fadeDuration);
+            
+            int xPosition = (m.getSize().width() - popupWidth) / 2;
+            int yPosition = popupYOffset;
+
+            m.setColor(25, 25, 25, static_cast<int>(errorOpacity * 255));
+            m.drawRectangle(xPosition, yPosition, popupWidth, popupHeight);
+
+            int textWidth = m.getCurrentFont()->stringWidth(errorMessage);
+
+            m.setColor(255, 0, 0, static_cast<int>(errorOpacity * 255));
+            m.getCurrentFont()->drawString(
+                errorMessage,
+                xPosition + (popupWidth - textWidth) / 2,
+                yPosition + (popupHeight / 2) - 5
+            );
+        } else {
+            showErrorPopup = false;
+        }
+    }
 
     // Settings pane is open
     if (showSettingsMenu) {
@@ -1101,6 +1138,9 @@ void MainComponent::draw() {
                     b_wants_to_switch_to_standalone = false;
                 } else {
                     // stay in standalone
+                    showErrorPopup = true;
+                    errorOpacity = 1.0f;
+                    errorStartTime = std::chrono::steady_clock::now();
                 }
             } else if (playModeRadioGroup.selectedIndex == 1) {
                 // override and allow swap to standalone mode if a media file is loaded
