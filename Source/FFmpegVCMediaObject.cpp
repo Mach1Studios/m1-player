@@ -162,12 +162,12 @@ juce::int64 FFmpegVCMediaObject::getNextReadPositionInSamples()
 
 juce::int64 FFmpegVCMediaObject::getAudioSampleRate()
 {
-    return mediaReader ? mediaReader->getSampleRate() : 0;
+    return mediaReader ? (juce::int64)mediaReader->getSampleRate() : 0;
 }
 
 juce::int64 FFmpegVCMediaObject::getVideoFrameRate()
 {
-    return mediaReader ? mediaReader->getFramesPerSecond() : 0;
+    return mediaReader ? (juce::int64)mediaReader->getFramesPerSecond() : 0;
 }
 
 void FFmpegVCMediaObject::setGain(float newGain)
@@ -187,29 +187,23 @@ double FFmpegVCMediaObject::getLengthInSeconds()
 
 double FFmpegVCMediaObject::getPositionInSeconds()
 {
-    if (hasAudio())
-    {
-        return transportSource->getCurrentPosition();
-    }
-    else
-    {
-        return mediaReader->getCurrentPositionSeconds();
-    }
+    return transportSource->getCurrentPosition();
 }
 
 void FFmpegVCMediaObject::setPosition(double newPositionInSeconds)
 {
     if (!isOpen())
         return;
+
+    bool wasPlaying = isPlaying();
+    if (wasPlaying)
+        transportSource->stop();
     
-    if (hasAudio())
-    {
-        transportSource->setPosition(newPositionInSeconds);
-    }
-    else
-    {
-        mediaReader->setPositionSeconds(newPositionInSeconds);
-    }
+    //set position directly in media reader since the the transport source does not compensate for playback speed
+    mediaReader->setNextReadPosition (newPositionInSeconds * mediaReader->getSampleRate());
+
+    if (wasPlaying)
+        transportSource->start();
 }
 
 void FFmpegVCMediaObject::setPositionNormalized(double newPositionNormalized)
