@@ -1091,41 +1091,53 @@ void MainComponent::draw() {
             m.drawPath(triangle);
         }
     }
-    
-    // SYNC TO DAW error vars
-    static bool showErrorPopup = false;
-    static std::string errorMessage = "SYNC TO DAW failed";
-    static constexpr float fadeDuration = 5.0f;
-    static constexpr int popupWidth = 150;
-    static constexpr int popupHeight = 25;
-    static constexpr int popupYOffset = 20;
-    static float errorOpacity = 1.0f;
-    static std::chrono::time_point<std::chrono::steady_clock> errorStartTime;
 
-    // Display SYNC TO DAW error popup
+    // Display error popup
     if (showErrorPopup) {
+        auto errorBoundingBox = m.getCurrentFont()->getStringBoundingBox(errorMessage, 0, 0);
+        auto errorInfoBoundingBox = m.getCurrentFont()->getStringBoundingBox(errorMessageInfo, 0, 0);
+        
         auto currentTime = std::chrono::steady_clock::now();
         float elapsedSeconds = std::chrono::duration<float>(currentTime - errorStartTime).count();
 
         if (elapsedSeconds < fadeDuration) {
             errorOpacity = 1.0f - (elapsedSeconds / fadeDuration);
             
-            int xPosition = (m.getSize().width() - popupWidth) / 2;
-            int yPosition = popupYOffset;
+            int xPosition = (m.getSize().width() - errorBoundingBox.width) / 2;
+            int yPosition = 20;
 
             m.setColor(25, 25, 25, static_cast<int>(errorOpacity * 255));
-            m.drawRectangle(xPosition, yPosition, popupWidth, popupHeight);
+            m.drawRectangle(xPosition, yPosition, errorBoundingBox.width, errorBoundingBox.height);
 
             int textWidth = m.getCurrentFont()->stringWidth(errorMessage);
 
             m.setColor(255, 0, 0, static_cast<int>(errorOpacity * 255));
             m.getCurrentFont()->drawString(
                 errorMessage,
-                xPosition + (popupWidth - textWidth) / 2,
-                yPosition + (popupHeight / 2) - 5
+                xPosition + (errorBoundingBox.width - textWidth) / 2,
+                yPosition + (errorBoundingBox.height / 2) - 5
             );
+            if (errorMessageInfo != "") {
+                xPosition = (m.getSize().width() - errorInfoBoundingBox.width) / 2;
+                yPosition += 20;
+                
+                m.setColor(25, 25, 25, static_cast<int>(errorOpacity * 255));
+                m.drawRectangle(xPosition, yPosition, errorInfoBoundingBox.width, errorInfoBoundingBox.height);
+
+                int textWidth = m.getCurrentFont()->stringWidth(errorMessageInfo);
+                
+                m.setColor(255, 0, 0, static_cast<int>(errorOpacity * 255));
+                m.getCurrentFont()->drawString(
+                    errorMessageInfo,
+                    xPosition + (errorInfoBoundingBox.width - textWidth) / 2,
+                    yPosition + (errorInfoBoundingBox.height / 2) - 5
+                );
+            }
         } else {
             showErrorPopup = false;
+            // reset error messages
+            errorMessage = "";
+            errorMessageInfo = "";
         }
     }
 
@@ -1164,6 +1176,8 @@ void MainComponent::draw() {
                 } else {
                     // stay in standalone
                     showErrorPopup = true;
+                    errorMessage = "UNABLE TO SYNC TO DAW";
+                    errorMessageInfo = "Could not find any instances of M1-Monitor";
                     errorOpacity = 1.0f;
                     errorStartTime = std::chrono::steady_clock::now();
                 }
