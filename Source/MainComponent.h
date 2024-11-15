@@ -122,6 +122,14 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     void (MainComponent::*m_decode_strategy)(const AudioSourceChannelInfo&, const AudioSourceChannelInfo&);
     void (MainComponent::*m_transcode_strategy)(const AudioSourceChannelInfo&, const AudioSourceChannelInfo&);
 
+    // Error display
+    bool showErrorPopup = false;
+    std::string errorMessage = "";
+    std::string errorMessageInfo = "";
+    float fadeDuration = 5.0f;
+    float errorOpacity = 1.0f;
+    std::chrono::time_point<std::chrono::steady_clock> errorStartTime;
+    
     std::string formatTime(double seconds) {
         int hours = static_cast<int>(seconds) / 3600;
         int minutes = (static_cast<int>(seconds) % 3600) / 60;
