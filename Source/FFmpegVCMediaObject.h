@@ -6,7 +6,7 @@
 #include "juce_ffmpeg/Source/cb_ffmpeg/FFmpegVideoScaler.h"
 #include "juce_ffmpeg/Source/cb_ffmpeg/FFmpegVideoListener.h"
 
-class FFmpegVCMediaObject : public FFmpegVideoListener
+class FFmpegVCMediaObject : public FFmpegVideoListener, public juce::Timer
 {
 public:
     FFmpegVCMediaObject();
@@ -49,7 +49,6 @@ public:
     void videoSizeChanged(const int width, const int height, const AVPixelFormat format) override;
     void displayNewFrame(const AVFrame* frame) override;
     void positionSecondsChanged(const double position) override;
-    void videoEnded() override;
 
 private:
     std::unique_ptr<juce::AudioTransportSource> transportSource;
@@ -63,6 +62,9 @@ private:
     int sampleRate;
     juce::AudioBuffer<float> readBuffer;    
     juce::URL currentMediaFilePath;
+
+    /*! Callback for a timer. This is used to paint the current  frame. */
+    void timerCallback () override;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FFmpegVCMediaObject)
 };

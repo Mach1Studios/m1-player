@@ -28,17 +28,36 @@ FFmpegVCMediaObject::~FFmpegVCMediaObject()
     releaseResources();
 }
 
+void FFmpegVCMediaObject::timerCallback()
+{
+    if (!isOpen())
+        return;
+
+    // Get the next video frame
+    const AVFrame* frame = mediaReader->getNextVideoFrame();
+
+    if (frame)
+    {
+        displayNewFrame(frame);
+    }
+    else
+    {
+        // Check if we've reached the end of the file
+        if (mediaReader->isEndOfFile())
+        {
+            stop();
+        }
+    }
+}
+
+
 void FFmpegVCMediaObject::start()
 {
     DBG("FFmpegVCMediaObject::start() at " + juce::String(getPositionInSeconds()));
     if (isPaused && !isPlaying())
     {
-        if (mediaReader->getNumberOfAudioChannels() > 0)
-        {
-            // run as usual if there is audio to decode
-            transportSource->start();
-        }
-        else
+        transportSource->start();
+        if (!hasAudio())
         {
             // No audio, start decoding thread if not already running
             if (!mediaReader->isThreadRunning())
@@ -49,8 +68,10 @@ void FFmpegVCMediaObject::start()
             {
                 mediaReader->continueDecoding();
             }
+
+            // Start Timer to drive video playback
+            startTimerHz(static_cast<int>(getVideoFrameRate()));
         }
-        
         isPaused = false;
         
         // Invoke callback for onPlaybackStarted, this must be thread safe
@@ -70,19 +91,18 @@ void FFmpegVCMediaObject::stop()
     
     if (isPlaying() && !isPaused && isOpen())
     {
-        if (mediaReader->getNumberOfAudioChannels() > 0)
+        transportSource->stop();
+        if (!hasAudio())
         {
-            transportSource->stop();
-        }
-        else
-        {
+            // Stop the Timer
+            stopTimer();
+            
             // No audio, stop decoding thread and timer
             if (mediaReader->isThreadRunning())
             {
                 mediaReader->stopThread(1000);
             }
         }
-
         isPaused = true;
 
         // Invoke callback for onPlaybackStopped, this must be thread safe
@@ -98,14 +118,13 @@ void FFmpegVCMediaObject::stop()
 
 bool FFmpegVCMediaObject::isPlaying()
 {
-    if (mediaReader->getNumberOfAudioChannels() > 0)
+    if (hasAudio())
     {
-        // track via audiostream
         return transportSource->isPlaying();
     }
     else
     {
-        return mediaReader->isThreadRunning() && !isPaused;
+        return isTimerRunning() && !isPaused;
     }
 }
 
@@ -162,12 +181,12 @@ juce::int64 FFmpegVCMediaObject::getNextReadPositionInSamples()
 
 juce::int64 FFmpegVCMediaObject::getAudioSampleRate()
 {
-    return mediaReader ? (juce::int64)mediaReader->getSampleRate() : 0;
+    return mediaReader ? (juce::int64)mediaReader->getSampleRate() : 48000;
 }
 
 juce::int64 FFmpegVCMediaObject::getVideoFrameRate()
 {
-    return mediaReader ? (juce::int64)mediaReader->getFramesPerSecond() : 0;
+    return mediaReader ? (juce::int64)mediaReader->getFramesPerSecond() : 30.0;
 }
 
 void FFmpegVCMediaObject::setGain(float newGain)
@@ -187,7 +206,14 @@ double FFmpegVCMediaObject::getLengthInSeconds()
 
 double FFmpegVCMediaObject::getPositionInSeconds()
 {
-    return transportSource->getCurrentPosition();
+    if (hasAudio())
+    {
+        return transportSource->getCurrentPosition();
+    }
+    else
+    {
+        return mediaReader->getCurrentPositionSeconds();
+    }
 }
 
 void FFmpegVCMediaObject::setPosition(double newPositionInSeconds)
@@ -372,9 +398,4 @@ void FFmpegVCMediaObject::displayNewFrame(const AVFrame* frame)
 void FFmpegVCMediaObject::positionSecondsChanged(const double position)
 {
     // This method can be used to update any UI elements showing the current position
-}
-
-void FFmpegVCMediaObject::videoEnded()
-{
-    stop();
 }
