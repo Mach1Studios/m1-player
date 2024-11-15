@@ -276,28 +276,34 @@ juce::Result FFmpegVCMediaObject::load(const juce::File& file)
             return juce::Result::fail("Invalid blockSize or sampleRate");
         }
 
-        transportSource->setSource(mediaReader.get(), 0, nullptr,
-                                   mediaReader->getSampleRate() * playSpeed,
-                                   mediaReader->getNumberOfAudioChannels());
-
         currentMediaFilePath = juce::URL(file);
 
         // Check if the new file has video
-        if (mediaReader->getVideoStreamIndex() < 0)
+        if (hasVideo())
+        {
+            // resize because we have a video stream
+            videoSizeChanged(mediaReader->getVideoWidth(), mediaReader->getVideoHeight(), mediaReader->getPixelFormat());
+        }
+        else
         {
             // No video, clear current frame
             currentAVFrame = nullptr;
             currentFrameAsImage = juce::Image();
         }
+
+        // Start the decoding thread if there's no audio
+        if (hasAudio())
+        {
+            // Media has audio, set the transport source
+            transportSource->setSource(mediaReader.get(), 0, nullptr,
+                                       mediaReader->getSampleRate() * playSpeed,
+                                       mediaReader->getNumberOfAudioChannels());
+        }
         else
         {
-            // resize because we have a video stream
-            videoSizeChanged(mediaReader->getVideoWidth(), mediaReader->getVideoHeight(), mediaReader->getPixelFormat());
-        }
-        
-        // Start the decoding thread if there's no audio
-        if (mediaReader->getNumberOfAudioChannels() <= 0)
-        {
+            // Media has no audio, set transportSource to nullptr
+            transportSource->setSource(nullptr);
+
             if (!mediaReader->isThreadRunning())
             {
                 mediaReader->startThread();
