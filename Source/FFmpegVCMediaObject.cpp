@@ -38,45 +38,44 @@ void FFmpegVCMediaObject::timerCallback()
 
     if (frame)
     {
+        DBG("New frame received in timer callback");
         displayNewFrame(frame);
     }
     else if (mediaReader->isEndOfFile())
     {
+        DBG("End of file reached in timer callback");
         stop();
     }
 }
 
 void FFmpegVCMediaObject::start()
 {
-    DBG("FFmpegVCMediaObject::start() at " + juce::String(getPositionInSeconds()));
+    jassert(juce::MessageManager::getInstance()->isThisTheMessageThread());
+
     if (isPaused && !isPlaying())
     {
-        transportSource->start();
-        if (!hasAudio())
+        // Start video timer first
+        if (hasVideo())
         {
-            // No audio, start decoding thread if not already running
-            if (!mediaReader->isThreadRunning())
-            {
-                mediaReader->startThread();
-            }
-            else
-            {
-                mediaReader->continueDecoding();
-            }
-
-            // Start Timer to drive video playback
+            DBG("Starting video timer at " + juce::String(getVideoFrameRate()) + " Hz");
             startTimerHz(static_cast<int>(getVideoFrameRate()));
         }
-        isPaused = false;
-        
-        // Invoke callback for onPlaybackStarted, this must be thread safe
-        if (onPlaybackStarted != nullptr)
+
+        // Then handle audio/decoding
+        if (hasAudio())
         {
-            if (juce::MessageManager::getInstance()->isThisTheMessageThread())
-                onPlaybackStarted();
-            else
-                juce::MessageManager::callAsync(std::move(onPlaybackStarted));
+            DBG("Starting audio transport");
+            transportSource->start();
         }
+        
+        if (!mediaReader->isThreadRunning())
+        {
+            DBG("Starting media reader thread");
+            mediaReader->startThread();
+        }
+        
+        mediaReader->continueDecoding();
+        isPaused = false;
     }
 }
 
