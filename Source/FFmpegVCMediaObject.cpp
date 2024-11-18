@@ -40,16 +40,11 @@ void FFmpegVCMediaObject::timerCallback()
     {
         displayNewFrame(frame);
     }
-    else
+    else if (mediaReader->isEndOfFile())
     {
-        // Check if we've reached the end of the file
-        if (mediaReader->isEndOfFile())
-        {
-            stop();
-        }
+        stop();
     }
 }
-
 
 void FFmpegVCMediaObject::start()
 {
@@ -92,12 +87,16 @@ void FFmpegVCMediaObject::stop()
     if (isPlaying() && !isPaused && isOpen())
     {
         transportSource->stop();
+        
+        // Always stop the video timer if it's running
+        if (isTimerRunning())
+        {
+            stopTimer();
+        }
+        
+        // Stop decoding thread if no audio
         if (!hasAudio())
         {
-            // Stop the Timer
-            stopTimer();
-            
-            // No audio, stop decoding thread and timer
             if (mediaReader->isThreadRunning())
             {
                 mediaReader->stopThread(1000);
@@ -251,8 +250,12 @@ bool FFmpegVCMediaObject::open(juce::URL url)
 
 juce::Result FFmpegVCMediaObject::load(const juce::File& file)
 {
-    transportSource->stop();
-    transportSource->setSource(nullptr); // Reset the source
+    DBG("Loading new file: " + file.getFullPathName());
+    
+    // Stop playback and clear existing resources
+    stop();
+    transportSource->setSource(nullptr);
+    mediaReader->closeMediaFile();
 
     // Reset state variables
     currentAVFrame = nullptr;
@@ -260,9 +263,18 @@ juce::Result FFmpegVCMediaObject::load(const juce::File& file)
     playSpeed = 1.0;
     isPaused = true;
     readBuffer.clear();
+    stopTimer(); // Ensure timer is stopped
+
+    // Reset video scaler
+    videoScaler.releaseScaler();
 
     if (mediaReader->loadMediaFile(file))
     {
+        int _videoExists = hasVideo();
+        int _audioExists = hasAudio();
+        DBG("File loaded successfully. Has video: " + juce::String(_videoExists) +
+            ", Has audio: " + juce::String(_audioExists));
+
         // Ensure blockSize and sampleRate are initialized
         if (blockSize > 0 && sampleRate > 0)
         {
@@ -281,27 +293,31 @@ juce::Result FFmpegVCMediaObject::load(const juce::File& file)
         // Check if the new file has video
         if (hasVideo())
         {
-            // resize because we have a video stream
-            videoSizeChanged(mediaReader->getVideoWidth(), mediaReader->getVideoHeight(), mediaReader->getPixelFormat());
-        }
-        else
-        {
-            // No video, clear current frame
-            currentAVFrame = nullptr;
-            currentFrameAsImage = juce::Image();
+            DBG("Setting up video pipeline. Width: " + juce::String(mediaReader->getVideoWidth()) + 
+                ", Height: " + juce::String(mediaReader->getVideoHeight()));
+            
+            // Only call videoSizeChanged once
+            videoSizeChanged(mediaReader->getVideoWidth(), 
+                           mediaReader->getVideoHeight(), 
+                           mediaReader->getPixelFormat());
+            
+            // Don't call videoSizeChanged again, just verify the setup
+            if (!currentFrameAsImage.isValid() || !videoScaler.isValid())
+            {
+                DBG("Error: Video pipeline initialization failed");
+                return juce::Result::fail("Video pipeline initialization failed");
+            }
         }
 
-        // Start the decoding thread if there's no audio
+        // Set up audio pipeline
         if (hasAudio())
         {
-            // Media has audio, set the transport source
             transportSource->setSource(mediaReader.get(), 0, nullptr,
-                                       mediaReader->getSampleRate() * playSpeed,
-                                       mediaReader->getNumberOfAudioChannels());
+                                    mediaReader->getSampleRate() * playSpeed,
+                                    mediaReader->getNumberOfAudioChannels());
         }
         else
         {
-            // Media has no audio, set transportSource to nullptr
             transportSource->setSource(nullptr);
 
             if (!mediaReader->isThreadRunning())
@@ -327,9 +343,13 @@ void FFmpegVCMediaObject::closeMedia()
 
 juce::Image& FFmpegVCMediaObject::getFrame()
 {
-    if (currentAVFrame)
+    if (currentAVFrame && currentFrameAsImage.isValid())
     {
         videoScaler.convertFrameToImage(currentFrameAsImage, currentAVFrame);
+    }
+    else if (currentAVFrame)
+    {
+        DBG("Warning: Have frame but image is invalid in getFrame()");
     }
     return currentFrameAsImage;
 }
@@ -375,29 +395,53 @@ void FFmpegVCMediaObject::videoFileChanged(const juce::File& newSource)
 
 void FFmpegVCMediaObject::videoSizeChanged(const int width, const int height, const AVPixelFormat format)
 {
+    DBG("Video size changed - Width: " + juce::String(width) + 
+        ", Height: " + juce::String(height) + 
+        ", Format: " + juce::String(format));
+        
+    // Only proceed if we have valid dimensions
+    if (width <= 0 || height <= 0)
+    {
+        DBG("Invalid dimensions, clearing frame image");
+        currentFrameAsImage = juce::Image();
+        return;
+    }
+
     double aspectRatio = mediaReader->getVideoAspectRatio() * mediaReader->getPixelAspectRatio();
+    if (aspectRatio <= 0.0) aspectRatio = static_cast<double>(width) / height;
+    
     int w = width;
     int h = height;
     
-    if (aspectRatio > 0.0)
-    {
-        if (width / height > aspectRatio)
-            w = height * aspectRatio;
-        else
-            h = width / aspectRatio;
-
-        currentFrameAsImage = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
-        videoScaler.setupScaler(width, height, format, currentFrameAsImage.getWidth(), currentFrameAsImage.getHeight(), AV_PIX_FMT_BGR0);
-    }
+    if (width / height > aspectRatio)
+        w = height * aspectRatio;
     else
-    {
-        // Clear the current frame
-        currentFrameAsImage = juce::Image();
-    }
+        h = width / aspectRatio;
+
+    DBG("Creating new frame image with dimensions: " + juce::String(w) + "x" + juce::String(h));
+    currentFrameAsImage = juce::Image(juce::Image::PixelFormat::ARGB, w, h, true);
+    
+    // Ensure we're using the correct pixel format
+    AVPixelFormat srcFormat = (format == AV_PIX_FMT_NONE) ? AV_PIX_FMT_YUV420P : format;
+    
+    DBG("Setting up scaler - Source format: " + juce::String(av_get_pix_fmt_name(srcFormat)) + 
+        " -> BGR0");
+    
+    videoScaler.setupScaler(width, height, srcFormat,
+                           w, h, AV_PIX_FMT_BGR0);
 }
 
 void FFmpegVCMediaObject::displayNewFrame(const AVFrame* frame)
 {
+    DBG("New frame received: " + juce::String(frame != nullptr ? "valid" : "null"));
+    if (frame && !currentFrameAsImage.isValid())
+    {
+        DBG("Warning: Received frame but currentFrameAsImage is invalid!");
+        // Attempt to reinitialize the image
+        videoSizeChanged(mediaReader->getVideoWidth(), 
+                        mediaReader->getVideoHeight(), 
+                        mediaReader->getPixelFormat());
+    }
     currentAVFrame = frame;
 }
 
