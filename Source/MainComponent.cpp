@@ -550,12 +550,13 @@ void MainComponent::syncWithDAWPlayhead()
         
     double currentUpdate = m1OrientationClient.getPlayerLastUpdate();
     if (std::fabs(currentUpdate - lastUpdateForPlayer) < 0.01f)
+    {
         return;
-    
-    lastUpdateForPlayer = currentUpdate;
+    }
+    DBG("[SYNC] Last sync update: " + juce::String(std::fabs(currentUpdate - lastUpdateForPlayer)));
 
     // Get current external state
-    const double externalTimecode = m1OrientationClient.getPlayerPositionInSeconds();
+    const double externalTimecode = m1OrientationClient.getPlayerPositionInSeconds(); // offset applied on monitor side
     const double mediaLength = currentMedia.getLengthInSeconds();
     const double playerPosition = currentMedia.getPositionInSeconds();
     const bool shouldBePlaying = m1OrientationClient.getPlayerIsPlaying();
@@ -565,27 +566,24 @@ void MainComponent::syncWithDAWPlayhead()
     if (externalTimecode >= mediaLength) {
         if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
             juce::MessageManager::callAsync([this, externalTimecode]() {
-                DBG("Stopping playback on message thread");
+                DBG("[SYNC] Stopping playback on message thread");
                 if (currentMedia.isPlaying()) {
                     currentMedia.stop();
                 }
             });
         } else {
-            DBG("Stopping playback (already on message thread)");
+            DBG("[SYNC] Stopping playback (already on message thread)");
             if (currentMedia.isPlaying()) {
                 currentMedia.stop();
             }
         }
+        lastUpdateForPlayer = currentUpdate;
         return;
     }
     
-    int which_thread = juce::MessageManager::getInstance()->isThisTheMessageThread();
-    int should_play = m1OrientationClient.getPlayerIsPlaying();
-    int is_playing = currentMedia.isPlaying();
-    
-    DBG("Sync State - Thread: " + juce::String(which_thread) +
-        ", Should Play: " + juce::String(should_play) +
-        ", Is Playing: " + juce::String(is_playing) +
+    DBG("[SYNC] Sync State - Thread: " + juce::String((int)juce::MessageManager::getInstance()->isThisTheMessageThread()) +
+        ", Should Play: " + juce::String((int)m1OrientationClient.getPlayerIsPlaying()) +
+        ", Is Playing: " + juce::String((int)currentMedia.isPlaying()) +
         ", Position: " + juce::String(playerPosition) +
         ", External: " + juce::String(externalTimecode));
 
@@ -597,17 +595,58 @@ void MainComponent::syncWithDAWPlayhead()
     const double seekThreshold = frameDuration * 5.0;    // Seek if difference is > 5 frames
     const double syncThreshold = frameDuration * 0.5;    // Minor sync if difference is > 0.5 frames
     
-    DBG("Sync - External: " + juce::String(externalTimecode) +
+    DBG("[SYNC] Sync - External: " + juce::String(externalTimecode) +
         "s, Player: " + juce::String(playerPosition) +
         "s, Diff: " + juce::String(timeDifference) + "s");
 
     // Seek while stopped
-    if (!currentMedia.isPlaying())
+    if (currentMedia.isPlaying())
+    {
+        if (std::fabs(timeDifference) > syncThreshold)
+        {
+            // Minor difference - adjust playback speed
+            double speedAdjustment = 1.0;
+            if (timeDifference > 0)
+            {
+                // We're behind - speed up slightly
+                speedAdjustment = 1.1;
+            }
+            else
+            {
+                // We're ahead - slow down slightly
+                speedAdjustment = 0.9;
+            }
+
+            DBG("[SYNC] Changing playback speed to: " + juce::String(speedAdjustment));
+
+            if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
+                juce::MessageManager::callAsync([this, speedAdjustment]() {
+                    currentMedia.setPlaySpeed(speedAdjustment);
+                });
+            } else {
+                currentMedia.setPlaySpeed(speedAdjustment);
+            }
+        }
+        else
+        {
+            DBG("[SYNC] Changing playback speed to: 1.0" );
+            
+            // In sync - normal playback speed
+            if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
+                juce::MessageManager::callAsync([this]() {
+                    currentMedia.setPlaySpeed(1.0);
+                });
+            } else {
+                currentMedia.setPlaySpeed(1.0);
+            }
+        }
+    }
+    else // we are stopped and should just seek to position
     {
         if (std::fabs(timeDifference) > seekThreshold)
         {
             // Major difference - perform seek
-            DBG("Seeking to correct large sync difference");
+            DBG("[SYNC] Seeking to correct large sync difference");
             if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
                 juce::MessageManager::callAsync([this, externalTimecode]() {
                     currentMedia.setPosition(externalTimecode);
@@ -617,40 +656,6 @@ void MainComponent::syncWithDAWPlayhead()
             }
         }
     }
-
-//    else if (std::fabs(timeDifference) > syncThreshold)
-//    {
-//        // Minor difference - adjust playback speed
-//        double speedAdjustment = 1.0;
-//        if (timeDifference > 0)
-//        {
-//            // We're behind - speed up slightly
-//            speedAdjustment = 1.1;
-//        }
-//        else
-//        {
-//            // We're ahead - slow down slightly
-//            speedAdjustment = 0.9;
-//        }
-//        if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
-//            juce::MessageManager::callAsync([this, speedAdjustment]() {
-//                currentMedia.setPlaySpeed(speedAdjustment);
-//            });
-//        } else {
-//            currentMedia.setPlaySpeed(speedAdjustment);
-//        }
-//    }
-//    else
-//    {
-//        // In sync - normal playback speed
-//        if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
-//            juce::MessageManager::callAsync([this]() {
-//                currentMedia.setPlaySpeed(1.0);
-//            });
-//        } else {
-//            currentMedia.setPlaySpeed(1.0);
-//        }
-//    }
     
     // Handle play state changes first
     if (isCurrentlyPlaying != shouldBePlaying) {
@@ -658,32 +663,31 @@ void MainComponent::syncWithDAWPlayhead()
             // Ensure playback commands happen on the message thread
             if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
                 juce::MessageManager::callAsync([this, externalTimecode]() {
-                    DBG("Starting playback on message thread");
+                    DBG("[SYNC] Starting playback on message thread");
                     currentMedia.setPosition(externalTimecode);
                     currentMedia.start();
                 });
             } else {
-                DBG("Starting playback (already on message thread)");
+                DBG("[SYNC] Starting playback (already on message thread)");
                 currentMedia.setPosition(externalTimecode);
                 currentMedia.start();
             }
-            return;
         }
         else
         {
             // Ensure playback commands happen on the message thread
             if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
                 juce::MessageManager::callAsync([this]() {
-                    DBG("Stopping playback on message thread");
+                    DBG("[SYNC] Stopping playback on message thread");
                     currentMedia.stop();
                 });
             } else {
-                DBG("Stopping playback (already on message thread)");
+                DBG("[SYNC] Stopping playback (already on message thread)");
                 currentMedia.stop();
             }
-            return;
         }
     }
+    lastUpdateForPlayer = currentUpdate;
 }
 
 void MainComponent::draw_orientation_client(murka::Murka &m, M1OrientationClient &m1OrientationClient) {
