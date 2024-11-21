@@ -923,6 +923,7 @@ void MainComponent::draw() {
                         false, // showPositionReticle
                         0, // currentPosition
                         currentMedia.isPlaying(), // playing
+                        (m1OrientationClient.isConnectedToDevice()) ? m1OrientationClient.getOrientation().GetGlobalRotationAsEulerDegrees().GetYaw() : 0.0f,
                         [&]() {
                             // playButtonPress
                             // blocked since control should only be from DAW side
