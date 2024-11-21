@@ -878,6 +878,7 @@ void MainComponent::draw() {
                         true, // showPositionReticle
                         currentPosition, // currentPosition
                         currentMedia.isPlaying(), // playing
+                        m1OrientationClient.isConnectedToDevice(), // connected to device
                         (m1OrientationClient.isConnectedToDevice()) ? m1OrientationClient.getOrientation().GetGlobalRotationAsEulerDegrees().GetYaw() : 0.0f,
                         [&]() {
                             // playButtonPress
@@ -923,6 +924,7 @@ void MainComponent::draw() {
                         false, // showPositionReticle
                         0, // currentPosition
                         currentMedia.isPlaying(), // playing
+                        m1OrientationClient.isConnectedToDevice(), // connected to device
                         (m1OrientationClient.isConnectedToDevice()) ? m1OrientationClient.getOrientation().GetGlobalRotationAsEulerDegrees().GetYaw() : 0.0f,
                         [&]() {
                             // playButtonPress

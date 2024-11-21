@@ -92,27 +92,39 @@ public:
                                           20, 20})
             .withDrawingCallback([&](MurkaShape shape) {
 
-                m.pushMatrix();
-                m.pushStyle();
+                if (isConnected) {
+                    m.pushMatrix();
+                    m.pushStyle();
 
-                float centerX = shape.x() + shape.width() / 2;
-                float centerY = shape.y() + shape.height() / 2;
-                float imageWidth = deviceOrientationIcon.getWidth();
-                float imageHeight = deviceOrientationIcon.getHeight();
-                float aspectRatio = imageWidth / imageHeight;
-                float scaledWidth = shape.height() * aspectRatio;
-                float scaledHeight = shape.height();
+                    float centerX = shape.x() + shape.width() / 2;
+                    float centerY = shape.y() + shape.height() / 2;
+                    float imageWidth = deviceOrientationIcon.getWidth();
+                    float imageHeight = deviceOrientationIcon.getHeight();
+                    float aspectRatio = imageWidth / imageHeight;
+                    float scaledWidth = shape.height() * aspectRatio;
+                    float scaledHeight = shape.height();
 
-                m.translate(centerX, centerY, 0);
-                m.rotateZRad(deviceYaw * M_PI / 180.0f);
-                m.translate(-centerX, -centerY, 0);
-                
-                m.drawImage(deviceOrientationIcon,
-                            shape.x() + (shape.width() - scaledWidth) / 2,
-                            shape.y(), scaledWidth, scaledHeight);
+                    m.translate(centerX, centerY, 0);
+                    m.rotateZRad(deviceYaw * M_PI / 180.0f);
+                    m.translate(-centerX, -centerY, 0);
+                    
+                    m.drawImage(deviceOrientationIcon,
+                                shape.x() + (shape.width() - scaledWidth) / 2,
+                                shape.y(), scaledWidth, scaledHeight);
 
-                m.popStyle();
-                m.popMatrix();
+                    m.popStyle();
+                    m.popMatrix();
+                } else {
+                    m.pushStyle();
+                    m.disableFill();
+                    m.setLineWidth(3);
+                    m.setColor(GRID_LINES_4_RGB);
+                    m.drawCircle(shape.width() / 2 + 2, shape.height() / 2, shape.height() * 0.24);
+                    m.drawCircle(shape.width() / 2 + 2, shape.height() / 2, shape.height() * 0.26);
+                    m.drawCircle(shape.width() / 2 + 2, shape.height() / 2, shape.height() * 0.28);
+                    m.drawCircle(shape.width() / 2 + 2, shape.height() / 2, shape.height() * 0.18);
+                    m.popStyle();
+                }
             })
             .withOnClickCallback([&](){
                 connectButtonCallback();
@@ -219,6 +231,7 @@ public:
     std::string totalTime = "00:00";
 
     bool isPlaying = false;
+    bool isConnected = false;
     float deviceYaw = 0.0f;
     std::function<void()> playPausePressedCallback;
     std::function<void()> connectButtonCallback;
@@ -228,6 +241,7 @@ public:
                                       bool showPositionReticle = true,
                                       double currentPosition = 0.0,
                                       bool playing = false,
+                                      bool connected = false,
                                       float yaw = 0.0f,
                                       std::function<void()> playButtonPress = []() {},
                                       std::function<void()> connectButtonPress = []() {},
@@ -238,6 +252,7 @@ public:
         
         onPositionChangeCallback = onPositionChange;
         isPlaying = playing;
+        isConnected = connected;
         deviceYaw = yaw;
         playPausePressedCallback = playButtonPress;
         connectButtonCallback = connectButtonPress;
