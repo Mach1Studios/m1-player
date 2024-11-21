@@ -878,6 +878,7 @@ void MainComponent::draw() {
                         true, // showPositionReticle
                         currentPosition, // currentPosition
                         currentMedia.isPlaying(), // playing
+                        (m1OrientationClient.isConnectedToDevice()) ? m1OrientationClient.getOrientation().GetGlobalRotationAsEulerDegrees().GetYaw() : 0.0f,
                         [&]() {
                             // playButtonPress
                             if (currentMedia.isPlaying()) {
