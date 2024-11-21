@@ -88,20 +88,17 @@ public:
 
         // Connect button
         // TODO: fix placement (too far right)
-        m.prepare<M1PlayerControlButton>({getSize().x * 0.85 - 15,
-            getSize().y * 0.4 + 12,
-            10, 10})
+        m.prepare<M1PlayerControlButton>({getSize().x * 0.85 - 20,
+                    getSize().y * 0.4 + 7,
+                    20, 20})
             .withDrawingCallback([&](MurkaShape shape) {
-                m.pushStyle();
-                m.disableFill();
-                m.setLineWidth(3);
-                m.setColor(GRID_LINES_4_RGB);
-                m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.44);
-                m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.42);
-                m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.40);
-                m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.311);
-                m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.311);
-                m.popStyle();
+                // Draw the device orientation icon
+                m.setColor(ENABLED_PARAM); // Ensure the image has the appropriate color tint
+                m.drawImage(deviceOrientationIcon,
+                            shape.x() + 1,         // Adjust X-coordinate to center the larger image
+                            shape.y() - 4,         // Adjust Y-coordinate to center the larger image
+                            shape.width(),    // Increase width by 10
+                            shape.height());  // Increase height by 10
             })
             .withOnClickCallback([&](){
                 connectButtonCallback();
