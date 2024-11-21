@@ -205,6 +205,7 @@ public:
     std::string totalTime = "00:00";
 
     bool isPlaying = false;
+    float deviceYaw = 0.0f;
     std::function<void()> playPausePressedCallback;
     std::function<void()> connectButtonCallback;
     
@@ -213,6 +214,7 @@ public:
                                       bool showPositionReticle = true,
                                       double currentPosition = 0.0,
                                       bool playing = false,
+                                      float yaw = 0.0f;
                                       std::function<void()> playButtonPress = []() {},
                                       std::function<void()> connectButtonPress = []() {},
                                       std::function<void(double)> onPositionChange = [](double newPositionNormalised ){}) {
@@ -222,6 +224,7 @@ public:
         
         onPositionChangeCallback = onPositionChange;
         isPlaying = playing;
+        deviceYaw = yaw
         playPausePressedCallback = playButtonPress;
         connectButtonCallback = connectButtonPress;
         currentTime = current_timecode;
