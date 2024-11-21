@@ -107,7 +107,6 @@ public:
                 m.rotateZRad(deviceYaw * M_PI / 180.0f);
                 m.translate(-centerX, -centerY, 0);
                 
-                m.setColor(ORIENTATION_ACTIVE_COLOR);
                 m.drawImage(deviceOrientationIcon,
                             shape.x() + (shape.width() - scaledWidth) / 2,
                             shape.y(), scaledWidth, scaledHeight);
