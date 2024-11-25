@@ -87,7 +87,7 @@ public:
         }
 
         //Connect button
-        m.prepare<M1PlayerControlButton>({getSize().x * 0.85 - 20,
+        m.prepare<M1PlayerControlButton>({getSize().x * 0.80 - 20,
                                           getSize().y * 0.4 + 7,
                                           20, 20})
             .withDrawingCallback([&](MurkaShape shape) {
@@ -134,11 +134,11 @@ public:
         
         m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-5);
         m.setColor(ENABLED_PARAM);
-        m.prepare<murka::Label>({getSize().x * 0.85 - getSize().y / 4 - 10,
+        m.prepare<murka::Label>({getSize().x * 0.80 - getSize().y / 4 - 10,
             40 + 30,
             getSize().y / 4 + 100,
             getSize().y / 4}).text("CONNECTED").draw();
-        m.prepare<murka::Label>({getSize().x * 0.85 - getSize().y / 4,
+        m.prepare<murka::Label>({getSize().x * 0.80 - getSize().y / 4,
             40 + 40,
             getSize().y / 4 + 100,
             getSize().y / 4}).text("DEVICE").draw();
