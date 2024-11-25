@@ -548,7 +548,7 @@ void MainComponent::syncWithDAWPlayhead()
     if (!currentMedia.clipLoaded() || !currentMedia.hasVideo())
         return;
         
-    double currentUpdate = m1OrientationClient.getPlayerLastUpdate();
+    double currentUpdate = playerOSC.getPlayerLastUpdate();
     if (std::fabs(currentUpdate - lastUpdateForPlayer) < 0.01f)
     {
         return;
@@ -556,10 +556,10 @@ void MainComponent::syncWithDAWPlayhead()
     DBG("[SYNC] Last sync update: " + juce::String(std::fabs(currentUpdate - lastUpdateForPlayer)));
 
     // Get current external state
-    const double externalTimecode = m1OrientationClient.getPlayerPositionInSeconds(); // offset applied on monitor side
+    const double externalTimecode = playerOSC.getPlayerPositionInSeconds(); // offset applied on monitor side
     const double mediaLength = currentMedia.getLengthInSeconds();
     const double playerPosition = currentMedia.getPositionInSeconds();
-    const bool shouldBePlaying = m1OrientationClient.getPlayerIsPlaying();
+    const bool shouldBePlaying = playerOSC.getPlayerIsPlaying();
     const bool isCurrentlyPlaying = currentMedia.isPlaying();
     
     // Ensure we don't go beyond the media length
@@ -582,7 +582,7 @@ void MainComponent::syncWithDAWPlayhead()
     }
     
     DBG("[SYNC] Sync State - Thread: " + juce::String((int)juce::MessageManager::getInstance()->isThisTheMessageThread()) +
-        ", Should Play: " + juce::String((int)m1OrientationClient.getPlayerIsPlaying()) +
+        ", Should Play: " + juce::String((int)playerOSC.getPlayerIsPlaying()) +
         ", Is Playing: " + juce::String((int)currentMedia.isPlaying()) +
         ", Position: " + juce::String(playerPosition) +
         ", External: " + juce::String(externalTimecode));
