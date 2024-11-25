@@ -117,7 +117,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     
     // Communication to Monitor and the rest of the M1SpatialSystem
     void timerCallback() override;
-    PlayerOSC playerOSC;
+    std::unique_ptr<PlayerOSC> playerOSC;
 
     void (MainComponent::*m_decode_strategy)(const AudioSourceChannelInfo&, const AudioSourceChannelInfo&);
     void (MainComponent::*m_transcode_strategy)(const AudioSourceChannelInfo&, const AudioSourceChannelInfo&);
