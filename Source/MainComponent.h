@@ -10,7 +10,6 @@
 #include "Mach1Encode.h"
 #include "Mach1Transcode.h"
 #include "TypesForDataExchange.h"
-#include "TransportOSCServer.h"
 #include "PlayerOSC.h"
 
 #include "FFmpegVCMediaObject.h"
