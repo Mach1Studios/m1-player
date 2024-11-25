@@ -275,19 +275,28 @@ void MainComponent::fallbackDecodeStrategy(const AudioSourceChannelInfo &bufferT
                                            const AudioSourceChannelInfo &info) {
     // Invalid Decode I/O; clear buffers
     for (auto channel = detectedNumInputChannels; channel < 2; ++channel) {
-        bufferToFill.buffer->clear(channel, 0, bufferToFill.numSamples);
+        if (channel < bufferToFill.buffer->getNumChannels())
+        {
+            bufferToFill.buffer->clear(channel, 0, bufferToFill.numSamples);
+        }
     }
 }
 
 void MainComponent::stereoDecodeStrategy(const AudioSourceChannelInfo &bufferToFill,
                                          const AudioSourceChannelInfo &info) {
     bufferToFill.buffer->copyFrom(0, 0, readBuffer, 0, 0, info.numSamples);
-    bufferToFill.buffer->copyFrom(1, 0, readBuffer, 1, 0, info.numSamples);
+    if (bufferToFill.buffer->getNumChannels() > 1)
+    {
+        bufferToFill.buffer->copyFrom(1, 0, readBuffer, 1, 0, info.numSamples);
+    }
 }
 
 void MainComponent::monoDecodeStrategy(const AudioSourceChannelInfo &bufferToFill, const AudioSourceChannelInfo &info) {
     bufferToFill.buffer->copyFrom(0, 0, readBuffer, 0, 0, info.numSamples);
-    bufferToFill.buffer->copyFrom(1, 0, readBuffer, 0, 0, info.numSamples);
+    if (bufferToFill.buffer->getNumChannels() > 1)
+    {
+        bufferToFill.buffer->copyFrom(1, 0, readBuffer, 0, 0, info.numSamples);
+    }
     bufferToFill.buffer->applyGain(MINUS_3DB_AMP); // apply -3dB pan-law gain to all channels
 }
 
@@ -295,8 +304,12 @@ void MainComponent::readBufferDecodeStrategy(const AudioSourceChannelInfo &buffe
                                              const AudioSourceChannelInfo &info) {
     auto sample_count = bufferToFill.numSamples;
     auto channel_count = detectedNumInputChannels;
+    float *outBufferR = nullptr;
     float *outBufferL = bufferToFill.buffer->getWritePointer(0);
-    float *outBufferR = bufferToFill.buffer->getWritePointer(1);
+    if (bufferToFill.buffer->getNumChannels() > 1)
+    {
+        outBufferR = bufferToFill.buffer->getWritePointer(1);
+    }
     auto ori_deg = currentOrientation.GetGlobalRotationAsEulerDegrees();
     m1Decode.setRotationDegrees({ori_deg.GetYaw(), ori_deg.GetPitch(), ori_deg.GetRoll()});
     spatialMixerCoeffs = m1Decode.decodeCoeffs();
@@ -319,7 +332,10 @@ void MainComponent::readBufferDecodeStrategy(const AudioSourceChannelInfo &buffe
             auto left_sample = tempBuffer.getReadPointer(channel * 2 + 0)[sample];
             auto right_sample = tempBuffer.getReadPointer(channel * 2 + 1)[sample];
             outBufferL[sample] += left_sample * smoothedChannelCoeffs[channel * 2 + 0].getNextValue();
-            outBufferR[sample] += right_sample * smoothedChannelCoeffs[channel * 2 + 1].getNextValue();
+            if (bufferToFill.buffer->getNumChannels() > 1)
+            {
+                outBufferR[sample] += right_sample * smoothedChannelCoeffs[channel * 2 + 1].getNextValue();
+            }
         }
     }
 }
@@ -328,8 +344,12 @@ void MainComponent::intermediaryBufferDecodeStrategy(const AudioSourceChannelInf
                                                      const AudioSourceChannelInfo &info) {
     auto sample_count = bufferToFill.numSamples;
     auto channel_count = detectedNumInputChannels;
+    float *outBufferR = nullptr;
     float *outBufferL = bufferToFill.buffer->getWritePointer(0);
-    float *outBufferR = bufferToFill.buffer->getWritePointer(1);
+    if (bufferToFill.buffer->getNumChannels() > 1)
+    {
+        outBufferR = bufferToFill.buffer->getWritePointer(1);
+    }
     auto ori_deg = currentOrientation.GetGlobalRotationAsEulerDegrees();
     m1Decode.setRotationDegrees({ori_deg.GetYaw(), ori_deg.GetPitch(), ori_deg.GetRoll()});
     spatialMixerCoeffs = m1Decode.decodeCoeffs();
@@ -352,7 +372,10 @@ void MainComponent::intermediaryBufferDecodeStrategy(const AudioSourceChannelInf
             auto left_sample = tempBuffer.getReadPointer(channel * 2 + 0)[sample];
             auto right_sample = tempBuffer.getReadPointer(channel * 2 + 1)[sample];
             outBufferL[sample] += left_sample * smoothedChannelCoeffs[channel * 2 + 0].getNextValue();
-            outBufferR[sample] += right_sample * smoothedChannelCoeffs[channel * 2 + 1].getNextValue();
+            if (bufferToFill.buffer->getNumChannels() > 1)
+            {
+                outBufferR[sample] += right_sample * smoothedChannelCoeffs[channel * 2 + 1].getNextValue();
+            }
         }
     }
 }
@@ -401,12 +424,6 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo &buffer
     // The TransportSource takes care of start, stop and resample.
     juce::AudioSourceChannelInfo info(&readBuffer, bufferToFill.startSample, bufferToFill.numSamples);
 
-    // First read video.
-    if (currentMedia.hasVideo()) {
-        readBuffer.setSize(currentMedia.getNumChannels(), bufferToFill.numSamples);
-        readBuffer.clear();
-    }
-
     // If standalone mode is active, or the loaded clip has no audio, exit this routine.
     if (!b_standalone_mode || !currentMedia.hasAudio()) {
         return;
@@ -419,28 +436,36 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo &buffer
     readBuffer.clear();
 
     // the AudioTransportSource takes care of start, stop and resample
-    currentMedia.getNextAudioBlock(info);
+    if (currentMedia.hasAudio())
+    {
+        currentMedia.getNextAudioBlock(info);
 
-    tempBuffer.setSize(detectedNumInputChannels * 2, bufferToFill.numSamples);
-    tempBuffer.clear();
+        tempBuffer.setSize(detectedNumInputChannels * 2, bufferToFill.numSamples);
+        tempBuffer.clear();
 
-    if (detectedNumInputChannels <= 0) {
+        if (detectedNumInputChannels <= 0) {
+            bufferToFill.clearActiveBufferRegion();
+            return;
+        }
+
+        // if you've got more output channels than input clears extra outputs
+        for (auto channel = detectedNumInputChannels; channel < 2 && channel < detectedNumInputChannels; ++channel) {
+            readBuffer.clear(channel, 0, bufferToFill.numSamples);
+        }
+
+        // Processing loop
+        (this->*m_transcode_strategy)(bufferToFill, info);
+        (this->*m_decode_strategy)(bufferToFill, info);
+
+        // clear remaining input channels
+        for (auto channel = 2; channel < detectedNumInputChannels; ++channel) {
+            readBuffer.clear(channel, 0, bufferToFill.numSamples);
+        }
+    }
+    else
+    {
+        // no audio, clear the buffer
         bufferToFill.clearActiveBufferRegion();
-        return;
-    }
-
-    // if you've got more output channels than input clears extra outputs
-    for (auto channel = detectedNumInputChannels; channel < 2 && channel < detectedNumInputChannels; ++channel) {
-        readBuffer.clear(channel, 0, bufferToFill.numSamples);
-    }
-
-    // Processing loop
-    (this->*m_transcode_strategy)(bufferToFill, info);
-    (this->*m_decode_strategy)(bufferToFill, info);
-
-    // clear remaining input channels
-    for (auto channel = 2; channel < detectedNumInputChannels; ++channel) {
-        readBuffer.clear(channel, 0, bufferToFill.numSamples);
     }
 }
 
@@ -464,7 +489,7 @@ void MainComponent::showFileChooser() {
             openFile(fileUrl.getLocalFile());
             
             if (currentMedia.clipLoaded()) {
-                currentMedia.setTimelinePosition(0);
+                currentMedia.setPosition(0);
             }
 
             juce::Process::makeForegroundProcess();
@@ -486,7 +511,9 @@ void MainComponent::filesDropped(const juce::StringArray &files, int, int) {
 
 void MainComponent::openFile(juce::File filepath) {
     // TODO: test new dropped files first before clearing
-    
+    currentMedia.stop();
+    currentMedia.closeMedia();
+
   	// Video Setup
     currentMedia.open(juce::URL(filepath));
 
@@ -498,7 +525,7 @@ void MainComponent::openFile(juce::File filepath) {
     // restart timeline
     if (b_standalone_mode) {
         if (currentMedia.clipLoaded()) {
-            currentMedia.setTimelinePosition(0);
+            currentMedia.setPosition(0);
         }
     }
     
@@ -515,49 +542,152 @@ void MainComponent::shutdown()
 	murka::JuceMurkaBaseComponent::shutdown();
 }
 
-void MainComponent::syncWithDAWPlayhead() {
-    if (std::fabs(m1OrientationClient.getPlayerLastUpdate() - lastUpdateForPlayer) < 0.001f) {
-        // Sync already established
+void MainComponent::syncWithDAWPlayhead() 
+{
+    // Early exits with minimal checks
+    if (!currentMedia.clipLoaded() || !currentMedia.hasVideo())
+        return;
+        
+    double currentUpdate = playerOSC.getPlayerLastUpdate();
+    if (std::fabs(currentUpdate - lastUpdateForPlayer) < 0.01f)
+    {
+        return;
+    }
+    DBG("[SYNC] Last sync update: " + juce::String(std::fabs(currentUpdate - lastUpdateForPlayer)));
+
+    // Get current external state
+    const double externalTimecode = playerOSC.getPlayerPositionInSeconds(); // offset applied on monitor side
+    const double mediaLength = currentMedia.getLengthInSeconds();
+    const double playerPosition = currentMedia.getPositionInSeconds();
+    const bool shouldBePlaying = playerOSC.getPlayerIsPlaying();
+    const bool isCurrentlyPlaying = currentMedia.isPlaying();
+    
+    // Ensure we don't go beyond the media length
+    if (externalTimecode >= mediaLength) {
+        if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
+            juce::MessageManager::callAsync([this, externalTimecode]() {
+                DBG("[SYNC] Stopping playback on message thread");
+                if (currentMedia.isPlaying()) {
+                    currentMedia.stop();
+                }
+            });
+        } else {
+            DBG("[SYNC] Stopping playback (already on message thread)");
+            if (currentMedia.isPlaying()) {
+                currentMedia.stop();
+            }
+        }
+        lastUpdateForPlayer = currentUpdate;
         return;
     }
     
-    if (!currentMedia.clipLoaded()) {
-        // no video loaded yet so no reason to sync in this mode
-        return;
-    }
+    DBG("[SYNC] Sync State - Thread: " + juce::String((int)juce::MessageManager::getInstance()->isThisTheMessageThread()) +
+        ", Should Play: " + juce::String((int)playerOSC.getPlayerIsPlaying()) +
+        ", Is Playing: " + juce::String((int)currentMedia.isPlaying()) +
+        ", Position: " + juce::String(playerPosition) +
+        ", External: " + juce::String(externalTimecode));
 
-    lastUpdateForPlayer = m1OrientationClient.getPlayerLastUpdate();
+    // Sync while playing
+    const double timeDifference = externalTimecode - playerPosition;
+    const double frameDuration = 1.0 / currentMedia.getVideoFrameRate();
+    
+    // Define thresholds for sync actions
+    const double seekThreshold = frameDuration * 5.0;    // Seek if difference is > 5 frames
+    const double syncThreshold = frameDuration * 0.5;    // Minor sync if difference is > 0.5 frames
+    
+    DBG("[SYNC] Sync - External: " + juce::String(externalTimecode) +
+        "s, Player: " + juce::String(playerPosition) +
+        "s, Diff: " + juce::String(timeDifference) + "s");
 
-    auto length = currentMedia.getLengthInSeconds();
-    auto player_ph_pos = currentMedia.getNextReadPositionInSamples() / currentMedia.getAudioSampleRate();
-    float daw_ph_pos = m1OrientationClient.getPlayerPositionInSeconds(); // this incorporates the offset (daw_ph - offset)
-    bool end_reached = daw_ph_pos >= length;
+    // Seek while stopped
+    if (currentMedia.isPlaying())
+    {
+        if (std::fabs(timeDifference) > syncThreshold)
+        {
+            // Minor difference - adjust playback speed
+            double speedAdjustment = 1.0;
+            if (timeDifference > 0)
+            {
+                // We're behind - speed up slightly
+                speedAdjustment = 1.1;
+            }
+            else
+            {
+                // We're ahead - slow down slightly
+                speedAdjustment = 0.9;
+            }
 
-    // Prevent playback from continuing if we reached the end of the loaded video clip's length
-    if (end_reached && !(currentMedia.isPlaying())) {
-        DBG("[Playhead] Reached end of video length.");
-        return;
-    }
+            DBG("[SYNC] Changing playback speed to: " + juce::String(speedAdjustment));
 
-    // seek sync
-    auto playback_delta = static_cast<float>(daw_ph_pos - player_ph_pos);
-    //DBG("Playhead Pos: "+std::to_string(playback_delta));
-    if (std::fabs(playback_delta) > 0.05 && !end_reached) {
-        if (currentMedia.clipLoaded()) {
-            currentMedia.setTimelinePosition(static_cast<juce::int64>(daw_ph_pos * currentMedia.getAudioSampleRate()));
+            if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
+                juce::MessageManager::callAsync([this, speedAdjustment]() {
+                    currentMedia.setPlaySpeed(speedAdjustment);
+                });
+            } else {
+                currentMedia.setPlaySpeed(speedAdjustment);
+            }
+        }
+        else
+        {
+            DBG("[SYNC] Changing playback speed to: 1.0" );
+            
+            // In sync - normal playback speed
+            if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
+                juce::MessageManager::callAsync([this]() {
+                    currentMedia.setPlaySpeed(1.0);
+                });
+            } else {
+                currentMedia.setPlaySpeed(1.0);
+            }
         }
     }
-
-    // play / stop sync
-    bool video_not_synced = (currentMedia.clipLoaded() && m1OrientationClient.getPlayerIsPlaying() != currentMedia.isPlaying());
-    if (video_not_synced) {
-        if (m1OrientationClient.getPlayerIsPlaying()) {
-            currentMedia.start();
-        }
-        else {
-            currentMedia.stop();
+    else // we are stopped and should just seek to position
+    {
+        if (std::fabs(timeDifference) > seekThreshold)
+        {
+            // Major difference - perform seek
+            DBG("[SYNC] Seeking to correct large sync difference");
+            if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
+                juce::MessageManager::callAsync([this, externalTimecode]() {
+                    currentMedia.setPosition(externalTimecode);
+                });
+            } else {
+                currentMedia.setPosition(externalTimecode);
+            }
         }
     }
+    
+    // Handle play state changes first
+    if (isCurrentlyPlaying != shouldBePlaying) {
+        if (shouldBePlaying) {
+            // Ensure playback commands happen on the message thread
+            if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
+                juce::MessageManager::callAsync([this, externalTimecode]() {
+                    DBG("[SYNC] Starting playback on message thread");
+                    currentMedia.setPosition(externalTimecode);
+                    currentMedia.start();
+                });
+            } else {
+                DBG("[SYNC] Starting playback (already on message thread)");
+                currentMedia.setPosition(externalTimecode);
+                currentMedia.start();
+            }
+        }
+        else
+        {
+            // Ensure playback commands happen on the message thread
+            if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
+                juce::MessageManager::callAsync([this]() {
+                    DBG("[SYNC] Stopping playback on message thread");
+                    currentMedia.stop();
+                });
+            } else {
+                DBG("[SYNC] Stopping playback (already on message thread)");
+                currentMedia.stop();
+            }
+        }
+    }
+    lastUpdateForPlayer = currentUpdate;
 }
 
 void MainComponent::draw_orientation_client(murka::Murka &m, M1OrientationClient &m1OrientationClient) {
@@ -611,6 +741,8 @@ void MainComponent::draw_orientation_client(murka::Murka &m, M1OrientationClient
 }
 
 void MainComponent::draw() {
+    
+    // countdown for hiding UI when mouse is not active in window
     if ((m.mouseDelta().x != 0) || (m.mouseDelta().y != 0)) {
         secondsWithoutMouseMove = 0;
     }
@@ -635,7 +767,7 @@ void MainComponent::draw() {
 	// update video frame
 	if (currentMedia.clipLoaded() && currentMedia.hasVideo()) {
         auto clipLengthInSeconds = currentMedia.getLengthInSeconds();
-        juce::Image& frame = currentMedia.getFrame(currentMedia.getCurrentTimelinePositionInSeconds());
+        juce::Image& frame = currentMedia.getFrame();
         //DBG("[Video] Time: " + std::to_string(clip->getCurrentTimeInSeconds()) + ", Block:" + std::to_string(clip->getNextReadPosition()) + ", normalized: " + std::to_string( clip->getCurrentTimeInSeconds() /  clipLengthInSeconds ));
 		if (frame.getWidth() > 0 && frame.getHeight() > 0) {
 			if (imgVideo.getWidth() != frame.getWidth() || imgVideo.getHeight() != frame.getHeight()) {
@@ -706,7 +838,7 @@ void MainComponent::draw() {
 		}
 
 		float length = currentMedia.getLengthInSeconds();
-		float playheadPosition = currentMedia.getCurrentTimelinePositionInSeconds() / length;
+		float playheadPosition = currentMedia.getPositionInSeconds() / length;
 		videoPlayerWidget.playheadPosition = (float)playheadPosition;
 	}
 	
@@ -740,19 +872,37 @@ void MainComponent::draw() {
     if (b_standalone_mode) { // Standalone mode
         double currentPosition = 0.0;
         if (currentMedia.clipLoaded() && (currentMedia.hasVideo() || currentMedia.hasAudio())) {
-            currentPosition = currentMedia.getCurrentTimelinePositionInSeconds() / currentMedia.getLengthInSeconds();
+            currentPosition = currentMedia.getPositionInSeconds() / currentMedia.getLengthInSeconds();
         }
-        playerControls.withPlayerData((currentMedia.clipLoaded() && currentMedia.hasVideo()) ? formatTime(currentMedia.getCurrentTimelinePositionInSeconds()) : "00:00", formatTime(currentMedia.getLengthInSeconds()),
+        playerControls.withPlayerData((currentMedia.clipLoaded() && currentMedia.hasVideo()) ? formatTime(currentMedia.getPositionInSeconds()) : "00:00", formatTime(currentMedia.getLengthInSeconds()),
                         true, // showPositionReticle
                         currentPosition, // currentPosition
                         currentMedia.isPlaying(), // playing
+                        m1OrientationClient.isConnectedToDevice(), // connected to device
+                        (m1OrientationClient.isConnectedToDevice()) ? m1OrientationClient.getOrientation().GetGlobalRotationAsEulerDegrees().GetYaw() : 0.0f,
                         [&]() {
                             // playButtonPress
                             if (currentMedia.isPlaying()) {
-                                currentMedia.stop();
+                                if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
+                                    juce::MessageManager::callAsync([this]() {
+                                        DBG("Starting playback on message thread");
+                                        currentMedia.stop();
+                                    });
+                                } else {
+                                    DBG("Starting playback (already on message thread)");
+                                    currentMedia.stop();
+                                }
                             }
                             else {
-                                currentMedia.start();
+                                if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
+                                    juce::MessageManager::callAsync([this]() {
+                                        DBG("Starting playback on message thread");
+                                        currentMedia.start();
+                                    });
+                                } else {
+                                    DBG("Starting playback (already on message thread)");
+                                    currentMedia.start();
+                                }
                             }
                         },
                         [&]() {
@@ -761,7 +911,7 @@ void MainComponent::draw() {
                         },
                         [&](double newPositionNormalised) {
                             // refreshing player position
-                            currentMedia.setCurrentTimelinePositionInSeconds(newPositionNormalised * currentMedia.getLengthInSeconds());
+                            currentMedia.setPosition(newPositionNormalised * currentMedia.getLengthInSeconds());
                         });
         playerControls.withVolumeData(currentMedia.getGain(),
                         [&](double newVolume){
@@ -774,6 +924,8 @@ void MainComponent::draw() {
                         false, // showPositionReticle
                         0, // currentPosition
                         currentMedia.isPlaying(), // playing
+                        m1OrientationClient.isConnectedToDevice(), // connected to device
+                        (m1OrientationClient.isConnectedToDevice()) ? m1OrientationClient.getOrientation().GetGlobalRotationAsEulerDegrees().GetYaw() : 0.0f,
                         [&]() {
                             // playButtonPress
                             // blocked since control should only be from DAW side
@@ -905,19 +1057,49 @@ void MainComponent::draw() {
     if (b_standalone_mode) { // block interaction unless in standalone mode
         if (m.isKeyPressed(MURKA_KEY_SPACE)) { // Space bar is 32 on OSX
             if (currentMedia.isPlaying()) {
-                currentMedia.stop();
+                if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
+                    juce::MessageManager::callAsync([this]() {
+                        DBG("Stopping playback on message thread");
+                        currentMedia.stop();
+                    });
+                } else {
+                    DBG("Stopping playback (already on message thread)");
+                    currentMedia.stop();
+                }
             }
             else {
-                currentMedia.start();
+                if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
+                    juce::MessageManager::callAsync([this]() {
+                        DBG("Starting playback on message thread");
+                        currentMedia.start();
+                    });
+                } else {
+                    DBG("Starting playback (already on message thread)");
+                    currentMedia.start();
+                }
             }
         }
         if (m.isKeyPressed(MurkaKey::MURKA_KEY_RETURN)) {
             if (currentMedia.isPlaying()) {
-                currentMedia.stop();
+                if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
+                    juce::MessageManager::callAsync([this]() {
+                        DBG("Stopping playback on message thread");
+                        currentMedia.stop();
+                    });
+                } else {
+                    DBG("Stopping playback (already on message thread)");
+                    currentMedia.stop();
+                }
             }
             else {
                 if (currentMedia.clipLoaded()) {
-                    currentMedia.setTimelinePosition(0);
+                    if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
+                        juce::MessageManager::callAsync([this]() {
+                            currentMedia.setPosition(0);
+                        });
+                    } else {
+                        currentMedia.setPosition(0);
+                    }
                 }
             }
         }
@@ -925,7 +1107,7 @@ void MainComponent::draw() {
 
     if (bShowHelpUI) {
         m.getCurrentFont()->drawString("FOV : " + std::to_string(videoPlayerWidget.fov), 10, 10);
-        m.getCurrentFont()->drawString("Frame: " + std::to_string(currentMedia.getCurrentTimelinePositionInSeconds()), 10, 30);
+        m.getCurrentFont()->drawString("Frame: " + std::to_string(currentMedia.getPositionInSeconds()), 10, 30);
         m.getCurrentFont()->drawString("Standalone mode: " + std::to_string(b_standalone_mode), 10, 50);
         m.getCurrentFont()->drawString("Hotkeys:", 10, 130);
         m.getCurrentFont()->drawString("[w] - FOV+", 10, 150);
@@ -1036,6 +1218,55 @@ void MainComponent::draw() {
         }
     }
 
+    // Display error popup
+    if (showErrorPopup) {
+        auto errorBoundingBox = m.getCurrentFont()->getStringBoundingBox(errorMessage, 0, 0);
+        auto errorInfoBoundingBox = m.getCurrentFont()->getStringBoundingBox(errorMessageInfo, 0, 0);
+        
+        auto currentTime = std::chrono::steady_clock::now();
+        float elapsedSeconds = std::chrono::duration<float>(currentTime - errorStartTime).count();
+
+        if (elapsedSeconds < fadeDuration) {
+            errorOpacity = 1.0f - (elapsedSeconds / fadeDuration);
+            
+            int xPosition = (m.getSize().width() - errorBoundingBox.width) / 2;
+            int yPosition = 20;
+
+            m.setColor(25, 25, 25, static_cast<int>(errorOpacity * 255));
+            m.drawRectangle(xPosition, yPosition, errorBoundingBox.width, errorBoundingBox.height);
+
+            int textWidth = m.getCurrentFont()->stringWidth(errorMessage);
+
+            m.setColor(255, 0, 0, static_cast<int>(errorOpacity * 255));
+            m.getCurrentFont()->drawString(
+                errorMessage,
+                xPosition + (errorBoundingBox.width - textWidth) / 2,
+                yPosition + (errorBoundingBox.height / 2) - 5
+            );
+            if (errorMessageInfo != "") {
+                xPosition = (m.getSize().width() - errorInfoBoundingBox.width) / 2;
+                yPosition += 20;
+                
+                m.setColor(25, 25, 25, static_cast<int>(errorOpacity * 255));
+                m.drawRectangle(xPosition, yPosition, errorInfoBoundingBox.width, errorInfoBoundingBox.height);
+
+                int textWidth = m.getCurrentFont()->stringWidth(errorMessageInfo);
+                
+                m.setColor(255, 0, 0, static_cast<int>(errorOpacity * 255));
+                m.getCurrentFont()->drawString(
+                    errorMessageInfo,
+                    xPosition + (errorInfoBoundingBox.width - textWidth) / 2,
+                    yPosition + (errorInfoBoundingBox.height / 2) - 5
+                );
+            }
+        } else {
+            showErrorPopup = false;
+            // reset error messages
+            errorMessage = "";
+            errorMessageInfo = "";
+        }
+    }
+
     // Settings pane is open
     if (showSettingsMenu) {
         // Settings rendering
@@ -1070,6 +1301,11 @@ void MainComponent::draw() {
                     b_wants_to_switch_to_standalone = false;
                 } else {
                     // stay in standalone
+                    showErrorPopup = true;
+                    errorMessage = "UNABLE TO SYNC TO DAW";
+                    errorMessageInfo = "Could not find any instances of M1-Monitor";
+                    errorOpacity = 1.0f;
+                    errorStartTime = std::chrono::steady_clock::now();
                 }
             } else if (playModeRadioGroup.selectedIndex == 1) {
                 // override and allow swap to standalone mode if a media file is loaded
@@ -1319,7 +1555,8 @@ void MainComponent::paint (juce::Graphics& g)
     // This will draw over the top of the openGL background.
 }
 
-void MainComponent::resized() {
+void MainComponent::resized() 
+{
     // This is called when the MainComponent is resized.
 }
 

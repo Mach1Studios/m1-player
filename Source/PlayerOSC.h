@@ -13,9 +13,17 @@ class PlayerOSC : private juce::OSCSender, private juce::OSCReceiver, private ju
     bool isActivePlayer = true; // used to track if this is the primary player instance
     std::function<void(juce::OSCMessage msg)> messageReceived;
     void oscMessageReceived(const juce::OSCMessage& msg) override;
-    juce::uint32 lastMessageTime = 0;
     int num_monitor_instances = 0;
 
+    juce::uint32 lastMessageTime = 0; // time of last update received
+
+private:
+    float playerPositionInSeconds = 0;
+    float playerFrameRate = 0;
+    bool playerIsPlaying = false;
+    //int HH, MM, SS, FS;
+    int playerLastUpdate = 0; // time of last update from DAW side
+    
 public:
     PlayerOSC();
     ~PlayerOSC();
@@ -30,4 +38,17 @@ public:
     bool sendPlayerYPR(float yaw, float pitch, float roll);
     bool connectToHelper();
     bool disconnectToHelper();
+    
+    // Transport
+    float getPlayerPositionInSeconds() {
+        return playerPositionInSeconds;
+    }
+
+    bool getPlayerIsPlaying() {
+        return playerIsPlaying;
+    }
+
+    float getPlayerLastUpdate() {
+        return playerLastUpdate;
+    }
 };
