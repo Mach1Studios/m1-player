@@ -5,14 +5,18 @@
 
 //==============================================================================
 MainComponent::MainComponent() : m_decode_strategy(&MainComponent::nullStrategy),
-                                 m_transcode_strategy(&MainComponent::nullStrategy) {
+                                 m_transcode_strategy(&MainComponent::nullStrategy) 
+{
     // Make sure you set the size of the component after
     // you add any child components.
     juce::OpenGLAppComponent::setSize(800, 600);
 
 	// specify the number of input and output channels that we want to open
 	setAudioChannels(0, 2);
-    
+
+    // Setup OSC
+    playerOSC = std::make_unique<PlayerOSC>();
+
     // print build time for debug
     juce::String date(__DATE__);
     juce::String time(__TIME__);
@@ -57,7 +61,7 @@ void MainComponent::initialise() {
     imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
 
     // setup the listener
-    playerOSC.AddListener([&](juce::OSCMessage msg) {
+    playerOSC->AddListener([&](juce::OSCMessage msg) {
         // got an relayed settings update of a panner plugin
         if (msg.getAddressPattern() == "/panner-settings") {
             // if incoming panner port does not currently exist add it
@@ -548,7 +552,7 @@ void MainComponent::syncWithDAWPlayhead()
     if (!currentMedia.clipLoaded() || !currentMedia.hasVideo())
         return;
         
-    double currentUpdate = playerOSC.getPlayerLastUpdate();
+    double currentUpdate = playerOSC->getPlayerLastUpdate();
     if (std::fabs(currentUpdate - lastUpdateForPlayer) < 0.01f)
     {
         return;
@@ -556,10 +560,10 @@ void MainComponent::syncWithDAWPlayhead()
     DBG("[SYNC] Last sync update: " + juce::String(std::fabs(currentUpdate - lastUpdateForPlayer)));
 
     // Get current external state
-    const double externalTimecode = playerOSC.getPlayerPositionInSeconds(); // offset applied on monitor side
+    const double externalTimecode = playerOSC->getPlayerPositionInSeconds(); // offset applied on monitor side
     const double mediaLength = currentMedia.getLengthInSeconds();
     const double playerPosition = currentMedia.getPositionInSeconds();
-    const bool shouldBePlaying = playerOSC.getPlayerIsPlaying();
+    const bool shouldBePlaying = playerOSC->getPlayerIsPlaying();
     const bool isCurrentlyPlaying = currentMedia.isPlaying();
     
     // Ensure we don't go beyond the media length
@@ -582,7 +586,7 @@ void MainComponent::syncWithDAWPlayhead()
     }
     
     DBG("[SYNC] Sync State - Thread: " + juce::String((int)juce::MessageManager::getInstance()->isThisTheMessageThread()) +
-        ", Should Play: " + juce::String((int)playerOSC.getPlayerIsPlaying()) +
+        ", Should Play: " + juce::String((int)playerOSC->getPlayerIsPlaying()) +
         ", Is Playing: " + juce::String((int)currentMedia.isPlaying()) +
         ", Position: " + juce::String(playerPosition) +
         ", External: " + juce::String(externalTimecode));
@@ -748,7 +752,7 @@ void MainComponent::draw() {
     }
 
     // update standalone mode flag
-    if (playerOSC.getNumberOfMonitors() > 0) {
+    if (playerOSC->getNumberOfMonitors() > 0) {
         if (b_wants_to_switch_to_standalone) {
             b_standalone_mode = true;
         } else {
@@ -790,12 +794,12 @@ void MainComponent::draw() {
     auto vid_rot = Mach1::Float3{ videoPlayerWidget.rotationCurrent.x, videoPlayerWidget.rotationCurrent.y, videoPlayerWidget.rotationCurrent.z }.EulerRadians();
     currentOrientation.SetRotation(vid_rot);
 
-    if (playerOSC.IsConnected() && playerOSC.IsActivePlayer()) {
+    if (playerOSC->IsConnected() && playerOSC->IsActivePlayer()) {
         // send the current orientation of player instead
         // send mouse offset of player orientation and send to helper
         if (videoPlayerWidget.isUpdatedRotation) {
             auto ori_deg = currentOrientation.GetGlobalRotationAsEulerDegrees();
-            playerOSC.sendPlayerYPR(ori_deg.GetYaw(), ori_deg.GetPitch(), ori_deg.GetRoll());
+            playerOSC->sendPlayerYPR(ori_deg.GetYaw(), ori_deg.GetPitch(), ori_deg.GetRoll());
         }
         prev_mouse_offset = videoPlayerWidget.rotationOffsetMouse;
     }
@@ -1296,7 +1300,7 @@ void MainComponent::draw() {
         playModeRadioGroup.draw();
         if (playModeRadioGroup.changed) {
             if (playModeRadioGroup.selectedIndex == 0) {
-                if (playerOSC.getNumberOfMonitors() > 0) {
+                if (playerOSC->getNumberOfMonitors() > 0) {
                     b_standalone_mode = false;
                     b_wants_to_switch_to_standalone = false;
                 } else {
@@ -1545,7 +1549,7 @@ void MainComponent::setTranscodeAmbisonicOutputFormat(const std::string &name) {
 //==============================================================================
 void MainComponent::timerCallback() {
     // Added if we need to move the OSC stuff from the processorblock
-    playerOSC.update(); // test for connection
+    playerOSC->update(); // test for connection
     secondsWithoutMouseMove += 1;
 }
 
