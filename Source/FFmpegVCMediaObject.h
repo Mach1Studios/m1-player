@@ -6,7 +6,7 @@
 #include "juce_ffmpeg/Source/cb_ffmpeg/FFmpegVideoScaler.h"
 #include "juce_ffmpeg/Source/cb_ffmpeg/FFmpegVideoListener.h"
 
-class FFmpegVCMediaObject : public FFmpegVideoListener
+class FFmpegVCMediaObject : public FFmpegVideoListener, public juce::Timer
 {
 public:
     FFmpegVCMediaObject();
@@ -28,35 +28,31 @@ public:
     juce::URL getMediaFilePath();
     juce::int64 getNextReadPositionInSamples();
     juce::int64 getAudioSampleRate();
-    juce::Image& getFrame(double currentTimeInSeconds);
-    void setGain(float newGain);
-    float getGain();
+    juce::int64 getVideoFrameRate();
+    juce::Image& getFrame();
     double getLengthInSeconds();
-    double getCurrentTimelinePositionInSeconds();
-    void setTimelinePosition(juce::int64 timecodeInSamples);
-    void setCurrentTimelinePositionInSeconds(double newPositionInSeconds);
+    double getPositionInSeconds();
+    void setPosition(double newPositionInSeconds);
     void setPositionNormalized(double newPositionNormalized);
-    bool open(juce::URL filepath);
-
-    juce::Result load(const juce::File& file);
-    void closeVideo();
-    bool isVideoOpen() const;
-    double getVideoDuration() const;
     void setPlaySpeed(double newSpeed);
     double getPlaySpeed() const;
-    void setPlayPosition(double newPositionSeconds);
-    double getPlayPosition() const;
-
+    void setGain(float newGain);
+    float getGain();
+    
+    bool open(juce::URL filepath);
+    juce::Result load(const juce::File& file);
+    void closeMedia();
+    bool isOpen() const;
+    
     // FFmpegVideoListener implementation
     void videoFileChanged(const juce::File& newSource) override;
     void videoSizeChanged(const int width, const int height, const AVPixelFormat format) override;
     void displayNewFrame(const AVFrame* frame) override;
     void positionSecondsChanged(const double position) override;
-    void videoEnded() override;
 
 private:
     std::unique_ptr<juce::AudioTransportSource> transportSource;
-    std::unique_ptr<FFmpegMediaReader> videoReader;
+    std::unique_ptr<FFmpegMediaReader> mediaReader;
     juce::Image currentFrameAsImage;
     const AVFrame* currentAVFrame;
     FFmpegVideoScaler videoScaler;
@@ -66,6 +62,9 @@ private:
     int sampleRate;
     juce::AudioBuffer<float> readBuffer;    
     juce::URL currentMediaFilePath;
+
+    /*! Callback for a timer. This is used to paint the current  frame. */
+    void timerCallback () override;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FFmpegVCMediaObject)
 };
