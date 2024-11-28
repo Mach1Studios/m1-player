@@ -102,6 +102,11 @@ void PlayerOSC::oscMessageReceived(const juce::OSCMessage& msg)
                 num_monitor_instances = msg[1].getInt32();
             }
             
+            isConnected = true;
+        }
+        else if (msg.getAddressPattern() == "/m1-response")
+        {
+            isConnected = true; // ping response from m1-status
         } else if (msg.getAddressPattern() == "/m1-reconnect-req") {
             disconnectToHelper();
             isConnected = false; // when false the update loop will trigger connectToHelper()
