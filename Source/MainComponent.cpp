@@ -769,12 +769,15 @@ void MainComponent::draw() {
     }
 
 	// update video frame
-	if (currentMedia.clipLoaded() && currentMedia.hasVideo()) {
+	if (currentMedia.clipLoaded() && currentMedia.hasVideo()) 
+    {
         auto clipLengthInSeconds = currentMedia.getLengthInSeconds();
         juce::Image& frame = currentMedia.getFrame();
         //DBG("[Video] Time: " + std::to_string(clip->getCurrentTimeInSeconds()) + ", Block:" + std::to_string(clip->getNextReadPosition()) + ", normalized: " + std::to_string( clip->getCurrentTimeInSeconds() /  clipLengthInSeconds ));
-		if (frame.getWidth() > 0 && frame.getHeight() > 0) {
-			if (imgVideo.getWidth() != frame.getWidth() || imgVideo.getHeight() != frame.getHeight()) {
+		if (frame.getWidth() > 0 && frame.getHeight() > 0) 
+        {
+			if (imgVideo.getWidth() != frame.getWidth() || imgVideo.getHeight() != frame.getHeight()) 
+            {
 				imgVideo.allocate(frame.getWidth(), frame.getHeight());
 			}
 			juce::Image::BitmapData srcData(frame, juce::Image::BitmapData::readOnly);
@@ -794,10 +797,17 @@ void MainComponent::draw() {
     auto vid_rot = Mach1::Float3{ videoPlayerWidget.rotationCurrent.x, videoPlayerWidget.rotationCurrent.y, videoPlayerWidget.rotationCurrent.z }.EulerRadians();
     currentOrientation.SetRotation(vid_rot);
 
-    if (playerOSC->IsConnected() && playerOSC->IsActivePlayer()) {
+    if (playerOSC->IsConnected() && playerOSC->IsActivePlayer()) 
+    {
         // send the current orientation of player instead
         // send mouse offset of player orientation and send to helper
-        if (videoPlayerWidget.isUpdatedRotation) {
+        if (!videoPlayerWidget.wasDrawnFlat && videoPlayerWidget.drawFlat)
+        {
+            // send once
+            playerOSC->sendPlayerYPR(0, 0, 0);
+        }
+        else if (videoPlayerWidget.isUpdatedRotation)
+        {
             auto ori_deg = currentOrientation.GetGlobalRotationAsEulerDegrees();
             playerOSC->sendPlayerYPR(ori_deg.GetYaw(), ori_deg.GetPitch(), ori_deg.GetRoll());
         }
