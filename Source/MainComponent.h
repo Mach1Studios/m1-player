@@ -196,9 +196,7 @@ protected:
     void syncWithDAWPlayhead();
 
 private:
-    
     const long long smallestDAWSyncInterval = 500;
-    
     long long lastTimeDAWSyncHappened = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
