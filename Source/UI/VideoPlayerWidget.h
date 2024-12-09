@@ -195,7 +195,13 @@ public:
             }
         }
         else {
-            // draw flat
+            // Reset rotation components for recentering
+            rotation = {0.0f, 0.0f, 0.0f};
+            rotationOffsetMouse = {0.0f, 0.0f, 0.0f};
+            rotationOffset = {0.0f, 0.0f, 0.0f};
+            rotationCurrent = {0.0f, 0.0f, 0.0f};
+            
+            //draw flat
             if (imgVideo && imgVideo->isAllocated()) {
                 if (crop_Stereoscopic_TopBottom) {
                     m.drawImage(*imgVideo, 0, 0, getSize().x, getSize().y * 2);
