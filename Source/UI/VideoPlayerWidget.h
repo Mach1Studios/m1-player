@@ -67,6 +67,7 @@ public:
     std::vector<PannerSettings> pannerSettings;
 
     bool drawFlat = false;
+    bool wasDrawnFlat = false;
     bool drawOverlay = false;
     bool crop_Stereoscopic_TopBottom = false;
 
@@ -135,6 +136,7 @@ public:
         rotationCurrent = rot;
         
         if (drawFlat == false) {
+            wasDrawnFlat = false; // reset gate
             camera.setPosition(MurkaPoint3D(0, 0, 0));
             camera.lookAt(MurkaPoint3D(0, 0, -10));
 
@@ -194,8 +196,15 @@ public:
                 }
             }
         }
-        else {
-            // draw flat
+        else
+        {
+            /// Draw flat
+            // Reset rotation components for recentering
+            rotation = {0.0f, 0.0f, 0.0f};
+            rotationOffsetMouse = {0.0f, 0.0f, 0.0f};
+            rotationOffset = {0.0f, 0.0f, 0.0f};
+            rotationCurrent = {0.0f, 0.0f, 0.0f};
+            
             if (imgVideo && imgVideo->isAllocated()) {
                 if (crop_Stereoscopic_TopBottom) {
                     m.drawImage(*imgVideo, 0, 0, getSize().x, getSize().y * 2);
@@ -220,6 +229,7 @@ public:
                     drawReticle(m, p, pannerSettings[i].displayName + ": " + pointsNames[j], pannerSettings[i].color);
                 }
             }
+            wasDrawnFlat = true;
         }
     }
 };
@@ -230,6 +240,7 @@ public:
         auto& videoPlayerSurface = m.prepare<VideoPlayerSurface>({ 0, 0, getSize().x, getSize().y });
         videoPlayerSurface.imgVideo = imgVideo;
         videoPlayerSurface.drawFlat = drawFlat;
+        videoPlayerSurface.wasDrawnFlat = wasDrawnFlat;
         videoPlayerSurface.drawOverlay = drawOverlay;
         videoPlayerSurface.crop_Stereoscopic_TopBottom = crop_Stereoscopic_TopBottom;
         videoPlayerSurface.rotation = rotation;
@@ -245,6 +256,7 @@ public:
     }
 
     bool drawFlat = false;
+    bool wasDrawnFlat = false; // gate for first draw call of `drawFlat`
     bool drawOverlay = false;
     bool crop_Stereoscopic_TopBottom = false;
 

@@ -86,22 +86,46 @@ public:
             m.prepare<murka::Label>({getSize().x / 2 - width / 2, 30, width, 30}).text("SYNC TO DAW MODE").draw();
         }
 
-        // Connect button
-        // TODO: fix placement (too far right)
-        m.prepare<M1PlayerControlButton>({getSize().x * 0.85 - 15,
-            getSize().y * 0.4 + 12,
-            10, 10})
+        //Connect button
+        m.prepare<M1PlayerControlButton>({getSize().x * 0.80 - 20,
+                                          getSize().y * 0.4 + 7,
+                                          20, 20})
             .withDrawingCallback([&](MurkaShape shape) {
-                m.pushStyle();
-                m.disableFill();
-                m.setLineWidth(3);
-                m.setColor(GRID_LINES_4_RGB);
-                m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.44);
-                m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.42);
-                m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.40);
-                m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.311);
-                m.drawCircle(shape.width() / 2, shape.height() / 2, shape.height() * 0.311);
-                m.popStyle();
+
+                if (isConnected) {
+                    m.pushMatrix();
+                    m.pushStyle();
+
+                    float centerX = shape.x() + shape.width() / 2;
+                    float centerY = shape.y() + shape.height() / 2;
+                    float imageWidth = deviceOrientationIcon.getWidth();
+                    float imageHeight = deviceOrientationIcon.getHeight();
+                    float aspectRatio = imageWidth / imageHeight;
+                    float scaledWidth = shape.height() * aspectRatio;
+                    float scaledHeight = shape.height();
+
+                    m.translate(centerX, centerY, 0);
+                    m.rotateZRad(deviceYaw * M_PI / 180.0f);
+                    m.translate(-centerX, -centerY, 0);
+                    
+                    m.setColor(ORIENTATION_ACTIVE_COLOR);
+                    m.drawImage(deviceOrientationIcon,
+                                shape.x() + (shape.width() - scaledWidth) / 2,
+                                shape.y(), scaledWidth, scaledHeight);
+
+                    m.popStyle();
+                    m.popMatrix();
+                } else {
+                    m.pushStyle();
+                    m.disableFill();
+                    m.setLineWidth(3);
+                    m.setColor(GRID_LINES_4_RGB);
+                    m.drawCircle(shape.width() / 2 + 2, shape.height() / 2, shape.height() * 0.24);
+                    m.drawCircle(shape.width() / 2 + 2, shape.height() / 2, shape.height() * 0.26);
+                    m.drawCircle(shape.width() / 2 + 2, shape.height() / 2, shape.height() * 0.28);
+                    m.drawCircle(shape.width() / 2 + 2, shape.height() / 2, shape.height() * 0.18);
+                    m.popStyle();
+                }
             })
             .withOnClickCallback([&](){
                 connectButtonCallback();
@@ -110,11 +134,11 @@ public:
         
         m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-5);
         m.setColor(ENABLED_PARAM);
-        m.prepare<murka::Label>({getSize().x * 0.85 - getSize().y / 4 - 10,
+        m.prepare<murka::Label>({getSize().x * 0.80 - getSize().y / 4 - 10,
             40 + 30,
             getSize().y / 4 + 100,
             getSize().y / 4}).text("CONNECTED").draw();
-        m.prepare<murka::Label>({getSize().x * 0.85 - getSize().y / 4,
+        m.prepare<murka::Label>({getSize().x * 0.80 - getSize().y / 4,
             40 + 40,
             getSize().y / 4 + 100,
             getSize().y / 4}).text("DEVICE").draw();
@@ -208,6 +232,8 @@ public:
     std::string totalTime = "00:00";
 
     bool isPlaying = false;
+    bool isConnected = false;
+    float deviceYaw = 0.0f;
     std::function<void()> playPausePressedCallback;
     std::function<void()> connectButtonCallback;
     
@@ -216,6 +242,8 @@ public:
                                       bool showPositionReticle = true,
                                       double currentPosition = 0.0,
                                       bool playing = false,
+                                      bool connected = false,
+                                      float yaw = 0.0f,
                                       std::function<void()> playButtonPress = []() {},
                                       std::function<void()> connectButtonPress = []() {},
                                       std::function<void(double)> onPositionChange = [](double newPositionNormalised ){}) {
@@ -225,6 +253,8 @@ public:
         
         onPositionChangeCallback = onPositionChange;
         isPlaying = playing;
+        isConnected = connected;
+        deviceYaw = yaw;
         playPausePressedCallback = playButtonPress;
         connectButtonCallback = connectButtonPress;
         currentTime = current_timecode;
