@@ -57,7 +57,7 @@ void FFmpegVCMediaObject::start()
         // Start video timer first
         if (hasVideo())
         {
-            DBG("Starting video timer at " + juce::String(getVideoFrameRate()) + " Hz");
+//            DBG("Starting video timer at " + juce::String(getVideoFrameRate()) + " Hz");
             startTimerHz(static_cast<int>(getVideoFrameRate()));
         }
 
@@ -265,7 +265,7 @@ juce::Result FFmpegVCMediaObject::load(const juce::File& file)
     stopTimer(); // Ensure timer is stopped
 
     // Reset video scaler
-    videoScaler.releaseScaler();
+//    videoScaler.releaseScaler();
 
     if (mediaReader->loadMediaFile(file))
     {
@@ -301,7 +301,7 @@ juce::Result FFmpegVCMediaObject::load(const juce::File& file)
                            mediaReader->getPixelFormat());
             
             // Don't call videoSizeChanged again, just verify the setup
-            if (!currentFrameAsImage.isValid() || !videoScaler.isValid())
+            if (!currentFrameAsImage.isValid() /* || !videoScaler.isValid() */)
             {
                 DBG("Error: Video pipeline initialization failed");
                 return juce::Result::fail("Video pipeline initialization failed");
