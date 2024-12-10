@@ -102,10 +102,38 @@ void PlayerOSC::oscMessageReceived(const juce::OSCMessage& msg)
                 num_monitor_instances = msg[1].getInt32();
             }
             
+            isConnected = true;
+        }
+        else if (msg.getAddressPattern() == "/m1-response")
+        {
+            isConnected = true; // ping response from m1-status
         } else if (msg.getAddressPattern() == "/m1-reconnect-req") {
             disconnectToHelper();
             isConnected = false; // when false the update loop will trigger connectToHelper()
-        } 
+        } else if (msg.getAddressPattern() == "/playerPosition") {
+            if (msg.size() >= 0)
+            {
+                playerLastUpdate = msg[0].getInt32();
+            }
+            if (msg.size() >= 1)
+            {
+                playerPositionInSeconds = msg[1].getFloat32();
+            }
+        } else if (msg.getAddressPattern() == "/playerIsPlaying") {
+            if (msg.size() >= 0)
+            {
+                playerLastUpdate = msg[0].getInt32();
+            }
+            if (msg.size() >= 1)
+            {
+                playerIsPlaying = msg[1].getInt32();
+            }
+        } else if (msg.getAddressPattern() == "/playerFrameRate") {
+            if (msg.size() >= 0)
+            {
+                playerFrameRate = msg[0].getFloat32();
+            }
+        }
         else {
             messageReceived(msg);
         }

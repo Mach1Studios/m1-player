@@ -10,7 +10,6 @@
 #include "Mach1Encode.h"
 #include "Mach1Transcode.h"
 #include "TypesForDataExchange.h"
-#include "TransportOSCServer.h"
 #include "PlayerOSC.h"
 
 #include "FFmpegVCMediaObject.h"
@@ -117,7 +116,7 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     
     // Communication to Monitor and the rest of the M1SpatialSystem
     void timerCallback() override;
-    PlayerOSC playerOSC;
+    std::unique_ptr<PlayerOSC> playerOSC;
 
     void (MainComponent::*m_decode_strategy)(const AudioSourceChannelInfo&, const AudioSourceChannelInfo&);
     void (MainComponent::*m_transcode_strategy)(const AudioSourceChannelInfo&, const AudioSourceChannelInfo&);
@@ -197,9 +196,7 @@ protected:
     void syncWithDAWPlayhead();
 
 private:
-    
     const long long smallestDAWSyncInterval = 500;
-    
     long long lastTimeDAWSyncHappened = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
