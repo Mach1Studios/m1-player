@@ -49,6 +49,10 @@ public:
     void videoSizeChanged(const int width, const int height, const AVPixelFormat format) override;
     void displayNewFrame(const AVFrame* frame) override;
     void positionSecondsChanged(const double position) override;
+    
+    int getSamplerateLegacy();
+    
+    void setOffsetReadPositionSamplesLegacy(int samples);
 
 private:
     std::unique_ptr<juce::AudioTransportSource> transportSource;
