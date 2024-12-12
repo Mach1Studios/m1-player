@@ -50,8 +50,6 @@ void FFmpegVCMediaObject::timerCallback()
 
 void FFmpegVCMediaObject::start()
 {
-    jassert(juce::MessageManager::getInstance()->isThisTheMessageThread());
-
     if (isPaused && !isPlaying())
     {
         // Start video timer first
@@ -214,20 +212,28 @@ double FFmpegVCMediaObject::getPositionInSeconds()
     }
 }
 
+int FFmpegVCMediaObject::getSamplerateLegacy() {
+    return mediaReader->getSampleRate();
+}
+
+void FFmpegVCMediaObject::setOffsetReadPositionSamplesLegacy(int samples) {
+    mediaReader->setOffsetReadPosition(samples);
+}
+
 void FFmpegVCMediaObject::setPosition(double newPositionInSeconds)
 {
     if (!isOpen())
         return;
 
     bool wasPlaying = isPlaying();
-    if (wasPlaying)
-        transportSource->stop();
+//    if (wasPlaying)
+//        transportSource->stop();
     
     //set position directly in media reader since the the transport source does not compensate for playback speed
     mediaReader->setNextReadPosition (newPositionInSeconds * mediaReader->getSampleRate());
 
-    if (wasPlaying)
-        transportSource->start();
+//    if (wasPlaying)
+//        transportSource->start();
 }
 
 void FFmpegVCMediaObject::setPositionNormalized(double newPositionNormalized)
@@ -360,6 +366,7 @@ bool FFmpegVCMediaObject::isOpen() const
 
 void FFmpegVCMediaObject::setPlaySpeed(double newSpeed)
 {
+    DBG ("SET PLAY SPEED CALLED " + std::to_string(newSpeed));
     if (newSpeed != playSpeed)
     {
         playSpeed = newSpeed;
