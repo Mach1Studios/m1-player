@@ -6,7 +6,7 @@
 
 FFmpegVCMediaObject::FFmpegVCMediaObject()
     : transportSource(std::make_unique<juce::AudioTransportSource>())
-    , mediaReader(std::make_unique<FFmpegMediaReader>(192000, 102))  // Same buffer sizes as in FFmpegVideoComponent
+    , mediaReader(std::make_unique<FFmpegMediaReader>(48000 * 10, 30 * 10))  // Same buffer sizes as in FFmpegVideoComponent
     , currentAVFrame(nullptr)
     , playSpeed(1.0)
     , isPaused(true)
@@ -177,12 +177,12 @@ juce::int64 FFmpegVCMediaObject::getNextReadPositionInSamples()
 
 juce::int64 FFmpegVCMediaObject::getAudioSampleRate()
 {
-    return mediaReader ? (juce::int64)mediaReader->getSampleRate() : 48000;
+    return mediaReader ? (juce::int64)mediaReader->getSampleRate() : mediaReader->DEFAULT_SAMPLE_RATE;
 }
 
 juce::int64 FFmpegVCMediaObject::getVideoFrameRate()
 {
-    return mediaReader ? (juce::int64)mediaReader->getFramesPerSecond() : 30.0;
+    return mediaReader ? (juce::int64)mediaReader->getFramesPerSecond() : mediaReader->DEFAULT_FRAMERATE;
 }
 
 void FFmpegVCMediaObject::setGain(float newGain)
@@ -202,14 +202,7 @@ double FFmpegVCMediaObject::getLengthInSeconds()
 
 double FFmpegVCMediaObject::getPositionInSeconds()
 {
-    if (hasAudio())
-    {
-        return transportSource->getCurrentPosition();
-    }
-    else
-    {
-        return mediaReader->getCurrentPositionSeconds();
-    }
+    return mediaReader->getCurrentPositionSeconds();
 }
 
 int FFmpegVCMediaObject::getSamplerateLegacy() {
