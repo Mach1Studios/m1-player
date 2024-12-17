@@ -34,7 +34,7 @@ void FFmpegVCMediaObject::timerCallback()
         return;
 
     // Get the next video frame
-    const AVFrame* frame = mediaReader->getNextVideoFrame();
+    const AVFrame* frame = mediaReader->getNextVideoFrameWithOffset(offsetSeconds);
 
     if (frame)
     {
@@ -209,12 +209,8 @@ int FFmpegVCMediaObject::getSamplerateLegacy() {
     return mediaReader->getSampleRate();
 }
 
-void FFmpegVCMediaObject::setOffsetReadPositionSeconds(double seconds) {
-    mediaReader->setOffsetSeconds(seconds);
-}
-
-void FFmpegVCMediaObject::setOffsetReadPositionSamplesLegacy(int samples) {
-    mediaReader->setOffsetReadPosition(samples);
+void FFmpegVCMediaObject::setOffsetSeconds(double seconds) {
+    offsetSeconds = seconds;
 }
 
 void FFmpegVCMediaObject::setPosition(double newPositionInSeconds)

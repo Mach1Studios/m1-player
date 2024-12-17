@@ -629,7 +629,7 @@ void MainComponent::syncWithDAWPlayhead()
             DBG("[SYNC] Seeking to correct large sync difference");
             currentMedia.setPosition(externalTimeInSeconds);
         } else {
-          currentMedia.setOffsetReadPositionSamplesLegacy(timeDifference * currentMedia.getSamplerateLegacy());
+          currentMedia.setOffsetSeconds(timeDifference);
         }
 //    }
     
