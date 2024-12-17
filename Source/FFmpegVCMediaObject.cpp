@@ -209,6 +209,10 @@ int FFmpegVCMediaObject::getSamplerateLegacy() {
     return mediaReader->getSampleRate();
 }
 
+void FFmpegVCMediaObject::setOffsetReadPositionSeconds(double seconds) {
+    mediaReader->setOffsetSeconds(seconds);
+}
+
 void FFmpegVCMediaObject::setOffsetReadPositionSamplesLegacy(int samples) {
     mediaReader->setOffsetReadPosition(samples);
 }
