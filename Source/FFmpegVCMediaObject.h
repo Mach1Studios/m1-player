@@ -52,8 +52,7 @@ public:
     
     int getSamplerateLegacy();
     
-    void setOffsetReadPositionSamplesLegacy(int samples);
-    void setOffsetReadPositionSeconds(double seconds);
+    void setOffsetSeconds(double seconds);
 
 private:
     std::unique_ptr<juce::AudioTransportSource> transportSource;
@@ -67,6 +66,7 @@ private:
     int sampleRate;
     juce::AudioBuffer<float> readBuffer;    
     juce::URL currentMediaFilePath;
+    double offsetSeconds = 0;
 
     /*! Callback for a timer. This is used to paint the current  frame. */
     void timerCallback () override;
