@@ -223,6 +223,7 @@ void FFmpegVCMediaObject::setPosition(double newPositionInSeconds)
 //        transportSource->stop();
     
     //set position directly in media reader since the the transport source does not compensate for playback speed
+    offsetSeconds = 0;
     mediaReader->setNextReadPosition (newPositionInSeconds * mediaReader->getSampleRate());
 
 //    if (wasPlaying)
@@ -260,6 +261,7 @@ juce::Result FFmpegVCMediaObject::load(const juce::File& file)
     currentFrameAsImage = juce::Image();
     playSpeed = 1.0;
     isPaused = true;
+    offsetSeconds = 0;
     readBuffer.clear();
     stopTimer(); // Ensure timer is stopped
 
