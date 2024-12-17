@@ -568,7 +568,7 @@ void MainComponent::syncWithDAWPlayhead()
     const bool isCurrentlyPlaying = currentMedia.isPlaying();
     
     // Ensure we don't go beyond the media length
-    if (externalTimecode >= mediaLength) {
+    if (externalTimeInSeconds >= mediaLength) {
         if (currentMedia.isPlaying()) {
             currentMedia.stop();
         }

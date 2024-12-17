@@ -53,6 +53,7 @@ public:
     int getSamplerateLegacy();
     
     void setOffsetReadPositionSamplesLegacy(int samples);
+    void setOffsetReadPositionSeconds(double seconds);
 
 private:
     std::unique_ptr<juce::AudioTransportSource> transportSource;
