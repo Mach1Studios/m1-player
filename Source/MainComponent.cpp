@@ -568,7 +568,7 @@ void MainComponent::syncWithDAWPlayhead()
     const bool isCurrentlyPlaying = currentMedia.isPlaying();
     
     // Ensure we don't go beyond the media length
-    if (externalTimecode >= mediaLength) {
+    if (externalTimeInSeconds >= mediaLength) {
         if (currentMedia.isPlaying()) {
             currentMedia.stop();
         }
@@ -586,7 +586,7 @@ void MainComponent::syncWithDAWPlayhead()
     const double timeDifference = externalTimeInSeconds - playerPositionInSeconds;
     
     // Define thresholds for sync actions
-    const double seekThreshold = 5.0;    // Seek if difference is > 5 seconds
+    const double seekThreshold = 2.0;    // Seek if difference is > 2 seconds
     const double syncThreshold = 0.01;    // Minor sync if difference is > 10ms
     
 //    DBG("[SYNC] Sync - External: " + juce::String(externalTimecode) +
@@ -623,13 +623,13 @@ void MainComponent::syncWithDAWPlayhead()
 //    }
 //    else // we are stopped and should just seek to position
 //    {
-        if ((std::fabs(timeDifference) > seekThreshold) || (externalTimeInSeconds < playerPositionInSeconds))
+        if (std::fabs(timeDifference) > seekThreshold || externalTimeInSeconds < playerPositionInSeconds)
         {
             // Major difference - perform seek
             DBG("[SYNC] Seeking to correct large sync difference");
             currentMedia.setPosition(externalTimeInSeconds);
         } else {
-            currentMedia.setOffsetReadPositionSamplesLegacy(int(timeDifference * float(currentMedia.getSamplerateLegacy())));
+          currentMedia.setOffsetReadPositionSamplesLegacy(timeDifference * currentMedia.getSamplerateLegacy());
         }
 //    }
     
