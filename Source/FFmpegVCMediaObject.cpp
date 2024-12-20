@@ -210,7 +210,7 @@ double FFmpegVCMediaObject::getLengthInSeconds()
 
 double FFmpegVCMediaObject::getPositionInSeconds()
 {
-    return mediaReader->getCurrentPositionSeconds();
+    return mediaReader->getPositionSeconds();
 }
 
 int FFmpegVCMediaObject::getSamplerateLegacy() {
