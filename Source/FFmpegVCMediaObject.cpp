@@ -112,6 +112,14 @@ void FFmpegVCMediaObject::stop()
     }
 }
 
+
+void FFmpegVCMediaObject::videoEnded()
+{
+    setPosition(0);
+    stop();
+}
+
+
 bool FFmpegVCMediaObject::isPlaying()
 {
     if (hasAudio())

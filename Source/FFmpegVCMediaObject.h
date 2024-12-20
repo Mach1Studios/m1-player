@@ -17,6 +17,7 @@ public:
 
     void start();
     void stop();
+    void videoEnded();
     bool isPlaying();
     void releaseResources();
     int getNumChannels();
