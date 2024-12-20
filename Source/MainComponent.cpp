@@ -847,7 +847,7 @@ void MainComponent::draw() {
         if (currentMedia.clipLoaded() && (currentMedia.hasVideo() || currentMedia.hasAudio())) {
             currentPosition = currentMedia.getPositionInSeconds() / currentMedia.getLengthInSeconds();
         }
-        playerControls.withPlayerData((currentMedia.clipLoaded() && currentMedia.hasVideo()) ? formatTime(currentMedia.getPositionInSeconds()) : "00:00", formatTime(currentMedia.getLengthInSeconds()),
+        playerControls.withPlayerData((currentMedia.clipLoaded()) ? formatTime(currentMedia.getPositionInSeconds()) : "00:00", formatTime(currentMedia.getLengthInSeconds()),
                         true, // showPositionReticle
                         currentPosition, // currentPosition
                         currentMedia.isPlaying(), // playing
