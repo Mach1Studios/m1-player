@@ -1,9 +1,5 @@
 #include "FFmpegVCMediaObject.h"
 
-// TODO:
-// - Video without audio needs to still play
-// - Control flow for waiting for decode buffer sometimes trips because we seek at an unexpected time
-
 FFmpegVCMediaObject::FFmpegVCMediaObject()
     : transportSource(std::make_unique<juce::AudioTransportSource>())
     , mediaReader(std::make_unique<FFmpegMediaReader>(48000 * 10, 30 * 10))  // Same buffer sizes as in FFmpegVideoComponent
