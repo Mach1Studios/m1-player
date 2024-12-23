@@ -17,6 +17,7 @@ public:
 
     void start();
     void stop();
+    void videoEnded();
     bool isPlaying();
     void releaseResources();
     int getNumChannels();
@@ -49,6 +50,10 @@ public:
     void videoSizeChanged(const int width, const int height, const AVPixelFormat format) override;
     void displayNewFrame(const AVFrame* frame) override;
     void positionSecondsChanged(const double position) override;
+    
+    int getSamplerateLegacy();
+    
+    void setOffsetSeconds(double seconds);
 
 private:
     std::unique_ptr<juce::AudioTransportSource> transportSource;
@@ -62,6 +67,7 @@ private:
     int sampleRate;
     juce::AudioBuffer<float> readBuffer;    
     juce::URL currentMediaFilePath;
+    double offsetSeconds = 0;
 
     /*! Callback for a timer. This is used to paint the current  frame. */
     void timerCallback () override;

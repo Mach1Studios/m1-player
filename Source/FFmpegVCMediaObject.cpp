@@ -1,12 +1,8 @@
 #include "FFmpegVCMediaObject.h"
 
-// TODO:
-// - Video without audio needs to still play
-// - Control flow for waiting for decode buffer sometimes trips because we seek at an unexpected time
-
 FFmpegVCMediaObject::FFmpegVCMediaObject()
     : transportSource(std::make_unique<juce::AudioTransportSource>())
-    , mediaReader(std::make_unique<FFmpegMediaReader>(192000, 102))  // Same buffer sizes as in FFmpegVideoComponent
+    , mediaReader(std::make_unique<FFmpegMediaReader>(48000 * 10, 30 * 10))  // Same buffer sizes as in FFmpegVideoComponent
     , currentAVFrame(nullptr)
     , playSpeed(1.0)
     , isPaused(true)
@@ -34,7 +30,7 @@ void FFmpegVCMediaObject::timerCallback()
         return;
 
     // Get the next video frame
-    const AVFrame* frame = mediaReader->getNextVideoFrame();
+    const AVFrame* frame = mediaReader->getNextVideoFrameWithOffset(offsetSeconds);
 
     if (frame)
     {
@@ -50,14 +46,12 @@ void FFmpegVCMediaObject::timerCallback()
 
 void FFmpegVCMediaObject::start()
 {
-    jassert(juce::MessageManager::getInstance()->isThisTheMessageThread());
-
     if (isPaused && !isPlaying())
     {
         // Start video timer first
         if (hasVideo())
         {
-            DBG("Starting video timer at " + juce::String(getVideoFrameRate()) + " Hz");
+//            DBG("Starting video timer at " + juce::String(getVideoFrameRate()) + " Hz");
             startTimerHz(static_cast<int>(getVideoFrameRate()));
         }
 
@@ -113,6 +107,14 @@ void FFmpegVCMediaObject::stop()
         }
     }
 }
+
+
+void FFmpegVCMediaObject::videoEnded()
+{
+    setPosition(0);
+    stop();
+}
+
 
 bool FFmpegVCMediaObject::isPlaying()
 {
@@ -179,12 +181,12 @@ juce::int64 FFmpegVCMediaObject::getNextReadPositionInSamples()
 
 juce::int64 FFmpegVCMediaObject::getAudioSampleRate()
 {
-    return mediaReader ? (juce::int64)mediaReader->getSampleRate() : 48000;
+    return mediaReader ? (juce::int64)mediaReader->getSampleRate() : mediaReader->DEFAULT_SAMPLE_RATE;
 }
 
 juce::int64 FFmpegVCMediaObject::getVideoFrameRate()
 {
-    return mediaReader ? (juce::int64)mediaReader->getFramesPerSecond() : 30.0;
+    return mediaReader ? (juce::int64)mediaReader->getFramesPerSecond() : mediaReader->DEFAULT_FRAMERATE;
 }
 
 void FFmpegVCMediaObject::setGain(float newGain)
@@ -204,14 +206,15 @@ double FFmpegVCMediaObject::getLengthInSeconds()
 
 double FFmpegVCMediaObject::getPositionInSeconds()
 {
-    if (hasAudio())
-    {
-        return transportSource->getCurrentPosition();
-    }
-    else
-    {
-        return mediaReader->getCurrentPositionSeconds();
-    }
+    return mediaReader->getPositionSeconds();
+}
+
+int FFmpegVCMediaObject::getSamplerateLegacy() {
+    return mediaReader->getSampleRate();
+}
+
+void FFmpegVCMediaObject::setOffsetSeconds(double seconds) {
+    offsetSeconds = seconds;
 }
 
 void FFmpegVCMediaObject::setPosition(double newPositionInSeconds)
@@ -220,14 +223,15 @@ void FFmpegVCMediaObject::setPosition(double newPositionInSeconds)
         return;
 
     bool wasPlaying = isPlaying();
-    if (wasPlaying)
-        transportSource->stop();
+//    if (wasPlaying)
+//        transportSource->stop();
     
     //set position directly in media reader since the the transport source does not compensate for playback speed
+    offsetSeconds = 0;
     mediaReader->setNextReadPosition (newPositionInSeconds * mediaReader->getSampleRate());
 
-    if (wasPlaying)
-        transportSource->start();
+//    if (wasPlaying)
+//        transportSource->start();
 }
 
 void FFmpegVCMediaObject::setPositionNormalized(double newPositionNormalized)
@@ -261,11 +265,12 @@ juce::Result FFmpegVCMediaObject::load(const juce::File& file)
     currentFrameAsImage = juce::Image();
     playSpeed = 1.0;
     isPaused = true;
+    offsetSeconds = 0;
     readBuffer.clear();
     stopTimer(); // Ensure timer is stopped
 
     // Reset video scaler
-    videoScaler.releaseScaler();
+//    videoScaler.releaseScaler();
 
     if (mediaReader->loadMediaFile(file))
     {
@@ -301,7 +306,7 @@ juce::Result FFmpegVCMediaObject::load(const juce::File& file)
                            mediaReader->getPixelFormat());
             
             // Don't call videoSizeChanged again, just verify the setup
-            if (!currentFrameAsImage.isValid() || !videoScaler.isValid())
+            if (!currentFrameAsImage.isValid() /* || !videoScaler.isValid() */)
             {
                 DBG("Error: Video pipeline initialization failed");
                 return juce::Result::fail("Video pipeline initialization failed");
@@ -360,6 +365,7 @@ bool FFmpegVCMediaObject::isOpen() const
 
 void FFmpegVCMediaObject::setPlaySpeed(double newSpeed)
 {
+    DBG ("SET PLAY SPEED CALLED " + std::to_string(newSpeed));
     if (newSpeed != playSpeed)
     {
         playSpeed = newSpeed;
