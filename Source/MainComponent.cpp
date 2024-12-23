@@ -442,6 +442,7 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo &buffer
     // the AudioTransportSource takes care of start, stop and resample
     if (currentMedia.hasAudio())
     {
+        // TODO: fix for mono audio files
         currentMedia.getNextAudioBlock(info);
 
         tempBuffer.setSize(detectedNumInputChannels * 2, bufferToFill.numSamples);
@@ -557,138 +558,96 @@ void MainComponent::syncWithDAWPlayhead()
     {
         return;
     }
-    DBG("[SYNC] Last sync update: " + juce::String(std::fabs(currentUpdate - lastUpdateForPlayer)));
+//    DBG("[SYNC] Last sync update: " + juce::String(std::fabs(currentUpdate - lastUpdateForPlayer)));
 
     // Get current external state
-    const double externalTimecode = playerOSC->getPlayerPositionInSeconds(); // offset applied on monitor side
+    const double externalTimeInSeconds = playerOSC->getPlayerPositionInSeconds(); // offset applied on monitor side
     const double mediaLength = currentMedia.getLengthInSeconds();
-    const double playerPosition = currentMedia.getPositionInSeconds();
+    const double playerPositionInSeconds = currentMedia.getPositionInSeconds();
     const bool shouldBePlaying = playerOSC->getPlayerIsPlaying();
     const bool isCurrentlyPlaying = currentMedia.isPlaying();
     
     // Ensure we don't go beyond the media length
-    if (externalTimecode >= mediaLength) {
-        if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
-            juce::MessageManager::callAsync([this, externalTimecode]() {
-                DBG("[SYNC] Stopping playback on message thread");
-                if (currentMedia.isPlaying()) {
-                    currentMedia.stop();
-                }
-            });
-        } else {
-            DBG("[SYNC] Stopping playback (already on message thread)");
-            if (currentMedia.isPlaying()) {
-                currentMedia.stop();
-            }
+    if (externalTimeInSeconds >= mediaLength) {
+        if (currentMedia.isPlaying()) {
+            currentMedia.stop();
         }
         lastUpdateForPlayer = currentUpdate;
         return;
     }
-    
-    DBG("[SYNC] Sync State - Thread: " + juce::String((int)juce::MessageManager::getInstance()->isThisTheMessageThread()) +
-        ", Should Play: " + juce::String((int)playerOSC->getPlayerIsPlaying()) +
-        ", Is Playing: " + juce::String((int)currentMedia.isPlaying()) +
-        ", Position: " + juce::String(playerPosition) +
-        ", External: " + juce::String(externalTimecode));
+
+//    DBG("[SYNC] Sync State - Thread: " + juce::String((int)juce::MessageManager::getInstance()->isThisTheMessageThread()) +
+//        ", Should Play: " + juce::String((int)playerOSC->getPlayerIsPlaying()) +
+//        ", Is Playing: " + juce::String((int)currentMedia.isPlaying()) +
+//        ", Position: " + juce::String(playerPosition) +
+//        ", External: " + juce::String(externalTimecode));
 
     // Sync while playing
-    const double timeDifference = externalTimecode - playerPosition;
-    const double frameDuration = 1.0 / currentMedia.getVideoFrameRate();
+    const double timeDifference = externalTimeInSeconds - playerPositionInSeconds;
     
     // Define thresholds for sync actions
-    const double seekThreshold = frameDuration * 5.0;    // Seek if difference is > 5 frames
-    const double syncThreshold = frameDuration * 0.5;    // Minor sync if difference is > 0.5 frames
+    const double seekThreshold = 2.0;    // Seek if difference is > 2 seconds
+    const double syncThreshold = 0.01;    // Minor sync if difference is > 10ms
     
-    DBG("[SYNC] Sync - External: " + juce::String(externalTimecode) +
-        "s, Player: " + juce::String(playerPosition) +
-        "s, Diff: " + juce::String(timeDifference) + "s");
+//    DBG("[SYNC] Sync - External: " + juce::String(externalTimecode) +
+//        "s, Player: " + juce::String(playerPosition) +
+//        "s, Diff: " + juce::String(timeDifference) + "s");
 
-    // Seek while stopped
-    if (currentMedia.isPlaying())
-    {
-        if (std::fabs(timeDifference) > syncThreshold)
-        {
-            // Minor difference - adjust playback speed
-            double speedAdjustment = 1.0;
-            if (timeDifference > 0)
-            {
-                // We're behind - speed up slightly
-                speedAdjustment = 1.1;
-            }
-            else
-            {
-                // We're ahead - slow down slightly
-                speedAdjustment = 0.9;
-            }
-
-            DBG("[SYNC] Changing playback speed to: " + juce::String(speedAdjustment));
-
-            if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
-                juce::MessageManager::callAsync([this, speedAdjustment]() {
-                    currentMedia.setPlaySpeed(speedAdjustment);
-                });
-            } else {
-                currentMedia.setPlaySpeed(speedAdjustment);
-            }
-        }
-        else
-        {
-            DBG("[SYNC] Changing playback speed to: 1.0" );
-            
-            // In sync - normal playback speed
-            if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
-                juce::MessageManager::callAsync([this]() {
-                    currentMedia.setPlaySpeed(1.0);
-                });
-            } else {
-                currentMedia.setPlaySpeed(1.0);
-            }
-        }
-    }
-    else // we are stopped and should just seek to position
-    {
-        if (std::fabs(timeDifference) > seekThreshold)
+//    // Seek while stopped
+//    if (currentMedia.isPlaying())
+//    {
+//        if (std::fabs(timeDifference) > syncThreshold)
+//        {
+//            // Minor difference - adjust playback speed
+//            double speedAdjustment = 1.0;
+//            if (timeDifference > 0)
+//            {
+//                // We're behind - speed up slightly
+//                speedAdjustment = 1.1;
+//            }
+//            else
+//            {
+//                // We're ahead - slow down slightly
+//                speedAdjustment = 0.9;
+//            }
+//
+//            DBG("[SYNC] Changing playback speed to: " + juce::String(speedAdjustment));
+//            currentMedia.setPlaySpeed(speedAdjustment);
+//        }
+//        else
+//        {
+//            DBG("[SYNC] Changing playback speed to: 1.0" );
+//            // In sync - normal playback speed
+//            currentMedia.setPlaySpeed(1.0);
+//        }
+//    }
+//    else // we are stopped and should just seek to position
+//    {
+        if (std::fabs(timeDifference) > seekThreshold || externalTimeInSeconds < playerPositionInSeconds)
         {
             // Major difference - perform seek
             DBG("[SYNC] Seeking to correct large sync difference");
-            if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
-                juce::MessageManager::callAsync([this, externalTimecode]() {
-                    currentMedia.setPosition(externalTimecode);
-                });
-            } else {
-                currentMedia.setPosition(externalTimecode);
-            }
+            currentMedia.setPosition(externalTimeInSeconds);
+        } else {
+          currentMedia.setOffsetSeconds(timeDifference);
         }
-    }
+//    }
     
     // Handle play state changes first
     if (isCurrentlyPlaying != shouldBePlaying) {
         if (shouldBePlaying) {
-            // Ensure playback commands happen on the message thread
-            if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
-                juce::MessageManager::callAsync([this, externalTimecode]() {
-                    DBG("[SYNC] Starting playback on message thread");
-                    currentMedia.setPosition(externalTimecode);
-                    currentMedia.start();
-                });
-            } else {
-                DBG("[SYNC] Starting playback (already on message thread)");
-                currentMedia.setPosition(externalTimecode);
-                currentMedia.start();
-            }
+            currentMedia.start();
+//            // Ensure playback commands happen on the message thread
+//                DBG("[SYNC] Starting playback (already on message thread)");
+//                currentMedia.setPosition(externalTimecode);
+//                currentMedia.start();
         }
         else
         {
+            currentMedia.stop();
             // Ensure playback commands happen on the message thread
-            if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
-                juce::MessageManager::callAsync([this]() {
-                    DBG("[SYNC] Stopping playback on message thread");
-                    currentMedia.stop();
-                });
-            } else {
-                DBG("[SYNC] Stopping playback (already on message thread)");
-                currentMedia.stop();
-            }
+//                DBG("[SYNC] Stopping playback (already on message thread)");
+//                currentMedia.stop();
         }
     }
     lastUpdateForPlayer = currentUpdate;
@@ -888,7 +847,7 @@ void MainComponent::draw() {
         if (currentMedia.clipLoaded() && (currentMedia.hasVideo() || currentMedia.hasAudio())) {
             currentPosition = currentMedia.getPositionInSeconds() / currentMedia.getLengthInSeconds();
         }
-        playerControls.withPlayerData((currentMedia.clipLoaded() && currentMedia.hasVideo()) ? formatTime(currentMedia.getPositionInSeconds()) : "00:00", formatTime(currentMedia.getLengthInSeconds()),
+        playerControls.withPlayerData((currentMedia.clipLoaded()) ? formatTime(currentMedia.getPositionInSeconds()) : "00:00", formatTime(currentMedia.getLengthInSeconds()),
                         true, // showPositionReticle
                         currentPosition, // currentPosition
                         currentMedia.isPlaying(), // playing
@@ -925,6 +884,7 @@ void MainComponent::draw() {
                         },
                         [&](double newPositionNormalised) {
                             // refreshing player position
+            DBG("SEEKING IN THE UI");
                             currentMedia.setPosition(newPositionNormalised * currentMedia.getLengthInSeconds());
                         });
         playerControls.withVolumeData(currentMedia.getGain(),
@@ -950,6 +910,7 @@ void MainComponent::draw() {
                         },
                         [&](double newPositionNormalised) {
             // refreshing player position
+            DBG("SEEKING IN UI 2");
             currentMedia.setPositionNormalized(newPositionNormalised);
         });
         playerControls.withVolumeData(0.5,
