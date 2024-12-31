@@ -1724,6 +1724,17 @@ void MainComponent::menuItemSelected(int menuItemID, int topLevelMenuIndex)
                 true                   // Show buffer size selector
             ));
 
+            // Style the selector component
+            audioDeviceSelector->setLookAndFeel(&getLookAndFeel());
+            audioDeviceSelector->setColour(juce::ListBox::backgroundColourId, juce::Colour(BACKGROUND_COMPONENT));
+            audioDeviceSelector->setColour(juce::ListBox::textColourId, juce::Colour(LABEL_TEXT_COLOR));
+            audioDeviceSelector->setColour(juce::ComboBox::backgroundColourId, juce::Colour(BACKGROUND_COMPONENT));
+            audioDeviceSelector->setColour(juce::ComboBox::textColourId, juce::Colour(LABEL_TEXT_COLOR));
+            audioDeviceSelector->setColour(juce::ComboBox::outlineColourId, juce::Colour(ENABLED_PARAM));
+            audioDeviceSelector->setColour(juce::TextButton::buttonColourId, juce::Colour(BACKGROUND_COMPONENT));
+            audioDeviceSelector->setColour(juce::TextButton::textColourOffId, juce::Colour(LABEL_TEXT_COLOR));
+            audioDeviceSelector->setColour(juce::TextButton::buttonOnColourId, juce::Colour(BACKGROUND_GREY));
+
             juce::DialogWindow::LaunchOptions options;
             options.content.setOwned(audioDeviceSelector.release());
             options.content->setSize(500, 450);
@@ -1735,6 +1746,13 @@ void MainComponent::menuItemSelected(int menuItemID, int topLevelMenuIndex)
 
             // Create and show the dialog
             auto* dialog = options.create();
+            
+            // Style the dialog window
+            dialog->setColour(juce::ResizableWindow::backgroundColourId, juce::Colour(BACKGROUND_GREY));
+            dialog->setColour(juce::TextButton::buttonColourId, juce::Colour(BACKGROUND_COMPONENT));
+            dialog->setColour(juce::TextButton::textColourOffId, juce::Colour(LABEL_TEXT_COLOR));
+            dialog->setColour(juce::TextButton::buttonOnColourId, juce::Colour(BACKGROUND_GREY));
+            
             dialog->enterModalState(true, juce::ModalCallbackFunction::create(
                 [this, dialog](int) {
                     // Ensure we clean up both the selector and dialog
@@ -1751,5 +1769,53 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
     if (source == &audioDeviceManager)
     {
         audioDeviceManagerChanged();
+    }
+}
+
+void MainComponent::audioDeviceManagerChanged()
+{
+    auto* device = audioDeviceManager.getCurrentAudioDevice();
+    if (device)
+    {
+        currentMedia.prepareToPlay(
+            device->getCurrentBufferSizeSamples(),
+            device->getCurrentSampleRate()
+        );
+    }
+    else
+    {
+        return; // No device available
+    }
+    
+    if (!currentMedia.clipLoaded())
+        return;
+
+    // Store current media state
+    juce::URL currentUrl = currentMedia.getMediaFilePath();
+    double currentPosition = currentMedia.getPositionInSeconds();
+    bool wasPlaying = currentMedia.isPlaying() && b_standalone_mode; // Only restore playback if in standalone mode
+
+    // Temporarily stop playback
+    if (wasPlaying)
+        currentMedia.stop();
+
+    // Update device settings
+    currentMedia.prepareToPlay(
+        device->getCurrentBufferSizeSamples(),
+        device->getCurrentSampleRate()
+    );
+
+    // Reload the media file if needed
+    if (!currentMedia.clipLoaded() && currentUrl.isLocalFile())
+    {
+        currentMedia.open(currentUrl);
+    }
+
+    // Restore position and playback state
+    if (currentMedia.clipLoaded())
+    {
+        currentMedia.setPosition(currentPosition);
+        if (wasPlaying)
+            currentMedia.start();
     }
 }

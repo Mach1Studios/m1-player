@@ -223,20 +223,7 @@ private:
     const long long smallestDAWSyncInterval = 500;
     long long lastTimeDAWSyncHappened = 0;
 
-    void audioDeviceManagerChanged()
-    {
-        auto* device = audioDeviceManager.getCurrentAudioDevice();
-        if (device)
-        {
-            currentMedia.prepareToPlay(
-                device->getCurrentBufferSizeSamples(),
-                device->getCurrentSampleRate()
-            );
-        }
-    }
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
-
+    void audioDeviceManagerChanged();
     void createMenuBar();
     juce::ApplicationCommandManager commandManager;
     
@@ -245,6 +232,8 @@ private:
         SettingsMenuID = 1,
         // Add other menu IDs here as needed
     };
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
 
 // (This function is called by the app startup code to create our main component)

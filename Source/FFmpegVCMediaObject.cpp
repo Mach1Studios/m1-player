@@ -280,9 +280,6 @@ juce::Result FFmpegVCMediaObject::load(const juce::File& file)
     readBuffer.clear();
     stopTimer(); // Ensure timer is stopped
 
-    // Reset video scaler
-//    videoScaler.releaseScaler();
-
     if (mediaReader->loadMediaFile(file))
     {
         int _videoExists = hasVideo();
