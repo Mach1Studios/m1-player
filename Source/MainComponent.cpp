@@ -1774,30 +1774,18 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
 
 void MainComponent::audioDeviceManagerChanged()
 {
-    auto* device = audioDeviceManager.getCurrentAudioDevice();
-    if (device)
-    {
-        currentMedia.prepareToPlay(
-            device->getCurrentBufferSizeSamples(),
-            device->getCurrentSampleRate()
-        );
-    }
-    else
-    {
-        return; // No device available
-    }
-    
-    if (!currentMedia.clipLoaded())
-        return;
-
-    // Store current media state
+    // Store current media state before doing anything
     juce::URL currentUrl = currentMedia.getMediaFilePath();
     double currentPosition = currentMedia.getPositionInSeconds();
-    bool wasPlaying = currentMedia.isPlaying() && b_standalone_mode; // Only restore playback if in standalone mode
+    bool wasPlaying = currentMedia.isPlaying() && b_standalone_mode;
 
     // Temporarily stop playback
     if (wasPlaying)
         currentMedia.stop();
+
+    auto* device = audioDeviceManager.getCurrentAudioDevice();
+    if (!device)
+        return; // No device available
 
     // Update device settings
     currentMedia.prepareToPlay(
@@ -1805,17 +1793,17 @@ void MainComponent::audioDeviceManagerChanged()
         device->getCurrentSampleRate()
     );
 
-    // Reload the media file if needed
-    if (!currentMedia.clipLoaded() && currentUrl.isLocalFile())
+    // Always attempt to reload the media if we had one before
+    if (currentUrl.isLocalFile())
     {
         currentMedia.open(currentUrl);
-    }
-
-    // Restore position and playback state
-    if (currentMedia.clipLoaded())
-    {
-        currentMedia.setPosition(currentPosition);
-        if (wasPlaying)
-            currentMedia.start();
+        
+        // Restore position and playback state
+        if (currentMedia.clipLoaded())
+        {
+            currentMedia.setPosition(currentPosition);
+            if (wasPlaying)
+                currentMedia.start();
+        }
     }
 }
