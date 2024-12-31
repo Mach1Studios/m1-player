@@ -143,6 +143,17 @@ int FFmpegVCMediaObject::getNumChannels()
 
 void FFmpegVCMediaObject::prepareToPlay(int sessionBlockSize, int sessionSampleRate)
 {
+    // If we have a device manager, use its settings
+    if (deviceManager)
+    {
+        auto* device = deviceManager->getCurrentAudioDevice();
+        if (device)
+        {
+            sessionSampleRate = device->getCurrentSampleRate();
+            sessionBlockSize = device->getCurrentBufferSizeSamples();
+        }
+    }
+
     blockSize = sessionBlockSize;
     sampleRate = sessionSampleRate;
     readBuffer.setSize(2, sessionBlockSize);
@@ -453,4 +464,19 @@ void FFmpegVCMediaObject::displayNewFrame(const AVFrame* frame)
 void FFmpegVCMediaObject::positionSecondsChanged(const double position)
 {
     // This method can be used to update any UI elements showing the current position
+}
+
+void FFmpegVCMediaObject::setAudioDeviceManager(juce::AudioDeviceManager* manager)
+{
+    deviceManager = manager;
+    if (deviceManager && mediaReader)
+    {
+        // Update sample rate to match device
+        auto* device = deviceManager->getCurrentAudioDevice();
+        if (device)
+        {
+            prepareToPlay(device->getCurrentBufferSizeSamples(), 
+                         device->getCurrentSampleRate());
+        }
+    }
 }

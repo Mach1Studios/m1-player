@@ -35,9 +35,11 @@
     your controls and content.
 */
 class MainComponent : public murka::JuceMurkaBaseComponent,
-    public juce::AudioAppComponent,
     public juce::FileDragAndDropTarget,
-    public juce::Timer
+    public juce::Timer,
+    public juce::MenuBarModel,
+    public juce::ChangeListener,
+    public juce::AudioIODeviceCallback
 {
     //==============================================================================
     MurImage imgLogo;
@@ -164,7 +166,7 @@ public:
     void setStatus(bool success, std::string message);
 
     //==============================================================================
-    void prepareToPlay(int samplesPerBlockExpected, double newSampleRate) override;
+    void prepareToPlay(int samplesPerBlockExpected, double newSampleRate);
 
     void fallbackDecodeStrategy(const AudioSourceChannelInfo& bufferToFill, const AudioSourceChannelInfo& info);
     void stereoDecodeStrategy(const AudioSourceChannelInfo& bufferToFill, const AudioSourceChannelInfo& info);
@@ -174,8 +176,8 @@ public:
     void intermediaryBufferTranscodeStrategy(const AudioSourceChannelInfo & bufferToFill, const AudioSourceChannelInfo & info);
     void nullStrategy(const AudioSourceChannelInfo& bufferToFill, const AudioSourceChannelInfo& info);
 
-    void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
-    void releaseResources() override;
+    void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill);
+    void releaseResources();
     void timecodeChanged(int64_t, double seconds);
 
     //==============================================================================
@@ -192,14 +194,57 @@ public:
     void setTranscodeAmbisonicOutputFormat(const std::string &name);
     std::string getTranscodeAmbisonicOutputFormat() const;
 
+    // Add these MenuBarModel required methods
+    juce::StringArray getMenuBarNames() override;
+    juce::PopupMenu getMenuForIndex(int topLevelMenuIndex, const juce::String& menuName) override;
+    void menuItemSelected(int menuItemID, int topLevelMenuIndex) override;
+
+    // ChangeListener method
+    void changeListenerCallback(juce::ChangeBroadcaster* source) override;
+
+    // AudioIODeviceCallback interface methods
+    void audioDeviceIOCallbackWithContext(const float* const* inputChannelData,
+                                        int numInputChannels,
+                                        float* const* outputChannelData,
+                                        int numOutputChannels,
+                                        int numSamples,
+                                        const juce::AudioIODeviceCallbackContext& context) override;
+    
+    void audioDeviceAboutToStart(juce::AudioIODevice* device) override;
+    void audioDeviceStopped() override;
+
 protected:
     void syncWithDAWPlayhead();
 
 private:
+    std::unique_ptr<juce::AudioDeviceSelectorComponent> audioDeviceSelector;
+    juce::AudioDeviceManager audioDeviceManager;
+
     const long long smallestDAWSyncInterval = 500;
     long long lastTimeDAWSyncHappened = 0;
 
+    void audioDeviceManagerChanged()
+    {
+        auto* device = audioDeviceManager.getCurrentAudioDevice();
+        if (device)
+        {
+            currentMedia.prepareToPlay(
+                device->getCurrentBufferSizeSamples(),
+                device->getCurrentSampleRate()
+            );
+        }
+    }
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
+
+    void createMenuBar();
+    juce::ApplicationCommandManager commandManager;
+    
+    enum MenuIDs
+    {
+        SettingsMenuID = 1,
+        // Add other menu IDs here as needed
+    };
 };
 
 // (This function is called by the app startup code to create our main component)
