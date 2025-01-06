@@ -30,14 +30,127 @@
 #include <string>
 
 //==============================================================================
-/*
-    This component lives inside our window, and this is where you should put all
-    your controls and content.
-*/
+// Audio Settings LookAndFeel
+// TODO: Remove this and instead re-implement via Murka
+class M1AudioSettingsLookAndFeel : public juce::LookAndFeel_V4
+{
+public:
+    M1AudioSettingsLookAndFeel()
+    {
+        setColour(juce::ResizableWindow::backgroundColourId, juce::Colour(BACKGROUND_GREY));
+        setColour(juce::PopupMenu::backgroundColourId, juce::Colour(BACKGROUND_COMPONENT));
+        setColour(juce::PopupMenu::textColourId, juce::Colour(LABEL_TEXT_COLOR));
+        setColour(juce::PopupMenu::highlightedBackgroundColourId, juce::Colour(BACKGROUND_GREY));
+        
+        setColour(juce::ComboBox::backgroundColourId, juce::Colour(BACKGROUND_COMPONENT));
+        setColour(juce::ComboBox::textColourId, juce::Colour(LABEL_TEXT_COLOR));
+        setColour(juce::ComboBox::outlineColourId, juce::Colour(ENABLED_PARAM));
+        setColour(juce::ComboBox::arrowColourId, juce::Colour(LABEL_TEXT_COLOR));
+        
+        setColour(juce::TextButton::buttonColourId, juce::Colour(BACKGROUND_COMPONENT));
+        setColour(juce::TextButton::textColourOffId, juce::Colour(LABEL_TEXT_COLOR));
+        setColour(juce::TextButton::buttonOnColourId, juce::Colour(BACKGROUND_GREY));
+        
+        setColour(juce::Label::textColourId, juce::Colour(LABEL_TEXT_COLOR));
+        setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+
+        setColour(juce::ListBox::backgroundColourId, juce::Colour(BACKGROUND_COMPONENT));
+        setColour(juce::ListBox::outlineColourId, juce::Colour(ENABLED_PARAM));
+        setColour(juce::ListBox::textColourId, juce::Colour(LABEL_TEXT_COLOR));
+    }
+
+    void drawPopupMenuBackground(juce::Graphics& g, int width, int height) override
+    {
+        g.fillAll(findColour(juce::PopupMenu::backgroundColourId));
+    }
+
+    void drawComboBox(juce::Graphics& g, int width, int height, bool isButtonDown,
+                     int buttonX, int buttonY, int buttonW, int buttonH,
+                     juce::ComboBox& box) override
+    {
+        auto cornerSize = 3.0f;
+        juce::Rectangle<int> boxBounds(0, 0, width, height);
+        
+        g.setColour(box.findColour(juce::ComboBox::backgroundColourId));
+        g.fillRoundedRectangle(boxBounds.toFloat(), cornerSize);
+
+        g.setColour(box.findColour(juce::ComboBox::outlineColourId));
+        g.drawRoundedRectangle(boxBounds.toFloat().reduced(0.5f, 0.5f), cornerSize, 1.0f);
+
+        juce::Rectangle<int> arrowZone(width - 30, 0, 20, height);
+        juce::Path path;
+        path.startNewSubPath(arrowZone.getX() + 3.0f, arrowZone.getCentreY() - 2.0f);
+        path.lineTo(static_cast<float>(arrowZone.getCentreX()), arrowZone.getCentreY() + 3.0f);
+        path.lineTo(arrowZone.getRight() - 3.0f, arrowZone.getCentreY() - 2.0f);
+
+        g.setColour(box.findColour(juce::ComboBox::arrowColourId));
+        g.strokePath(path, juce::PathStrokeType(2.0f));
+    }
+
+    void drawButtonBackground(juce::Graphics& g, juce::Button& button, const juce::Colour& backgroundColour,
+                            bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
+    {
+        auto cornerSize = 3.0f;
+        auto bounds = button.getLocalBounds().toFloat().reduced(0.5f, 0.5f);
+
+        auto baseColour = backgroundColour.withMultipliedSaturation(button.hasKeyboardFocus(true) ? 1.3f : 0.9f)
+                                       .withMultipliedAlpha(button.isEnabled() ? 1.0f : 0.5f);
+
+        if (shouldDrawButtonAsDown || shouldDrawButtonAsHighlighted)
+            baseColour = baseColour.contrasting(shouldDrawButtonAsDown ? 0.2f : 0.05f);
+
+        g.setColour(baseColour);
+        g.fillRoundedRectangle(bounds, cornerSize);
+
+        g.setColour(button.findColour(juce::ComboBox::outlineColourId));
+        g.drawRoundedRectangle(bounds, cornerSize, 1.0f);
+    }
+
+    void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
+                         bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
+    {
+        // This handles the "Hide Advanced Settings" button
+        auto edge = 4;
+
+        auto bounds = button.getLocalBounds();
+        auto textBounds = bounds.withTrimmedLeft(edge);
+
+        g.setColour(button.findColour(juce::ToggleButton::textColourId));
+        g.drawFittedText(button.getButtonText(),
+                         textBounds.getX(), textBounds.getY(),
+                         textBounds.getWidth(), textBounds.getHeight(),
+                         juce::Justification::centredLeft, 10);
+    }
+
+    void drawListBoxItem(juce::Graphics& g, int row, int width, int height,
+                        juce::ListBox& listBox, bool rowIsSelected, int mouseOverRow,
+                        bool /*rowIsClicked*/, bool /*shouldDrawAsEvenRow*/)
+    {
+        if (rowIsSelected)
+            g.fillAll(juce::Colour(BACKGROUND_GREY));
+        else if (row == mouseOverRow)
+            g.fillAll(juce::Colour(BACKGROUND_GREY).withAlpha(0.5f));
+    }
+
+    void drawListBox(juce::Graphics& g, juce::ListBox& listBox,
+                    const juce::Rectangle<int>& bounds, bool /*rowsInListAreDifferentHeights*/)
+    {
+        g.setColour(listBox.findColour(juce::ListBox::backgroundColourId));
+        g.fillRect(bounds);
+
+        g.setColour(listBox.findColour(juce::ListBox::outlineColourId));
+        g.drawRect(bounds, 1);
+    }
+};
+
+//==============================================================================
+
 class MainComponent : public murka::JuceMurkaBaseComponent,
-    public juce::AudioAppComponent,
     public juce::FileDragAndDropTarget,
-    public juce::Timer
+    public juce::Timer,
+    public juce::MenuBarModel,
+    public juce::ChangeListener,
+    public juce::AudioIODeviceCallback
 {
     //==============================================================================
     MurImage imgLogo;
@@ -142,6 +255,10 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
         oss << minutes << ':' << std::setw(2) << secs;
         return oss.str();
     }
+
+    bool lastKnownMediaPlayState = false; // tracks the last known play state of the media for device changes
+    double lastKnownMediaPosition = 0.0; // tracks the last known position of the media for device changes
+
 public:
     //==============================================================================
     MainComponent();
@@ -164,7 +281,7 @@ public:
     void setStatus(bool success, std::string message);
 
     //==============================================================================
-    void prepareToPlay(int samplesPerBlockExpected, double newSampleRate) override;
+    void prepareToPlay(int samplesPerBlockExpected, double newSampleRate);
 
     void fallbackDecodeStrategy(const AudioSourceChannelInfo& bufferToFill, const AudioSourceChannelInfo& info);
     void stereoDecodeStrategy(const AudioSourceChannelInfo& bufferToFill, const AudioSourceChannelInfo& info);
@@ -174,8 +291,8 @@ public:
     void intermediaryBufferTranscodeStrategy(const AudioSourceChannelInfo & bufferToFill, const AudioSourceChannelInfo & info);
     void nullStrategy(const AudioSourceChannelInfo& bufferToFill, const AudioSourceChannelInfo& info);
 
-    void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
-    void releaseResources() override;
+    void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill);
+    void releaseResources();
     void timecodeChanged(int64_t, double seconds);
 
     //==============================================================================
@@ -192,12 +309,44 @@ public:
     void setTranscodeAmbisonicOutputFormat(const std::string &name);
     std::string getTranscodeAmbisonicOutputFormat() const;
 
+    // Add these MenuBarModel required methods
+    juce::StringArray getMenuBarNames() override;
+    juce::PopupMenu getMenuForIndex(int topLevelMenuIndex, const juce::String& menuName) override;
+    void menuItemSelected(int menuItemID, int topLevelMenuIndex) override;
+
+    // ChangeListener method
+    void changeListenerCallback(juce::ChangeBroadcaster* source) override;
+
+    // AudioIODeviceCallback interface methods
+    void audioDeviceIOCallbackWithContext(const float* const* inputChannelData,
+                                        int numInputChannels,
+                                        float* const* outputChannelData,
+                                        int numOutputChannels,
+                                        int numSamples,
+                                        const juce::AudioIODeviceCallbackContext& context) override;
+    
+    void audioDeviceAboutToStart(juce::AudioIODevice* device) override;
+    void audioDeviceStopped() override;
+
 protected:
     void syncWithDAWPlayhead();
 
 private:
+    std::unique_ptr<juce::AudioDeviceSelectorComponent> audioDeviceSelector;
+    juce::AudioDeviceManager audioDeviceManager;
+
     const long long smallestDAWSyncInterval = 500;
     long long lastTimeDAWSyncHappened = 0;
+
+    void audioDeviceManagerChanged();
+    void createMenuBar();
+    juce::ApplicationCommandManager commandManager;
+    
+    enum MenuIDs
+    {
+        SettingsMenuID = 1,
+        // Add other menu IDs here as needed
+    };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
