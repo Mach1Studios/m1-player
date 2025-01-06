@@ -1586,6 +1586,12 @@ void MainComponent::timerCallback() {
     // Added if we need to move the OSC stuff from the processorblock
     playerOSC->update(); // test for connection
     secondsWithoutMouseMove += 1;
+
+    // Update last known position if media is loaded
+    if (currentMedia.clipLoaded()) {
+        lastKnownMediaPlayState = currentMedia.isPlaying();
+        lastKnownMediaPosition = currentMedia.getPositionInSeconds();
+    }
 }
 
 //==============================================================================
@@ -1776,8 +1782,10 @@ void MainComponent::audioDeviceManagerChanged()
 {
     // Store current media state before doing anything
     juce::URL currentUrl = currentMedia.getMediaFilePath();
-    double currentPosition = currentMedia.getPositionInSeconds();
-    bool wasPlaying = currentMedia.isPlaying() && b_standalone_mode;
+
+    // Use the last known position and play state after device change
+    bool wasPlaying = lastKnownMediaPlayState && b_standalone_mode;
+    double currentPosition = lastKnownMediaPosition;
 
     // Temporarily stop playback
     if (wasPlaying)
