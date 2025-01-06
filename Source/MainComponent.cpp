@@ -1718,50 +1718,37 @@ void MainComponent::menuItemSelected(int menuItemID, int topLevelMenuIndex)
     {
         if (!audioDeviceSelector)
         {
+            static M1AudioSettingsLookAndFeel audioSettingsLookAndFeel;
+            
+            // Create a custom AudioDeviceSelectorComponent with minimal options
             audioDeviceSelector.reset(new juce::AudioDeviceSelectorComponent(
-                audioDeviceManager,    // The device manager to show settings for
-                0,                     // Minimum input channels
-                0,                     // Maximum input channels 
+                audioDeviceManager,    
+                0,                     // Minimum input channels (hide input section)
+                0,                     // Maximum input channels (hide input section)
                 0,                     // Minimum output channels
                 2,                     // Maximum output channels
                 false,                 // Show MIDI input options
                 false,                 // Show MIDI output selector
-                true,                  // Show sample rates
-                true                   // Show buffer size selector
+                true,                  // Show channels as stereo pairs
+                false                  // Hide advanced options
             ));
 
-            // Style the selector component
-            audioDeviceSelector->setLookAndFeel(&getLookAndFeel());
-            audioDeviceSelector->setColour(juce::ListBox::backgroundColourId, juce::Colour(BACKGROUND_COMPONENT));
-            audioDeviceSelector->setColour(juce::ListBox::textColourId, juce::Colour(LABEL_TEXT_COLOR));
-            audioDeviceSelector->setColour(juce::ComboBox::backgroundColourId, juce::Colour(BACKGROUND_COMPONENT));
-            audioDeviceSelector->setColour(juce::ComboBox::textColourId, juce::Colour(LABEL_TEXT_COLOR));
-            audioDeviceSelector->setColour(juce::ComboBox::outlineColourId, juce::Colour(ENABLED_PARAM));
-            audioDeviceSelector->setColour(juce::TextButton::buttonColourId, juce::Colour(BACKGROUND_COMPONENT));
-            audioDeviceSelector->setColour(juce::TextButton::textColourOffId, juce::Colour(LABEL_TEXT_COLOR));
-            audioDeviceSelector->setColour(juce::TextButton::buttonOnColourId, juce::Colour(BACKGROUND_GREY));
+            audioDeviceSelector->setLookAndFeel(&audioSettingsLookAndFeel);
 
             juce::DialogWindow::LaunchOptions options;
             options.content.setOwned(audioDeviceSelector.release());
-            options.content->setSize(500, 450);
+            options.content->setSize(500, 300);
             options.dialogTitle = "Audio Settings";
             options.dialogBackgroundColour = juce::Colour(BACKGROUND_GREY);
             options.escapeKeyTriggersCloseButton = true;
             options.useNativeTitleBar = true;
             options.resizable = false;
 
-            // Create and show the dialog
             auto* dialog = options.create();
-            
-            // Style the dialog window
-            dialog->setColour(juce::ResizableWindow::backgroundColourId, juce::Colour(BACKGROUND_GREY));
-            dialog->setColour(juce::TextButton::buttonColourId, juce::Colour(BACKGROUND_COMPONENT));
-            dialog->setColour(juce::TextButton::textColourOffId, juce::Colour(LABEL_TEXT_COLOR));
-            dialog->setColour(juce::TextButton::buttonOnColourId, juce::Colour(BACKGROUND_GREY));
+            dialog->setLookAndFeel(&audioSettingsLookAndFeel);
             
             dialog->enterModalState(true, juce::ModalCallbackFunction::create(
                 [this, dialog](int) {
-                    // Ensure we clean up both the selector and dialog
                     audioDeviceSelector = nullptr;
                     delete dialog;
                 }
