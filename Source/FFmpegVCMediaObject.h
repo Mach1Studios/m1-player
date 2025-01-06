@@ -55,6 +55,8 @@ public:
     
     void setOffsetSeconds(double seconds);
 
+    void setAudioDeviceManager(juce::AudioDeviceManager* manager);
+
 private:
     std::unique_ptr<juce::AudioTransportSource> transportSource;
     std::unique_ptr<FFmpegMediaReader> mediaReader;
@@ -71,6 +73,8 @@ private:
 
     /*! Callback for a timer. This is used to paint the current  frame. */
     void timerCallback () override;
+
+    juce::AudioDeviceManager* deviceManager = nullptr;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FFmpegVCMediaObject)
 };

@@ -11,8 +11,22 @@ MainComponent::MainComponent() : m_decode_strategy(&MainComponent::nullStrategy)
     // you add any child components.
     juce::OpenGLAppComponent::setSize(800, 600);
 
-	// specify the number of input and output channels that we want to open
-	setAudioChannels(0, 2);
+    // Initialize audio device manager with default settings
+    juce::String error = audioDeviceManager.initialise(
+        0,      // numInputChannels
+        2,      // numOutputChannels
+        nullptr,// XML settings = null
+        true    // selectDefaultDeviceOnFailure
+    );
+
+    if (error.isNotEmpty())
+    {
+        DBG("Error initializing audio device manager: " + error);
+    }
+
+    // Register callbacks
+    audioDeviceManager.addAudioCallback(this);
+    audioDeviceManager.addChangeListener(this);
 
     // Setup OSC
     playerOSC = std::make_unique<PlayerOSC>();
@@ -21,13 +35,60 @@ MainComponent::MainComponent() : m_decode_strategy(&MainComponent::nullStrategy)
     juce::String date(__DATE__);
     juce::String time(__TIME__);
     DBG("[PLAYER] Build date: " + date + " | Build time: " + time);
+
+    createMenuBar();
 }
 
-MainComponent::~MainComponent() {
+MainComponent::~MainComponent() 
+{
+    // Clean up audio device selector and its window
+    if (audioDeviceSelector)
+    {
+        audioDeviceSelector = nullptr;
+    }
+
+    // Remove callbacks
+    audioDeviceManager.removeAudioCallback(this);
+    audioDeviceManager.removeChangeListener(this);
+    
+    // Remove menu bar
+    juce::MenuBarModel::setMacMainMenu(nullptr);
+    
+    // Clean up orientation client
     m1OrientationClient.command_disconnect();
     m1OrientationClient.close();
-    shutdownAudio();
+    
+    // Shutdown OpenGL
     juce::OpenGLAppComponent::shutdownOpenGL();
+}
+
+void MainComponent::audioDeviceIOCallbackWithContext(const float* const* inputChannelData,
+                                                   int numInputChannels,
+                                                   float* const* outputChannelData,
+                                                   int numOutputChannels,
+                                                   int numSamples,
+                                                   const juce::AudioIODeviceCallbackContext& context)
+{
+    // Create a temporary AudioBuffer to wrap the output channels
+    juce::AudioBuffer<float> tempBuffer(const_cast<float**>(outputChannelData), numOutputChannels, numSamples);
+    juce::AudioSourceChannelInfo bufferToFill(&tempBuffer, 0, numSamples);
+    
+    // Clear the output buffer first
+    for (int i = 0; i < numOutputChannels; ++i)
+        juce::FloatVectorOperations::clear(outputChannelData[i], numSamples);
+    
+    getNextAudioBlock(bufferToFill);
+}
+
+void MainComponent::audioDeviceAboutToStart(juce::AudioIODevice* device)
+{
+    prepareToPlay(device->getCurrentBufferSizeSamples(),
+                 device->getCurrentSampleRate());
+}
+
+void MainComponent::audioDeviceStopped()
+{
+    releaseResources();
 }
 
 //==============================================================================
@@ -59,6 +120,9 @@ void MainComponent::initialise() {
                                                     std::placeholders::_2));
 
     imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
+
+    // Set the audio device manager for the media object
+    currentMedia.setAudioDeviceManager(&audioDeviceManager);
 
     // setup the listener
     playerOSC->AddListener([&](juce::OSCMessage msg) {
@@ -703,8 +767,8 @@ void MainComponent::draw_orientation_client(murka::Murka &m, M1OrientationClient
     orientationControlWindow->draw();
 }
 
-void MainComponent::draw() {
-    
+void MainComponent::draw()
+{
     // countdown for hiding UI when mouse is not active in window
     if ((m.mouseDelta().x != 0) || (m.mouseDelta().y != 0)) {
         secondsWithoutMouseMove = 0;
@@ -1522,6 +1586,12 @@ void MainComponent::timerCallback() {
     // Added if we need to move the OSC stuff from the processorblock
     playerOSC->update(); // test for connection
     secondsWithoutMouseMove += 1;
+
+    // Update last known position if media is loaded
+    if (currentMedia.clipLoaded()) {
+        lastKnownMediaPlayState = currentMedia.isPlaying();
+        lastKnownMediaPosition = currentMedia.getPositionInSeconds();
+    }
 }
 
 //==============================================================================
@@ -1616,4 +1686,119 @@ void MainComponent::setDetectedInputChannelCount(int numberOfInputChannels) {
 
     reconfigureAudioTranscode();
     reconfigureAudioDecode(); // can use intermediaryBuffer and should be called last
+}
+
+void MainComponent::createMenuBar()
+{
+    #if JUCE_MAC
+    juce::MenuBarModel::setMacMainMenu(this);
+    #endif
+}
+
+juce::StringArray MainComponent::getMenuBarNames()
+{
+    return { "File" };
+}
+
+juce::PopupMenu MainComponent::getMenuForIndex(int topLevelMenuIndex, const juce::String& menuName)
+{
+    juce::PopupMenu menu;
+    
+    if (topLevelMenuIndex == 0) // File menu
+    {
+        menu.addItem(SettingsMenuID, "Settings...");
+    }
+    
+    return menu;
+}
+
+void MainComponent::menuItemSelected(int menuItemID, int topLevelMenuIndex)
+{
+    if (menuItemID == SettingsMenuID)
+    {
+        if (!audioDeviceSelector)
+        {
+            static M1AudioSettingsLookAndFeel audioSettingsLookAndFeel;
+            
+            // Create a custom AudioDeviceSelectorComponent with minimal options
+            audioDeviceSelector.reset(new juce::AudioDeviceSelectorComponent(
+                audioDeviceManager,    
+                0,                     // Minimum input channels (hide input section)
+                0,                     // Maximum input channels (hide input section)
+                0,                     // Minimum output channels
+                2,                     // Maximum output channels
+                false,                 // Show MIDI input options
+                false,                 // Show MIDI output selector
+                true,                  // Show channels as stereo pairs
+                false                  // Hide advanced options
+            ));
+
+            audioDeviceSelector->setLookAndFeel(&audioSettingsLookAndFeel);
+
+            juce::DialogWindow::LaunchOptions options;
+            options.content.setOwned(audioDeviceSelector.release());
+            options.content->setSize(500, 300);
+            options.dialogTitle = "Audio Settings";
+            options.dialogBackgroundColour = juce::Colour(BACKGROUND_GREY);
+            options.escapeKeyTriggersCloseButton = true;
+            options.useNativeTitleBar = true;
+            options.resizable = false;
+
+            auto* dialog = options.create();
+            dialog->setLookAndFeel(&audioSettingsLookAndFeel);
+            
+            dialog->enterModalState(true, juce::ModalCallbackFunction::create(
+                [this, dialog](int) {
+                    audioDeviceSelector = nullptr;
+                    delete dialog;
+                }
+            ));
+        }
+    }
+}
+
+void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
+{
+    if (source == &audioDeviceManager)
+    {
+        audioDeviceManagerChanged();
+    }
+}
+
+void MainComponent::audioDeviceManagerChanged()
+{
+    // Store current media state before doing anything
+    juce::URL currentUrl = currentMedia.getMediaFilePath();
+
+    // Use the last known position and play state after device change
+    bool wasPlaying = lastKnownMediaPlayState && b_standalone_mode;
+    double currentPosition = lastKnownMediaPosition;
+
+    // Temporarily stop playback
+    if (wasPlaying)
+        currentMedia.stop();
+
+    auto* device = audioDeviceManager.getCurrentAudioDevice();
+    if (!device)
+        return; // No device available
+
+    // Update device settings
+    currentMedia.prepareToPlay(
+        device->getCurrentBufferSizeSamples(),
+        device->getCurrentSampleRate()
+    );
+
+    // Always attempt to reload the media if we had one before
+    if (currentUrl.isLocalFile())
+    {
+        currentMedia.open(currentUrl);
+        
+        // Restore position and playback state
+        if (currentMedia.clipLoaded())
+        {
+            currentMedia.setPosition(currentPosition);
+            if (wasPlaying)
+                currentMedia.start();
+        }
+    }
 }
