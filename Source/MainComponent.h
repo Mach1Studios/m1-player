@@ -144,6 +144,10 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
         oss << minutes << ':' << std::setw(2) << secs;
         return oss.str();
     }
+
+    bool lastKnownMediaPlayState = false; // tracks the last known play state of the media for device changes
+    double lastKnownMediaPosition = 0.0; // tracks the last known position of the media for device changes
+
 public:
     //==============================================================================
     MainComponent();
