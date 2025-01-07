@@ -9,6 +9,7 @@
 #include "Mach1Decode.h"
 #include "Mach1Encode.h"
 #include "Mach1Transcode.h"
+#include "Mach1TranscodeConstants.h"
 #include "TypesForDataExchange.h"
 #include "PlayerOSC.h"
 
@@ -18,6 +19,7 @@
 #include "UI/M1Checkbox.h"
 #include "UI/M1Slider.h"
 #include "UI/M1DropdownButton.h"
+#include "UI/M1DropdownMenu.h"
 #include "UI/VideoPlayerWidget.h"
 #include "UI/RadioGroupWidget.h"
 
@@ -258,6 +260,21 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
 
     bool lastKnownMediaPlayState = false; // tracks the last known play state of the media for device changes
     double lastKnownMediaPosition = 0.0; // tracks the last known position of the media for device changes
+
+    // Add these member variables
+    std::vector<std::string> currentFormatOptions;
+    std::string selectedInputFormat;
+
+    // Add this helper function
+    std::vector<std::string> getMatchingFormatNames(int numChannels) {
+        std::vector<std::string> matches;
+        for (const auto& format : Mach1TranscodeConstants::formats) {
+            if (format.numChannels == numChannels) {
+                matches.push_back(format.name);
+            }
+        }
+        return matches;
+    }
 
 public:
     //==============================================================================

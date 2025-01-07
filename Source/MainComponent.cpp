@@ -1192,6 +1192,50 @@ void MainComponent::draw()
             m.drawRectangle(0, m.getSize().height() - 50, m.getSize().width(), 50); // bottom bar
         }
     }
+    
+    /// INPUT FORMAT SELECTOR
+
+    // Only show format selector if we have multichannel audio
+    if (currentMedia.clipLoaded() && currentMedia.getNumChannels() > 2) {
+        // Format selector dropdown
+        m.setColor(ENABLED_PARAM);
+        int dropdownItemHeight = 20;
+        float format_selector_x = m.getSize().width() / 2 - 160; // Position to the left of settings
+        
+        auto& formatSelectorButton = m.prepare<M1DropdownButton>({
+            format_selector_x, m.getSize().height() - 10 - 30,
+            120, 30
+        })
+        .withLabel(selectedInputFormat.empty() ? "SELECT FORMAT" : selectedInputFormat)
+        .withFontSize(DEFAULT_FONT_SIZE)
+        .withOutline(true)
+        .withTriangle(false);
+        
+        formatSelectorButton.textAlignment = TEXT_CENTER;
+        formatSelectorButton.heightDivisor = 3;
+        formatSelectorButton.labelPaddingLeft = 10;
+        formatSelectorButton.draw();
+
+        // Update format options based on current channel count
+        currentFormatOptions = getMatchingFormatNames(currentMedia.getNumChannels());
+        
+        auto& formatSelectorMenu = m.prepare<M1DropdownMenu>( {format_selector_x, m.getSize().height() - 10 - 30 - currentFormatOptions.size() * dropdownItemHeight, 160, currentFormatOptions.size() * dropdownItemHeight })
+            .withOptions(currentFormatOptions);
+        
+        // Handle dropdown menu
+        if (formatSelectorButton.pressed) {
+            formatSelectorMenu.open();
+        }
+        
+        formatSelectorMenu.optionHeight = dropdownItemHeight;
+        formatSelectorMenu.fontSize = DEFAULT_FONT_SIZE;
+        formatSelectorMenu.draw();
+        
+        if (formatSelectorMenu.changed)
+        {
+            
+        }
+    }
 
     /// SETTINGS BUTTON
     if (showSettingsMenu || !(secondsWithoutMouseMove > 5)) {
@@ -1655,24 +1699,48 @@ void MainComponent::reconfigureAudioDecode() {
 // TODO: Mach1Transcode for common other formats, setup temp UI for input->output format selection
 // TODO: Create UI for selecting input format
 void MainComponent::reconfigureAudioTranscode() {
-    switch (detectedNumInputChannels) {
-        case 6:
-            m1Transcode.setInputFormat(m1Transcode.getFormatFromString(getTranscodeSurroundInputFormat()));
-            m1Transcode.setOutputFormat(m1Transcode.getFormatFromString(getTranscodeSurroundOutputFormat()));
-            m1Transcode.processConversionPath();
-            m_transcode_strategy = &MainComponent::intermediaryBufferTranscodeStrategy;
-            break;
+    // Default to null strategy
+    m_transcode_strategy = &MainComponent::nullStrategy;
 
-        case 9:
-            m1Transcode.setInputFormat(m1Transcode.getFormatFromString(getTranscodeAmbisonicInputFormat()));
+    if (detectedNumInputChannels <= 2) {
+        return;
+    }
+
+    // Use selected format if available, otherwise use default behavior
+    if (!selectedInputFormat.empty()) {
+        m1Transcode.setInputFormat(m1Transcode.getFormatFromString(selectedInputFormat));
+        
+        // Set appropriate output format based on input type
+        if (selectedInputFormat.find("ACNSN3D") != std::string::npos || 
+            selectedInputFormat.find("FuMa") != std::string::npos) {
             m1Transcode.setOutputFormat(m1Transcode.getFormatFromString(getTranscodeAmbisonicOutputFormat()));
-            m1Transcode.processConversionPath();
-            m_transcode_strategy = &MainComponent::intermediaryBufferTranscodeStrategy;
-            break;
+        } else {
+            m1Transcode.setOutputFormat(m1Transcode.getFormatFromString(getTranscodeSurroundOutputFormat()));
+        }
+        
+        m1Transcode.processConversionPath();
+        m_transcode_strategy = &MainComponent::intermediaryBufferTranscodeStrategy;
+    } else {
+        // Existing fallback behavior
+        switch (detectedNumInputChannels) {
+            case 6:
+                m1Transcode.setInputFormat(m1Transcode.getFormatFromString(getTranscodeSurroundInputFormat()));
+                m1Transcode.setOutputFormat(m1Transcode.getFormatFromString(getTranscodeSurroundOutputFormat()));
+                m1Transcode.processConversionPath();
+                m_transcode_strategy = &MainComponent::intermediaryBufferTranscodeStrategy;
+                break;
 
-        default:
-            m_transcode_strategy = &MainComponent::nullStrategy;
-            break;
+            case 9:
+                m1Transcode.setInputFormat(m1Transcode.getFormatFromString(getTranscodeAmbisonicInputFormat()));
+                m1Transcode.setOutputFormat(m1Transcode.getFormatFromString(getTranscodeAmbisonicOutputFormat()));
+                m1Transcode.processConversionPath();
+                m_transcode_strategy = &MainComponent::intermediaryBufferTranscodeStrategy;
+                break;
+
+            default:
+                m_transcode_strategy = &MainComponent::nullStrategy;
+                break;
+        }
     }
 }
 

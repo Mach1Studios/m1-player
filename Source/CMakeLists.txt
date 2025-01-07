@@ -11,6 +11,7 @@ file(GLOB source_files  Config.h
                         UI/M1Slider.h
                         UI/M1Checkbox.h
                         UI/M1DropdownButton.h
+                        UI/M1DropdownMenu.h
                         UI/VideoPlayerWidget.h
                         UI/RadioGroupWidget.h
                         UI/M1PlayerControlButton.h

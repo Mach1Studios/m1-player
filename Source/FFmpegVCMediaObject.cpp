@@ -51,7 +51,6 @@ void FFmpegVCMediaObject::start()
         // Start video timer first
         if (hasVideo())
         {
-//            DBG("Starting video timer at " + juce::String(getVideoFrameRate()) + " Hz");
             startTimerHz(static_cast<int>(getVideoFrameRate()));
         }
 
@@ -108,13 +107,11 @@ void FFmpegVCMediaObject::stop()
     }
 }
 
-
 void FFmpegVCMediaObject::videoEnded()
 {
     setPosition(0);
     stop();
 }
-
 
 bool FFmpegVCMediaObject::isPlaying()
 {
