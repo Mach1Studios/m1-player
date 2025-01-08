@@ -276,6 +276,28 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
         return matches;
     }
 
+    // Add this helper function
+    std::string getDefaultFormatForChannelCount(int numChannels) {
+        switch (numChannels) {
+            case 3:  return "3.0_LCR";
+            case 4:  return "M1Spatial-4";
+            case 5:  return "5.0_C";
+            case 6:  return "5.1_C";
+            case 7:  return "7.0_C";
+            case 8:  return "M1Spatial-8";
+            case 9:  return "ACNSN3DO2A";
+            case 10: return "7.1.2_C";
+            case 11: return "7.0.6_C";
+            case 12: return "7.1.4_C";
+            case 14: return "M1Spatial-14";
+            case 16: return "ACNSN3DO3A";
+            case 24: return "ACNSN3DO4A";
+            case 36: return "ACNSN3DO5A";
+            case 64: return "ACNSN3DO6A";
+            default: return "";
+        }
+    }
+
 public:
     //==============================================================================
     MainComponent();
