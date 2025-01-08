@@ -30,6 +30,8 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <mutex>
+#include <atomic>
 
 //==============================================================================
 // Audio Settings LookAndFeel
@@ -154,6 +156,10 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     public juce::ChangeListener,
     public juce::AudioIODeviceCallback
 {
+private:
+    // UI Constants
+    static constexpr int UI_HIDE_TIMEOUT_SECONDS = 5;
+
     //==============================================================================
     MurImage imgLogo;
     MurImage imgVideo;
@@ -370,6 +376,11 @@ private:
         SettingsMenuID = 1,
         // TODO: Add open file menu item
     };
+
+    // Add mutex for format changes
+    std::mutex formatChangeMutex;
+    std::atomic<bool> pendingFormatChange{false};
+    std::string pendingInputFormat;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

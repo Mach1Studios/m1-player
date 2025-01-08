@@ -457,6 +457,17 @@ void MainComponent::intermediaryBufferTranscodeStrategy(const AudioSourceChannel
         return;
     }
 
+    // Handle any pending format changes before processing
+    {
+        std::lock_guard<std::mutex> lock(formatChangeMutex);
+        if (pendingFormatChange) {
+            // Apply format change when it's safe
+            m1Transcode.setInputFormat(m1Transcode.getFormatFromString(pendingInputFormat));
+            m1Transcode.processConversionPath();
+            pendingFormatChange = false;
+        }
+    }
+
     // restructure output buffer
     if (intermediaryBuffer.getNumSamples() != out || intermediaryBuffer.getNumSamples() != sampleCount) {
         intermediaryBuffer.setSize(out, bufferToFill.numSamples);
@@ -475,7 +486,13 @@ void MainComponent::intermediaryBufferTranscodeStrategy(const AudioSourceChannel
         intermediaryPtrs[i] = intermediaryBuffer.getWritePointer(i);
     }
 
-    m1Transcode.processConversion(readPtrs.data(), intermediaryPtrs.data(), sampleCount);
+    try {
+        m1Transcode.processConversion(readPtrs.data(), intermediaryPtrs.data(), sampleCount);
+    } catch (const std::exception& e) {
+        // Log error but don't crash
+        DBG("Transcode error: " << e.what());
+        intermediaryBuffer.clear();
+    }
 }
 
 void MainComponent::nullStrategy(const AudioSourceChannelInfo &bufferToFill, const AudioSourceChannelInfo &info) {
@@ -657,45 +674,14 @@ void MainComponent::syncWithDAWPlayhead()
 //        "s, Player: " + juce::String(playerPosition) +
 //        "s, Diff: " + juce::String(timeDifference) + "s");
 
-//    // Seek while stopped
-//    if (currentMedia.isPlaying())
-//    {
-//        if (std::fabs(timeDifference) > syncThreshold)
-//        {
-//            // Minor difference - adjust playback speed
-//            double speedAdjustment = 1.0;
-//            if (timeDifference > 0)
-//            {
-//                // We're behind - speed up slightly
-//                speedAdjustment = 1.1;
-//            }
-//            else
-//            {
-//                // We're ahead - slow down slightly
-//                speedAdjustment = 0.9;
-//            }
-//
-//            DBG("[SYNC] Changing playback speed to: " + juce::String(speedAdjustment));
-//            currentMedia.setPlaySpeed(speedAdjustment);
-//        }
-//        else
-//        {
-//            DBG("[SYNC] Changing playback speed to: 1.0" );
-//            // In sync - normal playback speed
-//            currentMedia.setPlaySpeed(1.0);
-//        }
-//    }
-//    else // we are stopped and should just seek to position
-//    {
-        if (std::fabs(timeDifference) > seekThreshold || externalTimeInSeconds < playerPositionInSeconds)
-        {
-            // Major difference - perform seek
-            DBG("[SYNC] Seeking to correct large sync difference");
-            currentMedia.setPosition(externalTimeInSeconds);
-        } else {
-          currentMedia.setOffsetSeconds(timeDifference);
-        }
-//    }
+    if (std::fabs(timeDifference) > seekThreshold || externalTimeInSeconds < playerPositionInSeconds)
+    {
+        // Major difference - perform seek
+        DBG("[SYNC] Seeking to correct large sync difference");
+        currentMedia.setPosition(externalTimeInSeconds);
+    } else {
+        currentMedia.setOffsetSeconds(timeDifference);
+    }
     
     // Handle play state changes first
     if (isCurrentlyPlaying != shouldBePlaying) {
@@ -985,8 +971,8 @@ void MainComponent::draw()
         });
     }
     playerControls.withStandaloneMode(b_standalone_mode);
-    playerControls.bypassingBecauseofInactivity = (secondsWithoutMouseMove > 5);
-    m.setColor(20, 20, 20, 200 * (1 - (secondsWithoutMouseMove > 5)));
+    playerControls.bypassingBecauseofInactivity = (secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS);
+    m.setColor(20, 20, 20, 200 * (1 - (secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS)));
     // if there has not been mouse activity hide the UI element
     if (!showSettingsMenu) {
         // do not draw playcontrols if the settings menu is open
@@ -995,7 +981,7 @@ void MainComponent::draw()
         if (currentMedia.clipLoaded() && (currentMedia.hasVideo() || currentMedia.hasAudio())) {
             playerControls.draw();
         } else {
-            if (!(secondsWithoutMouseMove > 5)) {
+            if (!(secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS)) {
                 // skip drawing if mouse has not interacted in a while
                 m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
                 std::string message = "Drop an audio or video file here";
@@ -1187,7 +1173,7 @@ void MainComponent::draw()
         // TODO: Animate this drawer opening and closing
         m.drawRectangle(0, m.getSize().height() * 0.15f, m.getSize().width(), m.getSize().height() * 0.85f);
     } else {
-        if (!(secondsWithoutMouseMove > 5)) {
+        if (!(secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS)) {
             // skip drawing if mouse has not interacted in a while
             m.drawRectangle(0, m.getSize().height() - 50, m.getSize().width(), 50); // bottom bar
         }
@@ -1196,7 +1182,7 @@ void MainComponent::draw()
     /// INPUT FORMAT SELECTOR
 
     // Only show format selector if we have multichannel audio
-    if (!(secondsWithoutMouseMove > 5) && currentMedia.clipLoaded() && currentMedia.getNumChannels() > 2) {
+    if (!(secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS) && currentMedia.clipLoaded() && currentMedia.getNumChannels() > 2) {
         // Format selector dropdown
         m.setColor(ENABLED_PARAM);
         int dropdownItemHeight = 20;
@@ -1236,14 +1222,12 @@ void MainComponent::draw()
         if (formatSelectorMenu.changed)
         {
             selectedInputFormat = currentFormatOptions[formatSelectorMenu.selectedOption];
-            // Update transcode format
-            m1Transcode.setInputFormat(m1Transcode.getFormatFromString(selectedInputFormat));
-            m1Transcode.processConversionPath();
+            reconfigureAudioTranscode();
         }
     }
 
     /// SETTINGS BUTTON
-    if (showSettingsMenu || !(secondsWithoutMouseMove > 5)) {
+    if (showSettingsMenu || !(secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS)) {
         // skip drawing if mouse has not interacted in a while
         m.setColor(ENABLED_PARAM);
         float settings_button_y = m.getSize().height() - 15;
@@ -1548,7 +1532,7 @@ void MainComponent::draw()
     }
 
     /// Player label
-    if (!(secondsWithoutMouseMove > 5) || showSettingsMenu) {
+    if (!(secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS) || showSettingsMenu) {
         // skip drawing if mouse has not interacted in a while
         m.setColor(ENABLED_PARAM);
         m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
@@ -1581,7 +1565,10 @@ std::string MainComponent::getTranscodeOutputFormat() const {
 
 void MainComponent::setTranscodeInputFormat(const std::string &name) {
     if (!name.empty() && m1Transcode.getFormatFromString(name) != -1) {
-        selectedInputFormat = name;
+        // Queue the format change instead of applying immediately
+        std::lock_guard<std::mutex> lock(formatChangeMutex);
+        pendingInputFormat = name;
+        pendingFormatChange = true;
     }
 }
 
@@ -1616,7 +1603,7 @@ void MainComponent::resized()
 }
 
 void MainComponent::reconfigureAudioDecode() {
-    // Setupc for Mach1Decode API
+    // Setup for Mach1Decode API
     m1Decode.setPlatformType(Mach1PlatformDefault);
     m1Decode.setFilterSpeed(0.99f);
 
@@ -1630,33 +1617,22 @@ void MainComponent::reconfigureAudioDecode() {
         case 2:
             m_decode_strategy = &MainComponent::stereoDecodeStrategy;
             break;
-        case 4:
-            m1Decode.setDecodeMode(M1DecodeSpatial_4);
-            m_decode_strategy = &MainComponent::readBufferDecodeStrategy;
-            break;
-        case 6:
-            m1Decode.setDecodeMode(M1DecodeSpatial_14);
-            m_decode_strategy = &MainComponent::intermediaryBufferDecodeStrategy;
-            break;
-        case 8:
-            m1Decode.setDecodeMode(M1DecodeSpatial_8);
-            m_decode_strategy = &MainComponent::readBufferDecodeStrategy;
-            break;
-        case 9:
-            m1Decode.setDecodeMode(M1DecodeSpatial_14);
-            m_decode_strategy = &MainComponent::intermediaryBufferDecodeStrategy;
-            break;
-        case 12:
-            m1Decode.setDecodeMode(M1DecodeSpatial_12);
-            m_decode_strategy = &MainComponent::readBufferDecodeStrategy;
-            break;
-        case 14:
-            m1Decode.setDecodeMode(M1DecodeSpatial_14);
-            m_decode_strategy = &MainComponent::readBufferDecodeStrategy;
-            break;
         default:
-            m1Decode.setDecodeMode(M1DecodeSpatial_14);
-            m_decode_strategy = &MainComponent::fallbackDecodeStrategy;
+            // For any multichannel input (>2), use intermediary buffer strategy
+            if (detectedNumInputChannels == 4 && selectedInputFormat == "M1Spatial-4") {
+                m1Decode.setDecodeMode(M1DecodeSpatial_4);
+                m_decode_strategy = &MainComponent::readBufferDecodeStrategy; // decode directly to buffer
+            } else if (detectedNumInputChannels == 8 && selectedInputFormat == "M1Spatial-8") {
+                m1Decode.setDecodeMode(M1DecodeSpatial_8);
+                m_decode_strategy = &MainComponent::readBufferDecodeStrategy; // decode directly to buffer
+            } else {
+                m1Decode.setDecodeMode(M1DecodeSpatial_14);
+                if (selectedInputFormat == "M1Spatial-14") {
+                    m_decode_strategy = &MainComponent::readBufferDecodeStrategy; // decode directly to buffer
+                } else {
+                    m_decode_strategy = &MainComponent::intermediaryBufferDecodeStrategy; // decode to intermediary buffer for transcoding
+                }
+            }
             break;
     }
 }
@@ -1672,8 +1648,38 @@ void MainComponent::reconfigureAudioTranscode() {
 
     // Use selected format if available, otherwise use default behavior
     if (!selectedInputFormat.empty()) {
+        // TODO: combine these calls
+        setTranscodeInputFormat(selectedInputFormat);
         m1Transcode.setInputFormat(m1Transcode.getFormatFromString(selectedInputFormat));
-        m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-14"));
+
+        /// INPUT PREFERRED OUTPUT OVERRIDE ASSIGNMENTS
+        if (selectedInputFormat == "3.0_LCR" || // NOTE: switch to M1Spatial-14 for center channel
+            selectedInputFormat == "4.0_LCRS" || // NOTE: switch to M1Spatial-14 for center channel
+            selectedInputFormat == "M1Horizon-4_2")
+        {
+            // TODO: combine these calls
+            setTranscodeOutputFormat("M1Spatial-4");
+            m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-4"));
+        }
+        else if (selectedInputFormat == "4.0_AFormat" ||
+                 selectedInputFormat == "Ambeo" ||
+                 selectedInputFormat == "TetraMic" ||
+                 selectedInputFormat == "SPS-200" ||
+                 selectedInputFormat == "ORTF3D" ||
+                 selectedInputFormat == "CoreSound-OctoMic" ||
+                 selectedInputFormat == "CoreSound-OctoMic_SIM")
+        {
+            // TODO: combine these calls
+            setTranscodeOutputFormat("M1Spatial-8");
+            m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-8"));
+        }
+        else
+        {
+            // TODO: combine these calls
+            setTranscodeOutputFormat("M1Spatial-14");
+            m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-14"));
+        }
+        
         m1Transcode.processConversionPath();
         m_transcode_strategy = &MainComponent::intermediaryBufferTranscodeStrategy;
     }
