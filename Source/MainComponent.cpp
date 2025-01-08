@@ -1196,44 +1196,49 @@ void MainComponent::draw()
     /// INPUT FORMAT SELECTOR
 
     // Only show format selector if we have multichannel audio
-    if (currentMedia.clipLoaded() && currentMedia.getNumChannels() > 2) {
+    if (!(secondsWithoutMouseMove > 5) && currentMedia.clipLoaded() && currentMedia.getNumChannels() > 2) {
         // Format selector dropdown
         m.setColor(ENABLED_PARAM);
         int dropdownItemHeight = 20;
-        float format_selector_x = m.getSize().width() / 2 - 160; // Position to the left of settings
+        float format_selector_x = 65.25 /* logo */ + 25; // Position to the left of settings
+        float format_selector_width = m.getSize().width() / 2 - 65.25 - 25 * 3; // ensure we don't overlap with settings button
         
         auto& formatSelectorButton = m.prepare<M1DropdownButton>({
-            format_selector_x, m.getSize().height() - 10 - 30,
-            120, 30
+            format_selector_x, m.getSize().height() - 5 - 30,
+            format_selector_width, 20
         })
         .withLabel(selectedInputFormat.empty() ? "SELECT FORMAT" : selectedInputFormat)
         .withFontSize(DEFAULT_FONT_SIZE)
         .withOutline(true)
         .withTriangle(false);
         
-        formatSelectorButton.textAlignment = TEXT_CENTER;
-        formatSelectorButton.heightDivisor = 3;
-        formatSelectorButton.labelPaddingLeft = 10;
+        formatSelectorButton.textAlignment = TEXT_LEFT;
         formatSelectorButton.draw();
-
-        // Update format options based on current channel count
-        currentFormatOptions = getMatchingFormatNames(currentMedia.getNumChannels());
         
-        auto& formatSelectorMenu = m.prepare<M1DropdownMenu>( {format_selector_x, m.getSize().height() - 10 - 30 - currentFormatOptions.size() * dropdownItemHeight, 160, currentFormatOptions.size() * dropdownItemHeight })
-            .withOptions(currentFormatOptions);
+        auto& formatSelectorMenu = m.prepare<M1DropdownMenu>({ 
+            format_selector_x, m.getSize().height() - 5 - 30 - currentFormatOptions.size() * dropdownItemHeight,
+            format_selector_width, currentFormatOptions.size() * dropdownItemHeight })
+        .withOptions(currentFormatOptions);
         
         // Handle dropdown menu
         if (formatSelectorButton.pressed) {
+            // Update format options based on current channel count
+            currentFormatOptions = getMatchingFormatNames(currentMedia.getNumChannels());
             formatSelectorMenu.open();
         }
         
         formatSelectorMenu.optionHeight = dropdownItemHeight;
+        formatSelectorMenu.textAlignment = TEXT_LEFT;
+        formatSelectorMenu.highlightLabelColor = BACKGROUND_GREY;
         formatSelectorMenu.fontSize = DEFAULT_FONT_SIZE;
         formatSelectorMenu.draw();
         
         if (formatSelectorMenu.changed)
         {
-            
+            selectedInputFormat = currentFormatOptions[formatSelectorMenu.selectedOption];
+            // Update transcode format
+            m1Transcode.setInputFormat(m1Transcode.getFormatFromString(selectedInputFormat));
+            m1Transcode.processConversionPath();
         }
     }
 
@@ -1241,7 +1246,7 @@ void MainComponent::draw()
     if (showSettingsMenu || !(secondsWithoutMouseMove > 5)) {
         // skip drawing if mouse has not interacted in a while
         m.setColor(ENABLED_PARAM);
-        float settings_button_y = m.getSize().height() - 10;
+        float settings_button_y = m.getSize().height() - 15;
         if (showSettingsMenu) {
             auto &showSettingsWhileOpenedButton = m.prepare<M1DropdownButton>({
                         m.getSize().width() / 2 - 30, settings_button_y - 30,
@@ -1251,8 +1256,8 @@ void MainComponent::draw()
                     .withFontSize(DEFAULT_FONT_SIZE)
                     .withOutline(false);
             showSettingsWhileOpenedButton.textAlignment = TEXT_LEFT;
-            showSettingsWhileOpenedButton.heightDivisor = 3;
-            showSettingsWhileOpenedButton.labelPaddingLeft = 0;
+            showSettingsWhileOpenedButton.labelPadding_y = 3;
+            showSettingsWhileOpenedButton.labelPadding_x = 0;
             showSettingsWhileOpenedButton.draw();
 
             if (showSettingsWhileOpenedButton.pressed) {
@@ -1279,8 +1284,8 @@ void MainComponent::draw()
                     .withFontSize(DEFAULT_FONT_SIZE)
                     .withOutline(false);
             showSettingsWhileClosedButton.textAlignment = TEXT_LEFT;
-            showSettingsWhileClosedButton.heightDivisor = 3;
-            showSettingsWhileClosedButton.labelPaddingLeft = 0;
+            showSettingsWhileClosedButton.labelPadding_y = 3;
+            showSettingsWhileClosedButton.labelPadding_x = 0;
             showSettingsWhileClosedButton.draw();
 
             if (showSettingsWhileClosedButton.pressed) {
@@ -1696,8 +1701,6 @@ void MainComponent::reconfigureAudioDecode() {
 }
 
 // TODO: Detect any Mach1Spatial comment metadata
-// TODO: Mach1Transcode for common other formats, setup temp UI for input->output format selection
-// TODO: Create UI for selecting input format
 void MainComponent::reconfigureAudioTranscode() {
     // Default to null strategy
     m_transcode_strategy = &MainComponent::nullStrategy;
@@ -1751,6 +1754,13 @@ void MainComponent::setDetectedInputChannelCount(int numberOfInputChannels) {
     }
 
     detectedNumInputChannels = numberOfInputChannels;
+
+    // Set default format when channels change
+    if (numberOfInputChannels > 2) {
+        selectedInputFormat = getDefaultFormatForChannelCount(numberOfInputChannels);
+    } else {
+        selectedInputFormat = "";
+    }
 
     reconfigureAudioTranscode();
     reconfigureAudioDecode(); // can use intermediaryBuffer and should be called last
