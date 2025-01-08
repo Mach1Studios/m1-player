@@ -1571,63 +1571,24 @@ void MainComponent::draw()
     lastScrollValue = m.mouseScroll();
 }
 
-std::string MainComponent::getTranscodeSurroundInputFormat() const {
-    if (transcodeSurroundInputFormatName.empty()) {
-        return DEFAULT_SURROUND_INPUT_FORMAT; // Assume 5.1
-    }
-    return transcodeSurroundInputFormatName;
+std::string MainComponent::getTranscodeInputFormat() const {
+    return selectedInputFormat;
 }
 
-std::string MainComponent::getTranscodeSurroundOutputFormat() const {
-    if (transcodeSurroundOutputFormatName.empty()) {
-        return DEFAULT_SURROUND_OUTPUT_FORMAT;
-    }
-    return transcodeSurroundOutputFormatName;
+std::string MainComponent::getTranscodeOutputFormat() const {
+    return selectedOutputFormat;
 }
 
-std::string MainComponent::getTranscodeAmbisonicInputFormat() const {
-    if (transcodeAmbisonicInputFormatName.empty()) {
-        return DEFAULT_AMBISONIC_INPUT_FORMAT; // Assume 2OA ACN
+void MainComponent::setTranscodeInputFormat(const std::string &name) {
+    if (!name.empty() && m1Transcode.getFormatFromString(name) != -1) {
+        selectedInputFormat = name;
     }
-    return transcodeAmbisonicInputFormatName;
 }
 
-std::string MainComponent::getTranscodeAmbisonicOutputFormat() const {
-    if (transcodeAmbisonicOutputFormatName.empty()) {
-        return DEFAULT_AMBISONIC_OUTPUT_FORMAT;
+void MainComponent::setTranscodeOutputFormat(const std::string &name) {
+    if (!name.empty() && m1Transcode.getFormatFromString(name) != -1) {
+        selectedOutputFormat = name;
     }
-    return transcodeAmbisonicOutputFormatName;
-}
-
-void MainComponent::setTranscodeSurroundInputFormat(const std::string &name) {
-    if (name.empty() || m1Transcode.getFormatFromString(name) == -1) {
-        transcodeSurroundInputFormatName.clear();
-    }
-    transcodeSurroundInputFormatName = name;
-}
-
-void MainComponent::setTranscodeSurroundOutputFormat(const std::string &name) {
-    if (name.empty() || m1Transcode.getFormatFromString(name) == -1) {
-        transcodeSurroundOutputFormatName.clear();
-    }
-
-    transcodeSurroundOutputFormatName = name;
-}
-
-void MainComponent::setTranscodeAmbisonicInputFormat(const std::string &name) {
-    if (name.empty() || m1Transcode.getFormatFromString(name) == -1) {
-        transcodeAmbisonicInputFormatName.clear();
-    }
-
-    transcodeAmbisonicInputFormatName = name;
-}
-
-void MainComponent::setTranscodeAmbisonicOutputFormat(const std::string &name) {
-    if (name.empty() || m1Transcode.getFormatFromString(name) == -1) {
-        transcodeAmbisonicOutputFormatName.clear();
-    }
-
-    transcodeAmbisonicOutputFormatName = name;
 }
 
 //==============================================================================
@@ -1712,38 +1673,9 @@ void MainComponent::reconfigureAudioTranscode() {
     // Use selected format if available, otherwise use default behavior
     if (!selectedInputFormat.empty()) {
         m1Transcode.setInputFormat(m1Transcode.getFormatFromString(selectedInputFormat));
-        
-        // Set appropriate output format based on input type
-        if (selectedInputFormat.find("ACNSN3D") != std::string::npos || 
-            selectedInputFormat.find("FuMa") != std::string::npos) {
-            m1Transcode.setOutputFormat(m1Transcode.getFormatFromString(getTranscodeAmbisonicOutputFormat()));
-        } else {
-            m1Transcode.setOutputFormat(m1Transcode.getFormatFromString(getTranscodeSurroundOutputFormat()));
-        }
-        
+        m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-14"));
         m1Transcode.processConversionPath();
         m_transcode_strategy = &MainComponent::intermediaryBufferTranscodeStrategy;
-    } else {
-        // Existing fallback behavior
-        switch (detectedNumInputChannels) {
-            case 6:
-                m1Transcode.setInputFormat(m1Transcode.getFormatFromString(getTranscodeSurroundInputFormat()));
-                m1Transcode.setOutputFormat(m1Transcode.getFormatFromString(getTranscodeSurroundOutputFormat()));
-                m1Transcode.processConversionPath();
-                m_transcode_strategy = &MainComponent::intermediaryBufferTranscodeStrategy;
-                break;
-
-            case 9:
-                m1Transcode.setInputFormat(m1Transcode.getFormatFromString(getTranscodeAmbisonicInputFormat()));
-                m1Transcode.setOutputFormat(m1Transcode.getFormatFromString(getTranscodeAmbisonicOutputFormat()));
-                m1Transcode.processConversionPath();
-                m_transcode_strategy = &MainComponent::intermediaryBufferTranscodeStrategy;
-                break;
-
-            default:
-                m_transcode_strategy = &MainComponent::nullStrategy;
-                break;
-        }
     }
 }
 
