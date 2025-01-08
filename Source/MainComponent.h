@@ -211,16 +211,41 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
     Mach1Transcode<float> m1Transcode;
     std::vector<float> transcodeToDecodeCoeffs;
     std::vector< std::vector<float> > conversionMatrix;
+    
+    std::vector<std::string> currentFormatOptions;
+    std::string selectedInputFormat;
+    std::string selectedOutputFormat = "M1Spatial-14"; // default
 
-    std::string transcodeSurroundInputFormatName;
-    std::string transcodeSurroundOutputFormatName;
-    const std::string DEFAULT_SURROUND_INPUT_FORMAT = "5.1_C";
-    const std::string DEFAULT_SURROUND_OUTPUT_FORMAT = "M1Spatial-14";
+    std::vector<std::string> getMatchingFormatNames(int numChannels) {
+        std::vector<std::string> matches;
+        for (const auto& format : Mach1TranscodeConstants::formats) {
+            if (format.numChannels == numChannels) {
+                matches.push_back(format.name);
+            }
+        }
+        return matches;
+    }
 
-    std::string transcodeAmbisonicInputFormatName;
-    std::string transcodeAmbisonicOutputFormatName;
-    const std::string DEFAULT_AMBISONIC_INPUT_FORMAT = "ACNSN3DO2A";
-    const std::string DEFAULT_AMBISONIC_OUTPUT_FORMAT = "M1Spatial-14";
+    std::string getDefaultFormatForChannelCount(int numChannels) {
+        switch (numChannels) {
+            case 3:  return "3.0_LCR";
+            case 4:  return "M1Spatial-4";
+            case 5:  return "5.0_C";
+            case 6:  return "5.1_C";
+            case 7:  return "7.0_C";
+            case 8:  return "M1Spatial-8";
+            case 9:  return "ACNSN3DO2A";
+            case 10: return "7.1.2_C";
+            case 11: return "7.0.6_C";
+            case 12: return "7.1.4_C";
+            case 14: return "M1Spatial-14";
+            case 16: return "ACNSN3DO3A";
+            case 24: return "ACNSN3DO4A";
+            case 36: return "ACNSN3DO5A";
+            case 64: return "ACNSN3DO6A";
+            default: return "";
+        }
+    }
 
     int secondsWithoutMouseMove = 0;
     MurkaPoint lastScrollValue;
@@ -260,43 +285,6 @@ class MainComponent : public murka::JuceMurkaBaseComponent,
 
     bool lastKnownMediaPlayState = false; // tracks the last known play state of the media for device changes
     double lastKnownMediaPosition = 0.0; // tracks the last known position of the media for device changes
-
-    // Add these member variables
-    std::vector<std::string> currentFormatOptions;
-    std::string selectedInputFormat;
-
-    // Add this helper function
-    std::vector<std::string> getMatchingFormatNames(int numChannels) {
-        std::vector<std::string> matches;
-        for (const auto& format : Mach1TranscodeConstants::formats) {
-            if (format.numChannels == numChannels) {
-                matches.push_back(format.name);
-            }
-        }
-        return matches;
-    }
-
-    // Add this helper function
-    std::string getDefaultFormatForChannelCount(int numChannels) {
-        switch (numChannels) {
-            case 3:  return "3.0_LCR";
-            case 4:  return "M1Spatial-4";
-            case 5:  return "5.0_C";
-            case 6:  return "5.1_C";
-            case 7:  return "7.0_C";
-            case 8:  return "M1Spatial-8";
-            case 9:  return "ACNSN3DO2A";
-            case 10: return "7.1.2_C";
-            case 11: return "7.0.6_C";
-            case 12: return "7.1.4_C";
-            case 14: return "M1Spatial-14";
-            case 16: return "ACNSN3DO3A";
-            case 24: return "ACNSN3DO4A";
-            case 36: return "ACNSN3DO5A";
-            case 64: return "ACNSN3DO6A";
-            default: return "";
-        }
-    }
 
 public:
     //==============================================================================
@@ -339,14 +327,10 @@ public:
     bool isInterestedInFileDrag(const juce::StringArray&) override;
     void filesDropped(const juce::StringArray& files, int, int) override;
 
-    std::string getTranscodeSurroundInputFormat() const;
-    std::string getTranscodeSurroundOutputFormat() const;
-    std::string getTranscodeAmbisonicInputFormat() const;
-    void setTranscodeSurroundInputFormat(const std::string &name);
-    void setTranscodeSurroundOutputFormat(const std::string &name);
-    void setTranscodeAmbisonicInputFormat(const std::string &name);
-    void setTranscodeAmbisonicOutputFormat(const std::string &name);
-    std::string getTranscodeAmbisonicOutputFormat() const;
+    std::string getTranscodeInputFormat() const;
+    std::string getTranscodeOutputFormat() const;
+    void setTranscodeInputFormat(const std::string &name);
+    void setTranscodeOutputFormat(const std::string &name);
 
     // Add these MenuBarModel required methods
     juce::StringArray getMenuBarNames() override;
@@ -384,7 +368,7 @@ private:
     enum MenuIDs
     {
         SettingsMenuID = 1,
-        // Add other menu IDs here as needed
+        // TODO: Add open file menu item
     };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
