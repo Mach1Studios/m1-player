@@ -457,13 +457,6 @@ void MainComponent::intermediaryBufferTranscodeStrategy(const AudioSourceChannel
         return;
     }
 
-    // Handle any pending format changes before processing
-    if (pendingFormatChange) {
-        // Apply format change when it's safe
-        reconfigureAudioTranscode();
-        pendingFormatChange = false;
-    }
-
     // restructure output buffer
     if (intermediaryBuffer.getNumSamples() != out || intermediaryBuffer.getNumSamples() != sampleCount) {
         intermediaryBuffer.setSize(out, bufferToFill.numSamples);
@@ -499,6 +492,13 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo &buffer
     // If no clip has been loaded, exit this routine.
     if (!currentMedia.clipLoaded()) {
         setDetectedInputChannelCount(0);
+        return;
+    }
+    
+    if (pendingFormatChange || 
+        m1Transcode.getFormatName(m1Transcode.getInputFormat()) != selectedInputFormat ||
+        m1Transcode.getFormatName(m1Transcode.getOutputFormat()) != selectedOutputFormat) {
+        reconfigureAudioTranscode();
         return;
     }
 
@@ -1674,6 +1674,7 @@ void MainComponent::reconfigureAudioTranscode() {
         
         m1Transcode.processConversionPath();
         m_transcode_strategy = &MainComponent::intermediaryBufferTranscodeStrategy;
+        pendingFormatChange = false;
     }
 }
 
