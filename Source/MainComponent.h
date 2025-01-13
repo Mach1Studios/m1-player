@@ -221,6 +221,7 @@ private:
     std::vector<std::string> currentFormatOptions;
     std::string selectedInputFormat;
     std::string selectedOutputFormat = "M1Spatial-14"; // default
+    std::atomic<bool> pendingFormatChange{false};
 
     std::vector<std::string> getMatchingFormatNames(int numChannels) {
         std::vector<std::string> matches;
@@ -376,11 +377,6 @@ private:
         SettingsMenuID = 1,
         // TODO: Add open file menu item
     };
-
-    // Add mutex for format changes
-    std::mutex formatChangeMutex;
-    std::atomic<bool> pendingFormatChange{false};
-    std::string pendingInputFormat;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

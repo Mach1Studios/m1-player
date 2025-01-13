@@ -458,14 +458,10 @@ void MainComponent::intermediaryBufferTranscodeStrategy(const AudioSourceChannel
     }
 
     // Handle any pending format changes before processing
-    {
-        std::lock_guard<std::mutex> lock(formatChangeMutex);
-        if (pendingFormatChange) {
-            // Apply format change when it's safe
-            m1Transcode.setInputFormat(m1Transcode.getFormatFromString(pendingInputFormat));
-            m1Transcode.processConversionPath();
-            pendingFormatChange = false;
-        }
+    if (pendingFormatChange) {
+        // Apply format change when it's safe
+        reconfigureAudioTranscode();
+        pendingFormatChange = false;
     }
 
     // restructure output buffer
@@ -1566,15 +1562,18 @@ std::string MainComponent::getTranscodeOutputFormat() const {
 void MainComponent::setTranscodeInputFormat(const std::string &name) {
     if (!name.empty() && m1Transcode.getFormatFromString(name) != -1) {
         // Queue the format change instead of applying immediately
-        std::lock_guard<std::mutex> lock(formatChangeMutex);
-        pendingInputFormat = name;
+        m1Transcode.setInputFormat(m1Transcode.getFormatFromString(name));
+        selectedInputFormat = name;
         pendingFormatChange = true;
     }
 }
 
 void MainComponent::setTranscodeOutputFormat(const std::string &name) {
     if (!name.empty() && m1Transcode.getFormatFromString(name) != -1) {
+        // Queue the format change instead of applying immediately
+        m1Transcode.setOutputFormat(m1Transcode.getFormatFromString(name));
         selectedOutputFormat = name;
+        pendingFormatChange = true;
     }
 }
 
@@ -1648,18 +1647,14 @@ void MainComponent::reconfigureAudioTranscode() {
 
     // Use selected format if available, otherwise use default behavior
     if (!selectedInputFormat.empty()) {
-        // TODO: combine these calls
         setTranscodeInputFormat(selectedInputFormat);
-        m1Transcode.setInputFormat(m1Transcode.getFormatFromString(selectedInputFormat));
 
         /// INPUT PREFERRED OUTPUT OVERRIDE ASSIGNMENTS
         if (selectedInputFormat == "3.0_LCR" || // NOTE: switch to M1Spatial-14 for center channel
             selectedInputFormat == "4.0_LCRS" || // NOTE: switch to M1Spatial-14 for center channel
             selectedInputFormat == "M1Horizon-4_2")
         {
-            // TODO: combine these calls
             setTranscodeOutputFormat("M1Spatial-4");
-            m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-4"));
         }
         else if (selectedInputFormat == "4.0_AFormat" ||
                  selectedInputFormat == "Ambeo" ||
@@ -1669,16 +1664,13 @@ void MainComponent::reconfigureAudioTranscode() {
                  selectedInputFormat == "CoreSound-OctoMic" ||
                  selectedInputFormat == "CoreSound-OctoMic_SIM")
         {
-            // TODO: combine these calls
             setTranscodeOutputFormat("M1Spatial-8");
-            m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-8"));
         }
         else
         {
-            // TODO: combine these calls
             setTranscodeOutputFormat("M1Spatial-14");
-            m1Transcode.setOutputFormat(m1Transcode.getFormatFromString("M1Spatial-14"));
         }
+        // TODO: Add more format overrides for higher order ambisonic to 38ch when ready
         
         m1Transcode.processConversionPath();
         m_transcode_strategy = &MainComponent::intermediaryBufferTranscodeStrategy;
