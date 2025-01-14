@@ -499,6 +499,7 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo &buffer
         m1Transcode.getFormatName(m1Transcode.getInputFormat()) != selectedInputFormat ||
         m1Transcode.getFormatName(m1Transcode.getOutputFormat()) != selectedOutputFormat) {
         reconfigureAudioTranscode();
+        reconfigureAudioDecode();
         return;
     }
 
@@ -1219,6 +1220,7 @@ void MainComponent::draw()
         {
             selectedInputFormat = currentFormatOptions[formatSelectorMenu.selectedOption];
             reconfigureAudioTranscode();
+            reconfigureAudioDecode();
         }
     }
 
@@ -1677,7 +1679,6 @@ void MainComponent::reconfigureAudioTranscode() {
         pendingFormatChange = false;
     }
 }
-
 
 void MainComponent::setDetectedInputChannelCount(int numberOfInputChannels) {
     if (detectedNumInputChannels == numberOfInputChannels) {
