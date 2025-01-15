@@ -596,6 +596,10 @@ void MainComponent::filesDropped(const juce::StringArray &files, int, int) {
 
 void MainComponent::openFile(juce::File filepath) {
     // TODO: test new dropped files first before clearing
+
+    audioDeviceManager.removeAudioCallback(this); // temporarily disable the audio processing 
+    juce::Thread::sleep(5);
+
     currentMedia.stop();
     currentMedia.closeMedia();
 
@@ -614,6 +618,8 @@ void MainComponent::openFile(juce::File filepath) {
         }
     }
     
+    audioDeviceManager.addAudioCallback(this);  
+
     // TODO: Resize window to match video aspect ratio
 }
 
