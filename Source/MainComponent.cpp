@@ -788,7 +788,7 @@ void MainComponent::draw()
         auto clipLengthInSeconds = currentMedia.getLengthInSeconds();
         juce::Image& frame = currentMedia.getFrame();
         //DBG("[Video] Time: " + std::to_string(clip->getCurrentTimeInSeconds()) + ", Block:" + std::to_string(clip->getNextReadPosition()) + ", normalized: " + std::to_string( clip->getCurrentTimeInSeconds() /  clipLengthInSeconds ));
-		if (frame.getWidth() > 0 && frame.getHeight() > 0) 
+		if (frame.isValid() && frame.getWidth() > 0 && frame.getHeight() > 0)
         {
 			if (imgVideo.getWidth() != frame.getWidth() || imgVideo.getHeight() != frame.getHeight()) 
             {
