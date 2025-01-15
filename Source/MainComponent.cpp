@@ -52,8 +52,10 @@ MainComponent::~MainComponent()
     audioDeviceManager.removeChangeListener(this);
     
     // Remove menu bar
+#if JUCE_MAC
     juce::MenuBarModel::setMacMainMenu(nullptr);
-    
+#endif
+
     // Clean up orientation client
     m1OrientationClient.command_disconnect();
     m1OrientationClient.close();
