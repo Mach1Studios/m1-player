@@ -184,7 +184,27 @@ PlayerOSC::~PlayerOSC()
 
 bool PlayerOSC::Send(const juce::OSCMessage& msg)
 {
-	return (isConnected && juce::OSCSender::send(msg));
+    if (isConnected && port > 0)
+    {
+        // Try to reconnect if needed
+        if (!juce::OSCSender::connect("127.0.0.1", helperPort))
+        {
+            isConnected = false;
+            return false;
+        }
+
+        try
+        {
+            isConnected = juce::OSCSender::send(msg);
+        }
+        catch (...)
+        {
+            isConnected = false;
+            return false;
+        }
+        return isConnected;
+    }
+    return false;
 }
 
 bool PlayerOSC::IsConnected()
@@ -204,12 +224,28 @@ void PlayerOSC::setAsActivePlayer(bool is_active)
 
 bool PlayerOSC::sendPlayerYPR(float yaw, float pitch, float roll)
 {
-    if (isConnected && port > 0) { // check we have assigned a client port number
-        juce::OSCMessage m = juce::OSCMessage(juce::OSCAddressPattern("/setPlayerYPR"));
-        m.addFloat32(yaw);   // expected degrees -180->180
-        m.addFloat32(pitch); // expected degrees -90->90
-        m.addFloat32(roll);  // expected degrees -90->90
-        return juce::OSCSender::send(m); // check to update isConnected for error catching
+    if (isConnected && port > 0) {
+        // Try to reconnect if needed
+        if (!juce::OSCSender::connect("127.0.0.1", helperPort))
+        {
+            isConnected = false;
+            return false;
+        }
+
+        try
+        {
+            juce::OSCMessage m = juce::OSCMessage(juce::OSCAddressPattern("/setPlayerYPR"));
+            m.addFloat32(yaw);   // expected degrees -180->180
+            m.addFloat32(pitch); // expected degrees -90->90
+            m.addFloat32(roll);  // expected degrees -90->90
+            isConnected = juce::OSCSender::send(m);
+        }
+        catch (...)
+        {
+            isConnected = false;
+            return false;
+        }
+        return isConnected;
     }
     return false;
 }
@@ -223,34 +259,46 @@ bool PlayerOSC::connectToHelper()
 {
     // this first if statement protects against the debugger catching the wrong instance
     if ((this->port > 100 && this->port < 65535) && (this->helperPort > 100 && this->helperPort < 65535)) {
-        if (juce::OSCSender::connect("127.0.0.1", helperPort)) {
-            juce::OSCMessage msg = juce::OSCMessage(juce::OSCAddressPattern("/m1-addClient"));
-            msg.addInt32(port);
-            msg.addString("player");
-            DBG("[OSC] Monitor registered as: "+std::to_string(port));
-            return juce::OSCSender::send(msg);
-        } else {
-            return false;
+        try
+        {
+            if (juce::OSCSender::connect("127.0.0.1", helperPort)) {
+                juce::OSCMessage msg = juce::OSCMessage(juce::OSCAddressPattern("/m1-addClient"));
+                msg.addInt32(port);
+                msg.addString("player");
+                DBG("[OSC] Player registered as: " + std::to_string(port));
+                isConnected = juce::OSCSender::send(msg);
+                return isConnected;
+            }
         }
-    } else {
-        return false;
+        catch (...)
+        {
+            DBG("[OSC] Failed to connect to helper");
+            isConnected = false;
+        }
     }
+    return false;
 }
 
 bool PlayerOSC::disconnectToHelper()
 {
     // this first if statement protects against the debugger catching the wrong instance
     if ((this->port > 100 && this->port < 65535) && (this->helperPort > 100 && this->helperPort < 65535)) {
-        if (juce::OSCSender::connect("127.0.0.1", helperPort)) {
-            juce::OSCMessage msg = juce::OSCMessage(juce::OSCAddressPattern("/m1-removeClient"));
-            msg.addInt32(port);
-            msg.addString("player");
-            DBG("[OSC] Unregistered: "+std::to_string(port));
-            return juce::OSCSender::send(msg);
-        } else {
-            return false;
+        try
+        {
+            if (juce::OSCSender::connect("127.0.0.1", helperPort)) {
+                juce::OSCMessage msg = juce::OSCMessage(juce::OSCAddressPattern("/m1-removeClient"));
+                msg.addInt32(port);
+                msg.addString("player");
+                DBG("[OSC] Unregistered: " + std::to_string(port));
+                isConnected = juce::OSCSender::send(msg);
+                return isConnected;
+            }
         }
-    } else {
-        return false;
+        catch (...)
+        {
+            DBG("[OSC] Failed to disconnect from helper");
+            isConnected = false;
+        }
     }
+    return false;
 }
