@@ -597,7 +597,8 @@ void MainComponent::filesDropped(const juce::StringArray &files, int, int) {
 void MainComponent::openFile(juce::File filepath) {
     // TODO: test new dropped files first before clearing
 
-    audioDeviceManager.removeAudioCallback(this); // temporarily disable the audio processing 
+    audioDeviceManager.removeAudioCallback(this); // temporarily disable audio processing 
+    openGLContext.setContinuousRepainting(false);  // stop rendering
     juce::Thread::sleep(5);
 
     currentMedia.stop();
@@ -618,7 +619,8 @@ void MainComponent::openFile(juce::File filepath) {
         }
     }
     
-    audioDeviceManager.addAudioCallback(this);  
+    openGLContext.setContinuousRepainting(true);   // resume rendering
+    audioDeviceManager.addAudioCallback(this); // resume audio processing 
 
     // TODO: Resize window to match video aspect ratio
 }
@@ -799,7 +801,10 @@ void MainComponent::draw()
 		}
 	} else {
         // No video, clear imgVideo
-        imgVideo.clear();
+        if (imgVideo.isAllocated())
+        {
+            imgVideo.clear();
+        }
     }
 
 	m.clear(20);
