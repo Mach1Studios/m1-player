@@ -1686,8 +1686,15 @@ void MainComponent::reconfigureAudioTranscode() {
         }
         // TODO: Add more format overrides for higher order ambisonic to 38ch when ready
         
-        m1Transcode.processConversionPath();
-        m_transcode_strategy = &MainComponent::intermediaryBufferTranscodeStrategy;
+        if (m1Transcode.processConversionPath())
+        {
+            m_transcode_strategy = &MainComponent::intermediaryBufferTranscodeStrategy;
+        }
+        else
+        {
+            m_transcode_strategy = &MainComponent::nullStrategy;
+
+        }
         pendingFormatChange = false;
     }
 }
