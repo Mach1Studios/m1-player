@@ -223,6 +223,9 @@ private:
     std::string selectedOutputFormat = "M1Spatial-14"; // default
     std::atomic<bool> pendingFormatChange{false};
 
+    juce::CriticalSection audioCallbackLock;
+    juce::CriticalSection renderCallbackLock;
+
     std::vector<std::string> getMatchingFormatNames(int numChannels) {
         std::vector<std::string> matches;
         for (const auto& format : Mach1TranscodeConstants::formats) {
