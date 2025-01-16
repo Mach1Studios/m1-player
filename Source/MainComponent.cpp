@@ -491,20 +491,14 @@ void MainComponent::nullStrategy(const AudioSourceChannelInfo &bufferToFill, con
 }
 
 void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo &bufferToFill) {
+    const juce::ScopedLock audioLock(audioCallbackLock);
+
     // If no clip has been loaded, exit this routine.
     if (!currentMedia.clipLoaded()) {
         setDetectedInputChannelCount(0);
         return;
     }
     
-    if (pendingFormatChange || 
-        m1Transcode.getFormatName(m1Transcode.getInputFormat()) != selectedInputFormat ||
-        m1Transcode.getFormatName(m1Transcode.getOutputFormat()) != selectedOutputFormat) {
-        reconfigureAudioTranscode();
-        reconfigureAudioDecode();
-        return;
-    }
-
     // The TransportSource takes care of start, stop and resample.
     juce::AudioSourceChannelInfo info(&readBuffer, bufferToFill.startSample, bufferToFill.numSamples);
 
@@ -536,6 +530,14 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo &buffer
         // if you've got more output channels than input clears extra outputs
         for (auto channel = detectedNumInputChannels; channel < 2 && channel < detectedNumInputChannels; ++channel) {
             readBuffer.clear(channel, 0, bufferToFill.numSamples);
+        }
+
+        // config transcode
+        if (pendingFormatChange ||
+            m1Transcode.getFormatName(m1Transcode.getInputFormat()) != selectedInputFormat ||
+            m1Transcode.getFormatName(m1Transcode.getOutputFormat()) != selectedOutputFormat) {
+            reconfigureAudioTranscode();
+            reconfigureAudioDecode();
         }
 
         // Processing loop
@@ -596,9 +598,8 @@ void MainComponent::filesDropped(const juce::StringArray &files, int, int) {
 
 void MainComponent::openFile(juce::File filepath) {
     // TODO: test new dropped files first before clearing
-
-    audioDeviceManager.removeAudioCallback(this); // temporarily disable audio processing 
-    juce::Thread::sleep(5);
+    const juce::ScopedLock audioLock(audioCallbackLock);
+    const juce::ScopedLock renderLock(renderCallbackLock);
 
     currentMedia.stop();
     currentMedia.closeMedia();
@@ -617,9 +618,7 @@ void MainComponent::openFile(juce::File filepath) {
             currentMedia.setPosition(0);
         }
     }
-    
-    audioDeviceManager.addAudioCallback(this); // resume audio processing 
-
+     
     // TODO: Resize window to match video aspect ratio
 }
 
@@ -760,6 +759,8 @@ void MainComponent::draw_orientation_client(murka::Murka &m, M1OrientationClient
 
 void MainComponent::draw()
 {
+    const juce::ScopedLock renderLock(renderCallbackLock);
+
     // countdown for hiding UI when mouse is not active in window
     if ((m.mouseDelta().x != 0) || (m.mouseDelta().y != 0)) {
         secondsWithoutMouseMove = 0;
@@ -1229,9 +1230,9 @@ void MainComponent::draw()
         
         if (formatSelectorMenu.changed)
         {
-            selectedInputFormat = currentFormatOptions[formatSelectorMenu.selectedOption];
-            reconfigureAudioTranscode();
-            reconfigureAudioDecode();
+            const juce::ScopedLock audioLock(audioCallbackLock);
+
+            setTranscodeInputFormat(currentFormatOptions[formatSelectorMenu.selectedOption]);
         }
     }
 
