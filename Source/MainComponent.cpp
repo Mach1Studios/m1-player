@@ -566,22 +566,49 @@ void MainComponent::timecodeChanged(int64_t, double seconds) {
 
 //==============================================================================
 
-void MainComponent::showFileChooser() {
-    // TODO: test new dropped files first before clearing
-    file_chooser = std::make_unique<juce::FileChooser>("Open", File::getCurrentWorkingDirectory(), "*.mp4'*.m4v;*.mov;*.mkv;*.webm;*.avi;*.wmv;*.ogv;*.aif;*.aiff;*.wav;*.mp3;*.vorbis;*.opus;*.ogg;*.flac;*.pcm;*.alac;*.aac;*.tif;*.tiff;*.png;*.jpg;*.jpeg;*.gif;*.webp;*.svg", true);
-    file_chooser->launchAsync(FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles, [&, this] (const FileChooser& chooser) {
-        auto fileUrl = chooser.getURLResult();
+void MainComponent::showFileChooser()
+{
+    // Ensure we're on the message thread before showing file chooser
+    if (!juce::MessageManager::getInstance()->isThisTheMessageThread())
+    {
+        juce::MessageManager::callAsync([this]() { showFileChooser(); });
+        return;
+    }
 
-        if (fileUrl.isLocalFile()) {
-            openFile(fileUrl.getLocalFile());
-            
-            if (currentMedia.clipLoaded()) {
-                currentMedia.setPosition(0);
+    // Stop playback and release resources before showing dialog
+    currentMedia.stop();
+    currentMedia.releaseResources();
+
+    // Create file chooser with appropriate flags
+    auto flags = juce::FileBrowserComponent::openMode | 
+                 juce::FileBrowserComponent::canSelectFiles;
+    
+    // Format file extensions properly with semicolons
+    juce::String filePattern = "*.mp4;*.m4v;*.mov;*.mkv;*.webm;*.avi;*.wmv;*.ogv;*.aif;*.aiff;*.wav;*.mp3;*.vorbis;*.opus;*.ogg;*.flac;*.pcm;*.alac;*.aac;*.tif;*.tiff;*.png;*.jpg;*.jpeg;*.gif;*.webp;*.svg";
+    
+    try {
+        file_chooser = std::make_unique<juce::FileChooser>(
+            "Select a media file...",
+            juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+            filePattern,
+            true  // Use native dialog
+        );
+
+        file_chooser->launchAsync(flags, [this](const juce::FileChooser& fc) {
+            auto results = fc.getResults();
+            if (results.size() > 0)
+            {
+                auto file = results.getReference(0);
+                if (file.existsAsFile())
+                {
+                    currentMedia.load(file);
+                }
             }
-
-            juce::Process::makeForegroundProcess();
-        }
-    });
+        });
+    }
+    catch (const std::exception& e) {
+        DBG("FileChooser error: " << e.what());
+    }
 }
 
 bool MainComponent::isInterestedInFileDrag(const juce::StringArray &) {
@@ -1432,8 +1459,8 @@ void MainComponent::draw()
             .withVerticalTextOffset(file_path_button_box.height/2)
             .withForegroundColor(MurkaColor(ENABLED_PARAM))
             .withBackgroundFill(MurkaColor(BACKGROUND_COMPONENT), MurkaColor(BACKGROUND_COMPONENT))
-            .withOnClickCallback([&](){
-                // TODO: allow editing path and reloading new video if exists
+            .withOnClickCallback([&]() {
+                // TODO: allow editing the path and reloading via return if new video exists
             });
         media_file_path_label.labelPadding_x = 10;
         media_file_path_label.draw();
@@ -1453,8 +1480,6 @@ void MainComponent::draw()
         .withBackgroundFill(MurkaColor(BACKGROUND_COMPONENT), MurkaColor(BACKGROUND_GREY))
         .withOnClickFlash()
         .withOnClickCallback([&]() {
-            currentMedia.stop();
-            currentMedia.releaseResources();
             showFileChooser();
         })
         .draw();
@@ -1732,57 +1757,64 @@ juce::StringArray MainComponent::getMenuBarNames()
 juce::PopupMenu MainComponent::getMenuForIndex(int topLevelMenuIndex, const juce::String& menuName)
 {
     juce::PopupMenu menu;
-    
+
     if (topLevelMenuIndex == 0) // File menu
     {
-        menu.addItem(SettingsMenuID, "Settings...");
+        menu.addItem(OpenFileMenuID, "Open File...", true, false);
+        menu.addItem(SettingsMenuID, "Audio Settings...", true, false);
     }
-    
+
     return menu;
 }
 
-void MainComponent::menuItemSelected(int menuItemID, int topLevelMenuIndex)
+void MainComponent::menuItemSelected(int menuItemID, int /*topLevelMenuIndex*/)
 {
-    if (menuItemID == SettingsMenuID)
+    switch (menuItemID)
     {
-        if (!audioDeviceSelector)
-        {
-            static M1AudioSettingsLookAndFeel audioSettingsLookAndFeel;
+        case OpenFileMenuID:
+            showFileChooser();
+            break;
             
-            // Create a custom AudioDeviceSelectorComponent with minimal options
-            audioDeviceSelector.reset(new juce::AudioDeviceSelectorComponent(
-                audioDeviceManager,    
-                0,                     // Minimum input channels (hide input section)
-                0,                     // Maximum input channels (hide input section)
-                0,                     // Minimum output channels
-                2,                     // Maximum output channels
-                false,                 // Show MIDI input options
-                false,                 // Show MIDI output selector
-                true,                  // Show channels as stereo pairs
-                false                  // Hide advanced options
-            ));
-
-            audioDeviceSelector->setLookAndFeel(&audioSettingsLookAndFeel);
-
-            juce::DialogWindow::LaunchOptions options;
-            options.content.setOwned(audioDeviceSelector.release());
-            options.content->setSize(500, 300);
-            options.dialogTitle = "Audio Settings";
-            options.dialogBackgroundColour = juce::Colour(BACKGROUND_GREY);
-            options.escapeKeyTriggersCloseButton = true;
-            options.useNativeTitleBar = true;
-            options.resizable = false;
-
-            auto* dialog = options.create();
-            dialog->setLookAndFeel(&audioSettingsLookAndFeel);
-            
-            dialog->enterModalState(true, juce::ModalCallbackFunction::create(
-                [this, dialog](int) {
-                    audioDeviceSelector = nullptr;
-                    delete dialog;
-                }
-            ));
-        }
+        case SettingsMenuID:
+            if (!audioDeviceSelector)
+            {
+                static M1AudioSettingsLookAndFeel audioSettingsLookAndFeel;
+                
+                // Create a custom AudioDeviceSelectorComponent with minimal options
+                audioDeviceSelector.reset(new juce::AudioDeviceSelectorComponent(
+                    audioDeviceManager,
+                    0,                     // Minimum input channels (hide input section)
+                    0,                     // Maximum input channels (hide input section)
+                    0,                     // Minimum output channels
+                    2,                     // Maximum output channels
+                    false,                 // Show MIDI input options
+                    false,                 // Show MIDI output selector
+                    true,                  // Show channels as stereo pairs
+                    false                  // Hide advanced options
+                ));
+                
+                audioDeviceSelector->setLookAndFeel(&audioSettingsLookAndFeel);
+                
+                juce::DialogWindow::LaunchOptions options;
+                options.content.setOwned(audioDeviceSelector.release());
+                options.content->setSize(500, 300);
+                options.dialogTitle = "Audio Settings";
+                options.dialogBackgroundColour = juce::Colour(BACKGROUND_GREY);
+                options.escapeKeyTriggersCloseButton = true;
+                options.useNativeTitleBar = true;
+                options.resizable = false;
+                
+                auto* dialog = options.create();
+                dialog->setLookAndFeel(&audioSettingsLookAndFeel);
+                
+                dialog->enterModalState(true, juce::ModalCallbackFunction::create(
+                    [this, dialog](int) {
+                        audioDeviceSelector = nullptr;
+                        delete dialog;
+                    }
+                ));
+            }
+            break;
     }
 }
 
