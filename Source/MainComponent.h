@@ -377,8 +377,8 @@ private:
     
     enum MenuIDs
     {
-        SettingsMenuID = 1,
-        // TODO: Add open file menu item
+        OpenFileMenuID = 1,
+        SettingsMenuID = 2
     };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
