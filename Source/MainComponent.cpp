@@ -601,7 +601,8 @@ void MainComponent::showFileChooser()
                 auto file = results.getReference(0);
                 if (file.existsAsFile())
                 {
-                    currentMedia.load(file);
+                    // Instead of calling currentMedia.load directly, use openFile
+                    openFile(file);
                 }
             }
         });
@@ -618,7 +619,7 @@ bool MainComponent::isInterestedInFileDrag(const juce::StringArray &) {
 void MainComponent::filesDropped(const juce::StringArray &files, int, int) {
     for (int i = 0; i < files.size(); ++i) {
         const juce::String &currentFile = files[i];
-        openFile(currentFile);
+        openFile(juce::File(currentFile));  // Convert String to File object
     }
     juce::Process::makeForegroundProcess();
 }
@@ -633,6 +634,7 @@ void MainComponent::openFile(juce::File filepath) {
 
   	// Video Setup
     currentMedia.open(juce::URL(filepath));
+    addToRecentFiles(filepath);
 
     // Audio Setup
     if (currentMedia.hasAudio()) {
@@ -1751,7 +1753,7 @@ void MainComponent::createMenuBar()
 
 juce::StringArray MainComponent::getMenuBarNames()
 {
-    return { "File" };
+    return { "File", "View" };
 }
 
 juce::PopupMenu MainComponent::getMenuForIndex(int topLevelMenuIndex, const juce::String& menuName)
@@ -1760,9 +1762,36 @@ juce::PopupMenu MainComponent::getMenuForIndex(int topLevelMenuIndex, const juce
 
     if (topLevelMenuIndex == 0) // File menu
     {
-        menu.addItem(OpenFileMenuID, "Open File...", true, false);
-        menu.addItem(SettingsMenuID, "Audio Settings...", true, false);
+        menu.addItem(OpenFileMenuID, "Open...", true);
+        
+        // Add Recent Files submenu
+        juce::PopupMenu recentFilesMenu;
+        for (int i = 0; i < recentFiles.size(); ++i)
+        {
+            // Make sure the file still exists
+            if (recentFiles[i].existsAsFile())
+            {
+                recentFilesMenu.addItem(RecentFileMenuID + i, 
+                                      recentFiles[i].getFullPathName(),
+                                      true);
+            }
+        }
+        
+        // Only disable if there are no recent files
+        bool hasRecentFiles = recentFiles.size() > 0;
+        menu.addSubMenu("Open Recent", recentFilesMenu, hasRecentFiles);
+        menu.addSeparator();
+        menu.addItem(SettingsMenuID, "Audio Device Settings", true);
     }
+    // TODO: implement this
+//    else if (topLevelMenuIndex == 1) // View menu
+//    {
+//        menu.addItem(View2DMenuID, "2D View", true, isViewFlat());
+//        menu.addItem(View3DMenuID, "3D View", true, !isViewFlat());
+//        menu.addSeparator();
+//        menu.addItem(FullScreenMenuID, "Enter Full Screen", true, false);
+//        menu.addItem(ToggleOverlayMenuID, "Toggle Overlay", true, isOverlayEnabled());
+//    }
 
     return menu;
 }
@@ -1774,6 +1803,24 @@ void MainComponent::menuItemSelected(int menuItemID, int /*topLevelMenuIndex*/)
         case OpenFileMenuID:
             showFileChooser();
             break;
+
+            // TODO: implement the below:
+//        case View2DMenuID:
+//            setViewMode(true);
+//            break;
+//            
+//        case View3DMenuID:
+//            setViewMode(false);
+//            break;
+//            
+//        case FullScreenMenuID:
+//            if (auto* window = TopLevelWindow())
+//                window->setFullScreen(!window->isFullScreen());
+//            break;
+//
+//        case ToggleOverlayMenuID:
+//            setOverlay(!isOverlayEnabled());
+//            break;
             
         case SettingsMenuID:
             if (!audioDeviceSelector)
@@ -1815,6 +1862,59 @@ void MainComponent::menuItemSelected(int menuItemID, int /*topLevelMenuIndex*/)
                 ));
             }
             break;
+            
+        default:
+            // Handle recent files
+            if (menuItemID >= RecentFileMenuID && menuItemID < RecentFileMenuID + MAX_RECENT_FILES)
+            {
+                int fileIndex = menuItemID - RecentFileMenuID;
+                if (fileIndex < recentFiles.size())
+                    loadRecentFile(fileIndex);
+            }
+            break;
+    }
+}
+
+void MainComponent::addToRecentFiles(const juce::File& file)
+{
+    // Don't add if file doesn't exist
+    if (!file.existsAsFile())
+        return;
+
+    // Remove if already exists (case-insensitive comparison)
+    recentFiles.erase(
+        std::remove_if(recentFiles.begin(), recentFiles.end(),
+            [&file](const juce::File& f) { 
+                return f.getFullPathName().compareIgnoreCase(file.getFullPathName()) == 0; 
+            }),
+        recentFiles.end()
+    );
+    
+    // Add to front
+    recentFiles.insert(recentFiles.begin(), file);
+    
+    // Keep only MAX_RECENT_FILES
+    if (recentFiles.size() > MAX_RECENT_FILES)
+        recentFiles.resize(MAX_RECENT_FILES);
+
+    // Force menu bar update
+    menuItemsChanged();
+}
+
+void MainComponent::loadRecentFile(int index)
+{
+    if (index >= 0 && index < recentFiles.size())
+    {
+        if (recentFiles[index].existsAsFile())
+        {
+            openFile(recentFiles[index]);
+        }
+        else
+        {
+            // Remove non-existent file and update menu
+            recentFiles.erase(recentFiles.begin() + index);
+            menuItemsChanged();
+        }
     }
 }
 
