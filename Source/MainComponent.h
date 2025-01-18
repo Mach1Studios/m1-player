@@ -296,6 +296,25 @@ private:
     bool lastKnownMediaPlayState = false; // tracks the last known play state of the media for device changes
     double lastKnownMediaPosition = 0.0; // tracks the last known position of the media for device changes
 
+    static constexpr int MAX_RECENT_FILES = 3;
+    std::vector<juce::File> recentFiles;
+
+    // Native OS Menu IDs
+    enum MenuIDs
+    {
+        OpenFileMenuID = 1,
+        SettingsMenuID = 2,
+        View2DMenuID = 3,
+        View3DMenuID = 4,
+        FullScreenMenuID = 5,
+        ToggleOverlayMenuID = 6,
+        // Reserve IDs 7-9 for recent files
+        RecentFileMenuID = 7
+    };
+
+    void addToRecentFiles(const juce::File& file);
+    void loadRecentFile(int index);
+
 public:
     //==============================================================================
     MainComponent();
@@ -375,12 +394,6 @@ private:
     void createMenuBar();
     juce::ApplicationCommandManager commandManager;
     
-    enum MenuIDs
-    {
-        OpenFileMenuID = 1,
-        SettingsMenuID = 2
-    };
-
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
 
