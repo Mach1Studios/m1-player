@@ -37,10 +37,17 @@ MainComponent::MainComponent() : m_decode_strategy(&MainComponent::nullStrategy)
     DBG("[PLAYER] Build date: " + date + " | Build time: " + time);
 
     createMenuBar();
+
+    initializeAppProperties();
+    loadRecentFileList();
 }
 
 MainComponent::~MainComponent() 
 {
+    // Clean up orientation client
+    m1OrientationClient.command_disconnect();
+    m1OrientationClient.close();
+
     // Clean up audio device selector and its window
     if (audioDeviceSelector)
     {
@@ -55,13 +62,11 @@ MainComponent::~MainComponent()
 #if JUCE_MAC
     juce::MenuBarModel::setMacMainMenu(nullptr);
 #endif
-
-    // Clean up orientation client
-    m1OrientationClient.command_disconnect();
-    m1OrientationClient.close();
     
     // Shutdown OpenGL
     juce::OpenGLAppComponent::shutdownOpenGL();
+
+    saveRecentFiles();
 }
 
 void MainComponent::audioDeviceIOCallbackWithContext(const float* const* inputChannelData,
@@ -1869,7 +1874,19 @@ void MainComponent::menuItemSelected(int menuItemID, int /*topLevelMenuIndex*/)
             {
                 int fileIndex = menuItemID - RecentFileMenuID;
                 if (fileIndex < recentFiles.size())
-                    loadRecentFile(fileIndex);
+                {
+                    if (recentFiles[fileIndex].existsAsFile())
+                    {
+                        // Instead of calling currentMedia.load directly, use openFile
+                        openFile(recentFiles[fileIndex]);
+                    }
+                    else
+                    {
+                        // Remove non-existent file and update menu
+                        recentFiles.erase(recentFiles.begin() + fileIndex);
+                        menuItemsChanged();
+                    }
+                }
             }
             break;
     }
@@ -1897,25 +1914,11 @@ void MainComponent::addToRecentFiles(const juce::File& file)
     if (recentFiles.size() > MAX_RECENT_FILES)
         recentFiles.resize(MAX_RECENT_FILES);
 
+    // Save the updated list
+    saveRecentFiles();
+
     // Force menu bar update
     menuItemsChanged();
-}
-
-void MainComponent::loadRecentFile(int index)
-{
-    if (index >= 0 && index < recentFiles.size())
-    {
-        if (recentFiles[index].existsAsFile())
-        {
-            openFile(recentFiles[index]);
-        }
-        else
-        {
-            // Remove non-existent file and update menu
-            recentFiles.erase(recentFiles.begin() + index);
-            menuItemsChanged();
-        }
-    }
 }
 
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
@@ -1962,4 +1965,105 @@ void MainComponent::audioDeviceManagerChanged()
                 currentMedia.start();
         }
     }
+}
+
+void MainComponent::initializeAppProperties()
+{
+    // Set up properties file options
+    juce::PropertiesFile::Options options;
+    options.applicationName = "M1-Player";
+    options.filenameSuffix = ".settings";
+    options.osxLibrarySubFolder = "Application Support/Mach1";
+    options.folderName = "M1-Player";
+    options.storageFormat = juce::PropertiesFile::storeAsXML;
+
+    // TODO: Combine all our settings into one xml file
+    // for now since this app is sandboxed it will save to a container on macos
+    // Create the directory if it doesn't exist
+    juce::File applicationSupportDirectory;
+    
+    #if JUCE_MAC
+        applicationSupportDirectory = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                                        .getChildFile("Application Support")
+                                        .getChildFile("Mach1")
+                                        .getChildFile("M1-Player");
+    #else
+        applicationSupportDirectory = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                                        .getChildFile("Mach1")
+                                        .getChildFile("M1-Player");
+    #endif
+
+    applicationSupportDirectory.createDirectory(); // Create directories if they don't exist
+    
+    // Create properties file in the correct location
+    juce::File propertiesFile = applicationSupportDirectory.getChildFile("M1-Player.settings");
+    appProperties = std::make_unique<juce::PropertiesFile>(propertiesFile, options);
+    
+    // Debug output to verify file location
+    DBG("Settings file location: " + propertiesFile.getFullPathName());
+}
+
+void MainComponent::saveRecentFiles()
+{
+    if (appProperties == nullptr)
+    {
+        DBG("Error: Properties file not initialized");
+        return;
+    }
+
+    // First remove the old array
+    appProperties->removeValue("recentFiles");
+
+    // Save each file path as a numbered property
+    for (int i = 0; i < recentFiles.size(); ++i)
+    {
+        if (recentFiles[i].existsAsFile())
+        {
+            String propertyName = "recentFile_" + String(i);
+            appProperties->setValue(propertyName, recentFiles[i].getFullPathName());
+        }
+    }
+    
+    // Save the number of files
+    appProperties->setValue("recentFilesCount", juce::var((int)recentFiles.size()));
+
+    // Force save
+    bool saved = appProperties->save();
+    DBG("Saving recent files: " + (saved ? String("success") : String("failed")));
+}
+
+void MainComponent::loadRecentFileList()
+{
+    if (appProperties == nullptr)
+    {
+        DBG("Error: Properties file not initialized");
+        return;
+    }
+
+    recentFiles.clear();
+    
+    int count = appProperties->getIntValue("recentFilesCount", 0);
+    
+    for (int i = 0; i < count; ++i)
+    {
+        juce::String propertyName = "recentFile_" + juce::String(i);
+        juce::String filePath = appProperties->getValue(propertyName);
+        
+        if (filePath.isNotEmpty())
+        {
+            // Create file with absolute path and verify it exists
+            juce::File file(filePath);
+            if (file.existsAsFile())
+            {
+                recentFiles.push_back(file);
+                DBG("Loaded recent file: " + file.getFullPathName());
+            }
+            else
+            {
+                DBG("Failed to load recent file (doesn't exist): " + filePath);
+            }
+        }
+    }
+    
+    DBG("Loaded " + juce::String(recentFiles.size()) + " recent files");
 }
