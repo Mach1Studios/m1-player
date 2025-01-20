@@ -13,6 +13,7 @@ private:
     MurVbo sphere, circle;
     MurImage imgOverlay;
     MurShader videoShader;
+    bool draggingNow = false;
 
     std::string fragmentShader = R"(
         varying vec2 vUv;
@@ -140,12 +141,18 @@ public:
             camera.setPosition(MurkaPoint3D(0, 0, 0));
             camera.lookAt(MurkaPoint3D(0, 0, -10));
 
-            if (inside() && mouseDragged(0)) {
-                float t = mouseDelta().x;
+            if (inside() && mouseDownPressed(0) && !draggingNow) {
+                draggingNow = true;
+            }
+
+            if (draggingNow && !mouseDown(0)) {
+                draggingNow = false;
+            }
+
+            if (draggingNow) {
                 rotationOffsetMouse.x += 0.25 * mouseDelta().x;
                 rotationOffsetMouse.y -= 0.25 * mouseDelta().y;
             }
-
             // r.y, r.x, r.z
             camera.setRotation(MurkaPoint3D{ rotationCurrent.y, -rotationCurrent.x , rotationCurrent.z }); // YPR -> +P-Y+R 3d camera
 
