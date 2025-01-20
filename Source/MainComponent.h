@@ -296,7 +296,7 @@ private:
     bool lastKnownMediaPlayState = false; // tracks the last known play state of the media for device changes
     double lastKnownMediaPosition = 0.0; // tracks the last known position of the media for device changes
 
-    static constexpr int MAX_RECENT_FILES = 3;
+    static constexpr int MAX_RECENT_FILES = 10;
     std::vector<juce::File> recentFiles;
 
     // Native OS Menu IDs
@@ -312,8 +312,11 @@ private:
         RecentFileMenuID = 7
     };
 
+    std::unique_ptr<juce::PropertiesFile> appProperties;
+    void initializeAppProperties();
     void addToRecentFiles(const juce::File& file);
-    void loadRecentFile(int index);
+    void saveRecentFiles();
+    void loadRecentFileList();
 
 public:
     //==============================================================================
