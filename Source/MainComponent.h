@@ -226,14 +226,31 @@ private:
     juce::CriticalSection audioCallbackLock;
     juce::CriticalSection renderCallbackLock;
 
+    std::map<int, std::vector<std::string>> matchingFormatNamesMap;
+
     std::vector<std::string> getMatchingFormatNames(int numChannels) {
-        std::vector<std::string> matches;
+        // Check if the numChannels already exists in the map
+        auto it = matchingFormatNamesMap.find(numChannels);
+        if (it != matchingFormatNamesMap.end()) {
+            return it->second; // Return the existing list if numChannels is found
+        }
+
+        std::vector<std::string> matchingFormatNames;
+
+        Mach1Transcode<float> m1TranscodeTemp;
+        m1TranscodeTemp.setInputFormat(m1Transcode.getInputFormat());
+
         for (const auto& format : Mach1TranscodeConstants::formats) {
             if (format.numChannels == numChannels) {
-                matches.push_back(format.name);
+                m1TranscodeTemp.setOutputFormat(m1TranscodeTemp.getFormatFromString(format.name));
+                if (m1TranscodeTemp.processConversionPath()) {
+                    matchingFormatNames.push_back(format.name);
+                }
             }
         }
-        return matches;
+
+        matchingFormatNamesMap[numChannels] = matchingFormatNames;
+        return matchingFormatNames;
     }
 
     std::string getDefaultFormatForChannelCount(int numChannels) {
