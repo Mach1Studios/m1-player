@@ -276,7 +276,7 @@ private:
     std::string errorMessage = "";
     std::string errorMessageInfo = "";
     float fadeDuration = 5.0f;
-    float errorOpacity = 1.0f;
+    float errorOpacity = 0.0f;
     std::chrono::time_point<std::chrono::steady_clock> errorStartTime;
     
     std::string formatTime(double seconds) {
