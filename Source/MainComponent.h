@@ -238,11 +238,33 @@ private:
         std::vector<std::string> matchingFormatNames;
 
         Mach1Transcode<float> m1TranscodeTemp;
-        m1TranscodeTemp.setInputFormat(m1Transcode.getInputFormat());
 
         for (const auto& format : Mach1TranscodeConstants::formats) {
             if (format.numChannels == numChannels) {
-                m1TranscodeTemp.setOutputFormat(m1TranscodeTemp.getFormatFromString(format.name));
+                m1TranscodeTemp.setInputFormat(m1TranscodeTemp.getFormatFromString(format.name));
+
+                /// INPUT PREFERRED OUTPUT OVERRIDE ASSIGNMENTS
+                if (selectedInputFormat == "3.0_LCR" || // NOTE: switch to M1Spatial-14 for center channel
+                    selectedInputFormat == "4.0_LCRS" || // NOTE: switch to M1Spatial-14 for center channel
+                    selectedInputFormat == "M1Horizon-4_2")
+                {
+                    m1TranscodeTemp.setOutputFormat(m1TranscodeTemp.getFormatFromString("M1Spatial-4"));
+                }
+                else if (selectedInputFormat == "4.0_AFormat" ||
+                    selectedInputFormat == "Ambeo" ||
+                    selectedInputFormat == "TetraMic" ||
+                    selectedInputFormat == "SPS-200" ||
+                    selectedInputFormat == "ORTF3D" ||
+                    selectedInputFormat == "CoreSound-OctoMic" ||
+                    selectedInputFormat == "CoreSound-OctoMic_SIM")
+                {
+                    m1TranscodeTemp.setOutputFormat(m1TranscodeTemp.getFormatFromString("M1Spatial-8"));
+                }
+                else
+                {
+                    m1TranscodeTemp.setOutputFormat(m1TranscodeTemp.getFormatFromString("M1Spatial-14"));
+                }
+
                 if (m1TranscodeTemp.processConversionPath()) {
                     matchingFormatNames.push_back(format.name);
                 }
