@@ -488,11 +488,22 @@ void MainComponent::intermediaryBufferTranscodeStrategy(const AudioSourceChannel
         // Log error but don't crash
         DBG("Transcode error: " << e.what());
         intermediaryBuffer.clear();
+        
+        // Display error to user
+        showErrorPopup = true;
+        errorMessage = "TRANSCODE ERROR";
+        errorMessageInfo = "No valid transcode conversion path found.";
+        errorStartTime = std::chrono::steady_clock::now();
     }
 }
 
-void MainComponent::nullStrategy(const AudioSourceChannelInfo &bufferToFill, const AudioSourceChannelInfo &info) {
-    // Do nothing.
+void MainComponent::nullStrategy(const AudioSourceChannelInfo &bufferToFill, const AudioSourceChannelInfo &info)
+{
+    // Display error to user
+    showErrorPopup = true;
+    errorMessage = "OUTPUT ERROR";
+    errorMessageInfo = "No valid audio strategy available.";
+    errorStartTime = std::chrono::steady_clock::now();
 }
 
 void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo &bufferToFill) {
@@ -977,7 +988,6 @@ void MainComponent::draw()
                         },
                         [&](double newPositionNormalised) {
                             // refreshing player position
-            DBG("SEEKING IN THE UI");
                             currentMedia.setPosition(newPositionNormalised * currentMedia.getLengthInSeconds());
                         });
         playerControls.withVolumeData(currentMedia.getGain(),
@@ -1003,7 +1013,6 @@ void MainComponent::draw()
                         },
                         [&](double newPositionNormalised) {
             // refreshing player position
-            DBG("SEEKING IN UI 2");
             currentMedia.setPositionNormalized(newPositionNormalised);
         });
         playerControls.withVolumeData(0.5,
@@ -1338,6 +1347,7 @@ void MainComponent::draw()
 
     // Display error popup
     if (showErrorPopup) {
+        errorOpacity = 1.0f;
         auto errorBoundingBox = m.getCurrentFont()->getStringBoundingBox(errorMessage, 0, 0);
         auto errorInfoBoundingBox = m.getCurrentFont()->getStringBoundingBox(errorMessageInfo, 0, 0);
         
@@ -1378,6 +1388,7 @@ void MainComponent::draw()
                 );
             }
         } else {
+            errorOpacity = 0.0f;
             showErrorPopup = false;
             // reset error messages
             errorMessage = "";
@@ -1422,7 +1433,6 @@ void MainComponent::draw()
                     showErrorPopup = true;
                     errorMessage = "UNABLE TO SYNC TO DAW";
                     errorMessageInfo = "Could not find any instances of M1-Monitor";
-                    errorOpacity = 1.0f;
                     errorStartTime = std::chrono::steady_clock::now();
                 }
             } else if (playModeRadioGroup.selectedIndex == 1) {
