@@ -1260,7 +1260,9 @@ void MainComponent::draw()
         formatSelectorMenu.textAlignment = TEXT_LEFT;
         formatSelectorMenu.highlightLabelColor = BACKGROUND_GREY;
         formatSelectorMenu.fontSize = DEFAULT_FONT_SIZE;
-        formatSelectorMenu.draw();
+        if (formatSelectorMenu.opened) {
+            formatSelectorMenu.draw();
+        }
         
         if (formatSelectorMenu.changed)
         {
