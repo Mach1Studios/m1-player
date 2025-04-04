@@ -9,7 +9,7 @@ bool PlayerOSC::init(int helperPort) {
     // find available port
     for (port = 10301; port < 10400; port++) {
         if (socket.bindToPort(port)) {
-            socket.shutdown();
+            socket.shutdown(); // shutdown port to not block the juce::OSCReceiver::connect return
             juce::OSCReceiver::connect(port);
             break; // stops the incrementing on the first available port
         }
