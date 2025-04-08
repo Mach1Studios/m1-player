@@ -297,6 +297,7 @@ private:
     }
 
     int secondsWithoutMouseMove = 0;
+    bool manuallyHidden = false;
     MurkaPoint lastScrollValue;
     bool bHideUI = false;
     bool bShowHelpUI = false;

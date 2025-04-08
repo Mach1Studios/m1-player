@@ -808,7 +808,10 @@ void MainComponent::draw()
 
     // countdown for hiding UI when mouse is not active in window
     if ((m.mouseDelta().x != 0) || (m.mouseDelta().y != 0)) {
-        secondsWithoutMouseMove = 0;
+        // Only reset the timer if controls are not manually hidden
+        if (!manuallyHidden) {
+            secondsWithoutMouseMove = 0;
+        }
     }
 
     // update standalone mode flag
@@ -989,6 +992,11 @@ void MainComponent::draw()
                         [&](double newPositionNormalised) {
                             // refreshing player position
                             currentMedia.setPosition(newPositionNormalised * currentMedia.getLengthInSeconds());
+                        },
+                        [&]() {
+                            // closeButtonPress - force UI to hide by setting secondsWithoutMouseMove beyond timeout
+                            secondsWithoutMouseMove = UI_HIDE_TIMEOUT_SECONDS + 1;
+                            manuallyHidden = true;
                         });
         playerControls.withVolumeData(currentMedia.getGain(),
                         [&](double newVolume){
@@ -1012,9 +1020,14 @@ void MainComponent::draw()
                             showSettingsMenu = true;
                         },
                         [&](double newPositionNormalised) {
-            // refreshing player position
-            currentMedia.setPositionNormalized(newPositionNormalised);
-        });
+                            // refreshing player position
+                            currentMedia.setPositionNormalized(newPositionNormalised);
+                        },
+                        [&]() {
+                            // closeButtonPress - force UI to hide by setting secondsWithoutMouseMove beyond timeout
+                            secondsWithoutMouseMove = UI_HIDE_TIMEOUT_SECONDS + 1;
+                            manuallyHidden = true;
+                        });
         playerControls.withVolumeData(0.5,
                         [&](double newVolume){
             // refreshing the volume
@@ -1045,6 +1058,65 @@ void MainComponent::draw()
                 }).text(message).draw();
             }
         }
+    }
+    
+    // Draw "Show Controls" button
+    if (manuallyHidden) {
+        m.setColor(20, 20, 20, 200);
+        MurkaShape showControlsShape = {
+            m.getWindowWidth() - 120, 
+            20, 
+            110, 
+            30
+        };
+        m.drawRectangle(showControlsShape);
+        
+        m.prepare<M1PlayerControlButton>(showControlsShape)
+            .withDrawingCallback([&](MurkaShape shape) {
+                m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-4);
+                m.setColor(ENABLED_PARAM);
+                juceFontStash::Rectangle show_controls_box = m.getCurrentFont()->getStringBoundingBox("SHOW CONTROLS", 0, 0);
+                m.prepare<murka::Label>({
+                    shape.x() + (shape.width() / 2) - (show_controls_box.width / 2),
+                    shape.y() + (shape.height() / 2) - (show_controls_box.height / 2),
+                    show_controls_box.width,
+                    show_controls_box.height
+                }).text("SHOW CONTROLS").draw();
+            })
+            .withOnClickCallback([&]() {
+                manuallyHidden = false;
+                secondsWithoutMouseMove = 0;
+            })
+            .draw();
+    }
+    // Draw "Close Controls" button
+    else if (!manuallyHidden && !(secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS)) {
+        m.setColor(20, 20, 20, 200);
+        MurkaShape closeControlsShape = {
+            m.getWindowWidth() - 120, 
+            20, 
+            110, 
+            30
+        };
+        m.drawRectangle(closeControlsShape);
+        
+        m.prepare<M1PlayerControlButton>(closeControlsShape)
+            .withDrawingCallback([&](MurkaShape shape) {
+                m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-4);
+                m.setColor(ENABLED_PARAM);
+                juceFontStash::Rectangle close_controls_box = m.getCurrentFont()->getStringBoundingBox("CLOSE CONTROLS", 0, 0);
+                m.prepare<murka::Label>({
+                    shape.x() + (shape.width() / 2) - (close_controls_box.width / 2),
+                    shape.y() + (shape.height() / 2) - (close_controls_box.height / 2),
+                    close_controls_box.width,
+                    close_controls_box.height
+                }).text("CLOSE CONTROLS").draw();
+            })
+            .withOnClickCallback([&]() {
+                manuallyHidden = true;
+                secondsWithoutMouseMove = UI_HIDE_TIMEOUT_SECONDS + 1;
+            })
+            .draw();
     }
 
     // arrow orientation reset keys
