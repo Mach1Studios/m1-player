@@ -246,7 +246,9 @@ public:
                                       float yaw = 0.0f,
                                       std::function<void()> playButtonPress = []() {},
                                       std::function<void()> connectButtonPress = []() {},
-                                      std::function<void(double)> onPositionChange = [](double newPositionNormalised ){}) {
+                                      std::function<void()> closeButtonPress = []() {},
+                                      std::function<void(double)> onPositionChange = [](double newPositionNormalised ) {})
+    {
         currentPositionNormalized = currentPosition;
         if (currentPositionNormalized < 0.0) currentPositionNormalized = 0.0;
         if (currentPositionNormalized > 1.0) currentPositionNormalized = 1.0;
