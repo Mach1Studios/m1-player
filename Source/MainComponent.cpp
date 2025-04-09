@@ -127,6 +127,8 @@ void MainComponent::initialise() {
                                                     std::placeholders::_2));
 
     imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
+    imgHideUI.loadFromRawData(BinaryData::hide_ui_png, BinaryData::hide_ui_pngSize);
+    imgUnhideUI.loadFromRawData(BinaryData::unhide_ui_png, BinaryData::unhide_ui_pngSize);
 
     // Set the audio device manager for the media object
     currentMedia.setAudioDeviceManager(&audioDeviceManager);
@@ -1062,10 +1064,10 @@ void MainComponent::draw()
     
     // Draw "Show Controls" button
     if (bHideUI) {
-        m.setColor(20, 20, 20, 200);
+        m.setColor(20, 20, 20, 150);
         MurkaShape showControlsShape = {
             m.getWindowWidth() - 40,
-            20,
+            10,
             30,
             30
         };
@@ -1073,15 +1075,13 @@ void MainComponent::draw()
         
         m.prepare<M1PlayerControlButton>(showControlsShape)
             .withDrawingCallback([&](MurkaShape shape) {
-                m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-4);
                 m.setColor(ENABLED_PARAM);
-                juceFontStash::Rectangle show_controls_box = m.getCurrentFont()->getStringBoundingBox("S", 0, 0);
-                m.prepare<murka::Label>({
-                    shape.x() + (shape.width() / 2) - (show_controls_box.width / 2),
-                    shape.y() + (shape.height() / 2) - (show_controls_box.height / 2),
-                    show_controls_box.width,
-                    show_controls_box.height
-                }).text("S").draw();
+                m.drawImage(imgUnhideUI, 
+                    shape.x() + (shape.width() - imgUnhideUI.getWidth()/20) / 2,
+                    shape.y() + (shape.height() - imgUnhideUI.getHeight()/20) / 2,
+                    imgUnhideUI.getWidth()/20,
+                    imgUnhideUI.getHeight()/20
+                );
             })
             .withOnClickCallback([&]() {
                 bHideUI = false;
@@ -1091,10 +1091,10 @@ void MainComponent::draw()
     }
     // Draw "Close Controls" button
     else if (!bHideUI && !(secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS)) {
-        m.setColor(20, 20, 20, 200);
+        m.setColor(20, 20, 20, 150);
         MurkaShape closeControlsShape = {
             m.getWindowWidth() - 40,
-            20,
+            10,
             30,
             30
         };
@@ -1102,15 +1102,13 @@ void MainComponent::draw()
         
         m.prepare<M1PlayerControlButton>(closeControlsShape)
             .withDrawingCallback([&](MurkaShape shape) {
-                m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-4);
                 m.setColor(ENABLED_PARAM);
-                juceFontStash::Rectangle close_controls_box = m.getCurrentFont()->getStringBoundingBox("H", 0, 0);
-                m.prepare<murka::Label>({
-                    shape.x() + (shape.width() / 2) - (close_controls_box.width / 2),
-                    shape.y() + (shape.height() / 2) - (close_controls_box.height / 2),
-                    close_controls_box.width,
-                    close_controls_box.height
-                }).text("H").draw();
+                m.drawImage(imgHideUI,
+                    shape.x() + (shape.width() - imgHideUI.getWidth()/20) / 2,
+                    shape.y() + (shape.height() - imgHideUI.getHeight()/20) / 2,
+                    imgHideUI.getWidth()/20,
+                    imgHideUI.getHeight()/20
+                );
             })
             .withOnClickCallback([&]() {
                 bHideUI = true;
