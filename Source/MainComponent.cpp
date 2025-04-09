@@ -127,6 +127,8 @@ void MainComponent::initialise() {
                                                     std::placeholders::_2));
 
     imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
+    imgHideUI.loadFromRawData(BinaryData::hide_ui_png, BinaryData::hide_ui_pngSize);
+    imgUnhideUI.loadFromRawData(BinaryData::unhide_ui_png, BinaryData::unhide_ui_pngSize);
 
     // Set the audio device manager for the media object
     currentMedia.setAudioDeviceManager(&audioDeviceManager);
@@ -808,7 +810,10 @@ void MainComponent::draw()
 
     // countdown for hiding UI when mouse is not active in window
     if ((m.mouseDelta().x != 0) || (m.mouseDelta().y != 0)) {
-        secondsWithoutMouseMove = 0;
+        // Only reset the timer if controls are not manually hidden
+        if (!bHideUI) {
+            secondsWithoutMouseMove = 0;
+        }
     }
 
     // update standalone mode flag
@@ -986,10 +991,15 @@ void MainComponent::draw()
                             // connectButtonPress
                             showSettingsMenu = true;
                         },
+                        [&]() {
+                            // closeButtonPress - force UI to hide by setting secondsWithoutMouseMove beyond timeout
+                            secondsWithoutMouseMove = UI_HIDE_TIMEOUT_SECONDS + 1;
+                            bHideUI = true;
+                        }),
                         [&](double newPositionNormalised) {
                             // refreshing player position
                             currentMedia.setPosition(newPositionNormalised * currentMedia.getLengthInSeconds());
-                        });
+                        };
         playerControls.withVolumeData(currentMedia.getGain(),
                         [&](double newVolume){
             // refreshing the volume
@@ -1011,10 +1021,15 @@ void MainComponent::draw()
                             // connectButtonPress
                             showSettingsMenu = true;
                         },
+                        [&]() {
+                            // closeButtonPress - force UI to hide by setting secondsWithoutMouseMove beyond timeout
+                            secondsWithoutMouseMove = UI_HIDE_TIMEOUT_SECONDS + 1;
+                            bHideUI = true;
+                        }),
                         [&](double newPositionNormalised) {
-            // refreshing player position
-            currentMedia.setPositionNormalized(newPositionNormalised);
-        });
+                            // refreshing player position
+                            currentMedia.setPositionNormalized(newPositionNormalised);
+                        };
         playerControls.withVolumeData(0.5,
                         [&](double newVolume){
             // refreshing the volume
@@ -1026,7 +1041,7 @@ void MainComponent::draw()
     playerControls.bypassingBecauseofInactivity = (secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS);
     m.setColor(20, 20, 20, 200 * (1 - (secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS)));
     // if there has not been mouse activity hide the UI element
-    if (!showSettingsMenu) {
+    if (!bHideUI && !showSettingsMenu) {
         // do not draw playcontrols if the settings menu is open
         m.drawRectangle(playerControlShape);
         
@@ -1045,6 +1060,61 @@ void MainComponent::draw()
                 }).text(message).draw();
             }
         }
+    }
+    
+    // Draw "Show Controls" button
+    if (bHideUI) {
+        m.setColor(20, 20, 20, 150);
+        MurkaShape showControlsShape = {
+            m.getWindowWidth() - 40,
+            10,
+            30,
+            30
+        };
+        m.drawRectangle(showControlsShape);
+        
+        m.prepare<M1PlayerControlButton>(showControlsShape)
+            .withDrawingCallback([&](MurkaShape shape) {
+                m.setColor(ENABLED_PARAM);
+                m.drawImage(imgUnhideUI, 
+                    shape.x() + (shape.width() - imgUnhideUI.getWidth()/20) / 2,
+                    shape.y() + (shape.height() - imgUnhideUI.getHeight()/20) / 2,
+                    imgUnhideUI.getWidth()/20,
+                    imgUnhideUI.getHeight()/20
+                );
+            })
+            .withOnClickCallback([&]() {
+                bHideUI = false;
+                secondsWithoutMouseMove = 0;
+            })
+            .draw();
+    }
+    // Draw "Close Controls" button
+    else if (!bHideUI && !(secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS)) {
+        m.setColor(20, 20, 20, 150);
+        MurkaShape closeControlsShape = {
+            m.getWindowWidth() - 40,
+            10,
+            30,
+            30
+        };
+        m.drawRectangle(closeControlsShape);
+        
+        m.prepare<M1PlayerControlButton>(closeControlsShape)
+            .withDrawingCallback([&](MurkaShape shape) {
+                m.setColor(ENABLED_PARAM);
+                m.drawImage(imgHideUI,
+                    shape.x() + (shape.width() - imgHideUI.getWidth()/20) / 2,
+                    shape.y() + (shape.height() - imgHideUI.getHeight()/20) / 2,
+                    imgHideUI.getWidth()/20,
+                    imgHideUI.getHeight()/20
+                );
+            })
+            .withOnClickCallback([&]() {
+                bHideUI = true;
+                secondsWithoutMouseMove = UI_HIDE_TIMEOUT_SECONDS + 1;
+            })
+            .draw();
     }
 
     // arrow orientation reset keys
@@ -1182,7 +1252,7 @@ void MainComponent::draw()
         }
     }
 
-    if (bShowHelpUI) {
+    if (!bHideUI && bShowHelpUI) {
         m.getCurrentFont()->drawString("FOV : " + std::to_string(videoPlayerWidget.fov), 10, 10);
         m.getCurrentFont()->drawString("Frame: " + std::to_string(currentMedia.getPositionInSeconds()), 10, 30);
         m.getCurrentFont()->drawString("Standalone mode: " + std::to_string(b_standalone_mode), 10, 50);
@@ -1218,135 +1288,347 @@ void MainComponent::draw()
         m.imChildren.erase(idToDelete);
     };
 
-    /// BOTTOM BAR
-    m.setColor(20, 220);
-    if (showSettingsMenu) {
-        // bottom bar becomes the settings pane
-        // TODO: Animate this drawer opening and closing
-        m.drawRectangle(0, m.getSize().height() * 0.15f, m.getSize().width(), m.getSize().height() * 0.85f);
-    } else {
-        if (!(secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS)) {
+    if (!bHideUI)
+    {
+        /// BOTTOM BAR
+        m.setColor(20, 220);
+        if (showSettingsMenu) {
+            // bottom bar becomes the settings pane
+            // TODO: Animate this drawer opening and closing
+            m.drawRectangle(0, m.getSize().height() * 0.15f, m.getSize().width(), m.getSize().height() * 0.85f);
+        } else {
+            if (!(secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS)) {
+                // skip drawing if mouse has not interacted in a while
+                m.drawRectangle(0, m.getSize().height() - 50, m.getSize().width(), 50); // bottom bar
+            }
+        }
+        
+        /// INPUT FORMAT SELECTOR
+        
+        // Only show format selector if we have multichannel audio
+        if (!(secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS) && currentMedia.clipLoaded() && currentMedia.getNumChannels() > 2) {
+            // Format selector dropdown
+            m.setColor(ENABLED_PARAM);
+            int dropdownItemHeight = 20;
+            float format_selector_x = 65.25 /* logo */ + 25; // Position to the left of settings
+            float format_selector_width = m.getSize().width() / 2 - 65.25 - 25 * 3; // ensure we don't overlap with settings button
+            
+            auto& formatSelectorButton = m.prepare<M1DropdownButton>({
+                format_selector_x, m.getSize().height() - 5 - 30,
+                format_selector_width, 20
+            })
+            .withLabel(selectedInputFormat.empty() ? "SELECT FORMAT" : selectedInputFormat)
+            .withFontSize(DEFAULT_FONT_SIZE)
+            .withOutline(true)
+            .withTriangle(false);
+            
+            formatSelectorButton.textAlignment = TEXT_LEFT;
+            formatSelectorButton.draw();
+            
+            auto& formatSelectorMenu = m.prepare<M1DropdownMenu>({
+                format_selector_x, m.getSize().height() - 5 - 30 - currentFormatOptions.size() * dropdownItemHeight,
+                format_selector_width, currentFormatOptions.size() * dropdownItemHeight })
+            .withOptions(currentFormatOptions);
+            
+            // Handle dropdown menu
+            if (formatSelectorButton.pressed) {
+                // Update format options based on current channel count
+                currentFormatOptions = getMatchingFormatNames(currentMedia.getNumChannels());
+                formatSelectorMenu.open();
+            }
+            
+            formatSelectorMenu.optionHeight = dropdownItemHeight;
+            formatSelectorMenu.textAlignment = TEXT_LEFT;
+            formatSelectorMenu.highlightLabelColor = BACKGROUND_GREY;
+            formatSelectorMenu.fontSize = DEFAULT_FONT_SIZE;
+            if (formatSelectorMenu.opened) {
+                formatSelectorMenu.draw();
+            }
+            
+            if (formatSelectorMenu.changed)
+            {
+                const juce::ScopedLock audioLock(audioCallbackLock);
+                
+                setTranscodeInputFormat(currentFormatOptions[formatSelectorMenu.selectedOption]);
+            }
+        }
+        
+        /// SETTINGS BUTTON
+        if (showSettingsMenu || !(secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS)) {
             // skip drawing if mouse has not interacted in a while
-            m.drawRectangle(0, m.getSize().height() - 50, m.getSize().width(), 50); // bottom bar
+            m.setColor(ENABLED_PARAM);
+            float settings_button_y = m.getSize().height() - 15;
+            if (showSettingsMenu) {
+                auto &showSettingsWhileOpenedButton = m.prepare<M1DropdownButton>({
+                    m.getSize().width() / 2 - 30, settings_button_y - 30,
+                    120, 30
+                })
+                .withLabel("SETTINGS")
+                .withFontSize(DEFAULT_FONT_SIZE)
+                .withOutline(false);
+                showSettingsWhileOpenedButton.textAlignment = TEXT_LEFT;
+                showSettingsWhileOpenedButton.labelPadding_y = 3;
+                showSettingsWhileOpenedButton.labelPadding_x = 0;
+                showSettingsWhileOpenedButton.draw();
+                
+                if (showSettingsWhileOpenedButton.pressed) {
+                    showSettingsMenu = false;
+                    deleteTheSettingsButton();
+                }
+                
+                // draw settings arrow indicator pointing down
+                m.enableFill();
+                m.setColor(LABEL_TEXT_COLOR);
+                MurkaPoint triangleCenter = {m.getSize().width() / 2 + 40, settings_button_y - 10 - 6};
+                std::vector<MurkaPoint3D> triangle;
+                triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0});
+                triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0}); // bottom middle
+                triangle.push_back({triangleCenter.x, triangleCenter.y + 5, 0});
+                triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0});
+                m.drawPath(triangle);
+            } else {
+                auto &showSettingsWhileClosedButton = m.prepare<M1DropdownButton>({
+                    m.getSize().width() / 2 - 30, settings_button_y - 30,
+                    120, 30
+                })
+                .withLabel("SETTINGS")
+                .withFontSize(DEFAULT_FONT_SIZE)
+                .withOutline(false);
+                showSettingsWhileClosedButton.textAlignment = TEXT_LEFT;
+                showSettingsWhileClosedButton.labelPadding_y = 3;
+                showSettingsWhileClosedButton.labelPadding_x = 0;
+                showSettingsWhileClosedButton.draw();
+                
+                if (showSettingsWhileClosedButton.pressed) {
+                    showSettingsMenu = true;
+                    deleteTheSettingsButton();
+                }
+                
+                // draw settings arrow indicator pointing up
+                m.enableFill();
+                m.setColor(LABEL_TEXT_COLOR);
+                MurkaPoint triangleCenter = {m.getSize().width() / 2 + 40, settings_button_y - 11};
+                std::vector<MurkaPoint3D> triangle;
+                triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0});
+                triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0}); // top middle
+                triangle.push_back({triangleCenter.x, triangleCenter.y - 5, 0});
+                triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0});
+                m.drawPath(triangle);
+            }
+        }
+        
+        // Settings pane is open
+        if (showSettingsMenu) {
+            // Settings rendering
+            float leftSide_LeftBound_x = 40;
+            float rightSide_LeftBound_x = m.getSize().width() / 2 + 40;
+            float settings_topBound_y = m.getSize().height() * 0.23f + 18;
+            
+            /// LEFT SIDE
+            
+            m.setColor(ENABLED_PARAM);
+            juceFontStash::Rectangle pm_label_box = m.getCurrentFont()->getStringBoundingBox("PLAYER MODE", 0, 0);
+            m.prepare<murka::Label>({
+                leftSide_LeftBound_x,
+                settings_topBound_y,
+                pm_label_box.width + 20, pm_label_box.height
+            })
+            .text("PLAYER MODE")
+            .withAlignment(TEXT_LEFT)
+            .draw();
+            
+            auto &playModeRadioGroup = m.prepare<RadioGroupWidget>({
+                leftSide_LeftBound_x + 4, settings_topBound_y + 20, m.getSize().width() / 2 - 88, 30
+            });
+            playModeRadioGroup.labels = {"SYNC TO DAW", "STANDALONE"};
+            playModeRadioGroup.selectedIndex = b_standalone_mode; // swapped since b_standalone_mode = 0 = standalone
+            playModeRadioGroup.drawAsCircles = true;
+            playModeRadioGroup.draw();
+            if (playModeRadioGroup.changed) {
+                if (playModeRadioGroup.selectedIndex == 0) {
+                    if (playerOSC->getNumberOfMonitors() > 0) {
+                        b_standalone_mode = false;
+                        b_wants_to_switch_to_standalone = false;
+                    } else {
+                        // stay in standalone
+                        showErrorPopup = true;
+                        errorMessage = "UNABLE TO SYNC TO DAW";
+                        errorMessageInfo = "Could not find any instances of M1-Monitor";
+                        errorStartTime = std::chrono::steady_clock::now();
+                    }
+                } else if (playModeRadioGroup.selectedIndex == 1) {
+                    // override and allow swap to standalone mode if a media file is loaded
+                    b_wants_to_switch_to_standalone = true;
+                } else {
+                    if (currentMedia.clipLoaded()) {
+                        // clip loaded so default to standalone mode
+                        b_standalone_mode = true;
+                    } else {
+                        // no clip loaded, look for sync
+                        b_standalone_mode = false;
+                    }
+                }
+            }
+            
+            juceFontStash::Rectangle mf_label_box = m.getCurrentFont()->getStringBoundingBox("MEDIA FILE", 0, 0);
+            m.prepare<murka::Label>({
+                leftSide_LeftBound_x,
+                settings_topBound_y + 80,
+                mf_label_box.width + 20, mf_label_box.height
+            })
+            .text("MEDIA FILE")
+            .withAlignment(TEXT_LEFT)
+            .draw();
+            
+            // Media loader
+            float load_button_width = 50;
+            std::string file_path = "LOAD MEDIA FILE HERE...";
+            if (currentMedia.clipLoaded()) {
+                file_path = currentMedia.getMediaFilePath().getSubPath().toStdString();
+            }
+            
+            juceFontStash::Rectangle load_button_box = m.getCurrentFont()->getStringBoundingBox("LOAD", 0, 0);
+            juceFontStash::Rectangle file_path_button_box = m.getCurrentFont()->getStringBoundingBox(file_path, 0, 0);
+            
+            // shrink font size for media path
+            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-3);
+            auto& media_file_path_label = m.prepare<M1Label>({leftSide_LeftBound_x, settings_topBound_y + 100,
+                m.getSize().width()/2 - 45 - load_button_box.width - 60, 20})
+            .withText(file_path)
+            .withTextAlignment(TEXT_LEFT)
+            .withVerticalTextOffset(file_path_button_box.height/2)
+            .withForegroundColor(MurkaColor(ENABLED_PARAM))
+            .withBackgroundFill(MurkaColor(BACKGROUND_COMPONENT), MurkaColor(BACKGROUND_COMPONENT))
+            .withOnClickCallback([&]() {
+                // TODO: allow editing the path and reloading via return if new video exists
+            });
+            media_file_path_label.labelPadding_x = 10;
+            media_file_path_label.draw();
+            
+            // reset font size
+            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
+            
+            // load button
+            m.prepare<M1Label>({
+                m.getSize().width() / 2 - load_button_box.width - 60, settings_topBound_y + 100,
+                load_button_width, 20
+            })
+            .withText("LOAD")
+            .withTextAlignment(TEXT_CENTER)
+            .withVerticalTextOffset(3)
+            .withStrokeBorder(MurkaColor(ENABLED_PARAM))
+            .withBackgroundFill(MurkaColor(BACKGROUND_COMPONENT), MurkaColor(BACKGROUND_GREY))
+            .withOnClickFlash()
+            .withOnClickCallback([&]() {
+                showFileChooser();
+            })
+            .draw();
+            
+            // view mode
+            juceFontStash::Rectangle vm_label_box = m.getCurrentFont()->getStringBoundingBox("VIEW MODE", 0, 0);
+            m.prepare<murka::Label>({
+                leftSide_LeftBound_x,
+                settings_topBound_y + 160,
+                vm_label_box.width + 20, vm_label_box.height
+            })
+            .text("VIEW MODE")
+            .withAlignment(TEXT_LEFT)
+            .draw();
+            
+            auto &viewModeRadioGroup = m.prepare<RadioGroupWidget>({
+                leftSide_LeftBound_x + 4, settings_topBound_y + 180, m.getSize().width() / 2 - 88, 30
+            });
+            viewModeRadioGroup.labels = {"3D", "2D"};
+            viewModeRadioGroup.selectedIndex = videoPlayerWidget.drawFlat ? 1 : 0;
+            viewModeRadioGroup.drawAsCircles = true;
+            viewModeRadioGroup.draw();
+            if (viewModeRadioGroup.changed) {
+                if (viewModeRadioGroup.selectedIndex == 0) {
+                    videoPlayerWidget.drawFlat = false;
+                    drawReference = false;
+                } else if (viewModeRadioGroup.selectedIndex == 1) {
+                    videoPlayerWidget.drawFlat = true;
+                    drawReference = false;
+                } else {
+                    videoPlayerWidget.drawFlat = false;
+                    drawReference = true;
+                }
+            }
+            
+            auto &overlayCheckbox = m.prepare<M1Checkbox>({
+                leftSide_LeftBound_x,
+                settings_topBound_y + 240,
+                200, 18
+            })
+            .withLabel("OVERLAY (O)");
+            overlayCheckbox.dataToControl = &videoPlayerWidget.drawOverlay;
+            overlayCheckbox.checked = videoPlayerWidget.drawOverlay;
+            overlayCheckbox.enabled = true;
+            overlayCheckbox.drawAsCircle = false;
+            overlayCheckbox.draw();
+            if (overlayCheckbox.changed) {
+                videoPlayerWidget.drawOverlay = !videoPlayerWidget.drawOverlay;
+            }
+            
+            auto &cropStereoscopicCheckbox = m.prepare<M1Checkbox>({
+                leftSide_LeftBound_x,
+                settings_topBound_y + 270,
+                200, 18
+            })
+            .withLabel("CROP STEREOSCOPIC (D)");
+            cropStereoscopicCheckbox.dataToControl = &videoPlayerWidget.crop_Stereoscopic_TopBottom;
+            cropStereoscopicCheckbox.checked = videoPlayerWidget.crop_Stereoscopic_TopBottom;
+            cropStereoscopicCheckbox.enabled = (currentMedia.clipLoaded() && currentMedia.hasVideo()); // only if video file exists
+            cropStereoscopicCheckbox.drawAsCircle = false;
+            cropStereoscopicCheckbox.draw();
+            if (cropStereoscopicCheckbox.changed) {
+                videoPlayerWidget.crop_Stereoscopic_TopBottom = !videoPlayerWidget.crop_Stereoscopic_TopBottom;
+            }
+            
+            auto &twoDRefCheckbox = m.prepare<M1Checkbox>({
+                leftSide_LeftBound_x,
+                settings_topBound_y + 300,
+                200, 18
+            })
+            .withLabel("2D REFERENCE (G)");
+            twoDRefCheckbox.dataToControl = &drawReference;
+            twoDRefCheckbox.checked = drawReference;
+            twoDRefCheckbox.enabled = (currentMedia.clipLoaded() && currentMedia.hasVideo()); // only if video file exists
+            twoDRefCheckbox.drawAsCircle = false;
+            twoDRefCheckbox.draw();
+            if (twoDRefCheckbox.changed) {
+                drawReference = !drawReference;
+            }
+            
+            /// RIGHT SIDE
+            
+            // orientation client window
+            draw_orientation_client(m, m1OrientationClient);
+        }
+        
+        /// Player label
+        if (!(secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS) || showSettingsMenu) {
+            // skip drawing if mouse has not interacted in a while
+            m.setColor(ENABLED_PARAM);
+            m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
+            auto &playerLabel = m.prepare<
+            M1Label>(MurkaShape(m.getSize().width() - 100, m.getSize().height() - 30, 80, 20));
+            playerLabel.label = "PLAYER";
+            playerLabel.alignment = TEXT_CENTER;
+            playerLabel.enabled = false;
+            playerLabel.highlighted = false;
+            playerLabel.draw();
+            
+            m.setColor(ENABLED_PARAM);
+            m.drawImage(imgLogo, 25, m.getSize().height() - 30, 161 / 4, 39 / 4);
         }
     }
     
-    /// INPUT FORMAT SELECTOR
-
-    // Only show format selector if we have multichannel audio
-    if (!(secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS) && currentMedia.clipLoaded() && currentMedia.getNumChannels() > 2) {
-        // Format selector dropdown
-        m.setColor(ENABLED_PARAM);
-        int dropdownItemHeight = 20;
-        float format_selector_x = 65.25 /* logo */ + 25; // Position to the left of settings
-        float format_selector_width = m.getSize().width() / 2 - 65.25 - 25 * 3; // ensure we don't overlap with settings button
-        
-        auto& formatSelectorButton = m.prepare<M1DropdownButton>({
-            format_selector_x, m.getSize().height() - 5 - 30,
-            format_selector_width, 20
-        })
-        .withLabel(selectedInputFormat.empty() ? "SELECT FORMAT" : selectedInputFormat)
-        .withFontSize(DEFAULT_FONT_SIZE)
-        .withOutline(true)
-        .withTriangle(false);
-        
-        formatSelectorButton.textAlignment = TEXT_LEFT;
-        formatSelectorButton.draw();
-        
-        auto& formatSelectorMenu = m.prepare<M1DropdownMenu>({ 
-            format_selector_x, m.getSize().height() - 5 - 30 - currentFormatOptions.size() * dropdownItemHeight,
-            format_selector_width, currentFormatOptions.size() * dropdownItemHeight })
-        .withOptions(currentFormatOptions);
-        
-        // Handle dropdown menu
-        if (formatSelectorButton.pressed) {
-            // Update format options based on current channel count
-            currentFormatOptions = getMatchingFormatNames(currentMedia.getNumChannels());
-            formatSelectorMenu.open();
-        }
-        
-        formatSelectorMenu.optionHeight = dropdownItemHeight;
-        formatSelectorMenu.textAlignment = TEXT_LEFT;
-        formatSelectorMenu.highlightLabelColor = BACKGROUND_GREY;
-        formatSelectorMenu.fontSize = DEFAULT_FONT_SIZE;
-        if (formatSelectorMenu.opened) {
-            formatSelectorMenu.draw();
-        }
-        
-        if (formatSelectorMenu.changed)
-        {
-            const juce::ScopedLock audioLock(audioCallbackLock);
-
-            setTranscodeInputFormat(currentFormatOptions[formatSelectorMenu.selectedOption]);
-        }
-    }
-
-    /// SETTINGS BUTTON
-    if (showSettingsMenu || !(secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS)) {
-        // skip drawing if mouse has not interacted in a while
-        m.setColor(ENABLED_PARAM);
-        float settings_button_y = m.getSize().height() - 15;
-        if (showSettingsMenu) {
-            auto &showSettingsWhileOpenedButton = m.prepare<M1DropdownButton>({
-                        m.getSize().width() / 2 - 30, settings_button_y - 30,
-                        120, 30
-                    })
-                    .withLabel("SETTINGS")
-                    .withFontSize(DEFAULT_FONT_SIZE)
-                    .withOutline(false);
-            showSettingsWhileOpenedButton.textAlignment = TEXT_LEFT;
-            showSettingsWhileOpenedButton.labelPadding_y = 3;
-            showSettingsWhileOpenedButton.labelPadding_x = 0;
-            showSettingsWhileOpenedButton.draw();
-
-            if (showSettingsWhileOpenedButton.pressed) {
-                showSettingsMenu = false;
-                deleteTheSettingsButton();
-            }
-
-            // draw settings arrow indicator pointing down
-            m.enableFill();
-            m.setColor(LABEL_TEXT_COLOR);
-            MurkaPoint triangleCenter = {m.getSize().width() / 2 + 40, settings_button_y - 10 - 6};
-            std::vector<MurkaPoint3D> triangle;
-            triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0});
-            triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0}); // bottom middle
-            triangle.push_back({triangleCenter.x, triangleCenter.y + 5, 0});
-            triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0});
-            m.drawPath(triangle);
-        } else {
-            auto &showSettingsWhileClosedButton = m.prepare<M1DropdownButton>({
-                        m.getSize().width() / 2 - 30, settings_button_y - 30,
-                        120, 30
-                    })
-                    .withLabel("SETTINGS")
-                    .withFontSize(DEFAULT_FONT_SIZE)
-                    .withOutline(false);
-            showSettingsWhileClosedButton.textAlignment = TEXT_LEFT;
-            showSettingsWhileClosedButton.labelPadding_y = 3;
-            showSettingsWhileClosedButton.labelPadding_x = 0;
-            showSettingsWhileClosedButton.draw();
-
-            if (showSettingsWhileClosedButton.pressed) {
-                showSettingsMenu = true;
-                deleteTheSettingsButton();
-            }
-
-            // draw settings arrow indicator pointing up
-            m.enableFill();
-            m.setColor(LABEL_TEXT_COLOR);
-            MurkaPoint triangleCenter = {m.getSize().width() / 2 + 40, settings_button_y - 11};
-            std::vector<MurkaPoint3D> triangle;
-            triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0});
-            triangle.push_back({triangleCenter.x + 5, triangleCenter.y, 0}); // top middle
-            triangle.push_back({triangleCenter.x, triangleCenter.y - 5, 0});
-            triangle.push_back({triangleCenter.x - 5, triangleCenter.y, 0});
-            m.drawPath(triangle);
-        }
-    }
-
     // Display error popup
     if (showErrorPopup) {
+        // reset font size
+        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
+
         errorOpacity = 1.0f;
         auto errorBoundingBox = m.getCurrentFont()->getStringBoundingBox(errorMessage, 0, 0);
         auto errorInfoBoundingBox = m.getCurrentFont()->getStringBoundingBox(errorMessageInfo, 0, 0);
@@ -1394,212 +1676,6 @@ void MainComponent::draw()
             errorMessage = "";
             errorMessageInfo = "";
         }
-    }
-
-    // Settings pane is open
-    if (showSettingsMenu) {
-        // Settings rendering
-        float leftSide_LeftBound_x = 40;
-        float rightSide_LeftBound_x = m.getSize().width() / 2 + 40;
-        float settings_topBound_y = m.getSize().height() * 0.23f + 18;
-
-        /// LEFT SIDE
-
-        m.setColor(ENABLED_PARAM);
-        juceFontStash::Rectangle pm_label_box = m.getCurrentFont()->getStringBoundingBox("PLAYER MODE", 0, 0);
-        m.prepare<murka::Label>({
-                    leftSide_LeftBound_x,
-                    settings_topBound_y,
-                    pm_label_box.width + 20, pm_label_box.height
-                })
-                .text("PLAYER MODE")
-                .withAlignment(TEXT_LEFT)
-                .draw();
-
-        auto &playModeRadioGroup = m.prepare<RadioGroupWidget>({
-            leftSide_LeftBound_x + 4, settings_topBound_y + 20, m.getSize().width() / 2 - 88, 30
-        });
-        playModeRadioGroup.labels = {"SYNC TO DAW", "STANDALONE"};
-        playModeRadioGroup.selectedIndex = b_standalone_mode; // swapped since b_standalone_mode = 0 = standalone
-        playModeRadioGroup.drawAsCircles = true;
-        playModeRadioGroup.draw();
-        if (playModeRadioGroup.changed) {
-            if (playModeRadioGroup.selectedIndex == 0) {
-                if (playerOSC->getNumberOfMonitors() > 0) {
-                    b_standalone_mode = false;
-                    b_wants_to_switch_to_standalone = false;
-                } else {
-                    // stay in standalone
-                    showErrorPopup = true;
-                    errorMessage = "UNABLE TO SYNC TO DAW";
-                    errorMessageInfo = "Could not find any instances of M1-Monitor";
-                    errorStartTime = std::chrono::steady_clock::now();
-                }
-            } else if (playModeRadioGroup.selectedIndex == 1) {
-                // override and allow swap to standalone mode if a media file is loaded
-                b_wants_to_switch_to_standalone = true;
-            } else {
-                if (currentMedia.clipLoaded()) {
-                    // clip loaded so default to standalone mode
-                    b_standalone_mode = true;
-                } else {
-                    // no clip loaded, look for sync
-                    b_standalone_mode = false;
-                }
-            }
-        }
-
-        juceFontStash::Rectangle mf_label_box = m.getCurrentFont()->getStringBoundingBox("MEDIA FILE", 0, 0);
-        m.prepare<murka::Label>({
-                    leftSide_LeftBound_x,
-                    settings_topBound_y + 80,
-                    mf_label_box.width + 20, mf_label_box.height
-                })
-                .text("MEDIA FILE")
-                .withAlignment(TEXT_LEFT)
-                .draw();
-
-        // Media loader
-        float load_button_width = 50;
-        std::string file_path = "LOAD MEDIA FILE HERE...";
-        if (currentMedia.clipLoaded()) {
-            file_path = currentMedia.getMediaFilePath().getSubPath().toStdString();
-        }
-
-        juceFontStash::Rectangle load_button_box = m.getCurrentFont()->getStringBoundingBox("LOAD", 0, 0);
-        juceFontStash::Rectangle file_path_button_box = m.getCurrentFont()->getStringBoundingBox(file_path, 0, 0);
-
-        // shrink font size for media path
-        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE-3);
-        auto& media_file_path_label = m.prepare<M1Label>({leftSide_LeftBound_x, settings_topBound_y + 100,
-            m.getSize().width()/2 - 45 - load_button_box.width - 60, 20})
-            .withText(file_path)
-            .withTextAlignment(TEXT_LEFT)
-            .withVerticalTextOffset(file_path_button_box.height/2)
-            .withForegroundColor(MurkaColor(ENABLED_PARAM))
-            .withBackgroundFill(MurkaColor(BACKGROUND_COMPONENT), MurkaColor(BACKGROUND_COMPONENT))
-            .withOnClickCallback([&]() {
-                // TODO: allow editing the path and reloading via return if new video exists
-            });
-        media_file_path_label.labelPadding_x = 10;
-        media_file_path_label.draw();
-
-        // reset font size
-        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
-
-        // load button
-        m.prepare<M1Label>({
-            m.getSize().width() / 2 - load_button_box.width - 60, settings_topBound_y + 100,
-            load_button_width, 20
-        })
-        .withText("LOAD")
-        .withTextAlignment(TEXT_CENTER)
-        .withVerticalTextOffset(3)
-        .withStrokeBorder(MurkaColor(ENABLED_PARAM))
-        .withBackgroundFill(MurkaColor(BACKGROUND_COMPONENT), MurkaColor(BACKGROUND_GREY))
-        .withOnClickFlash()
-        .withOnClickCallback([&]() {
-            showFileChooser();
-        })
-        .draw();
- 
-        // view mode
-        juceFontStash::Rectangle vm_label_box = m.getCurrentFont()->getStringBoundingBox("VIEW MODE", 0, 0);
-        m.prepare<murka::Label>({
-                    leftSide_LeftBound_x,
-                    settings_topBound_y + 160,
-                    vm_label_box.width + 20, vm_label_box.height
-                })
-                .text("VIEW MODE")
-                .withAlignment(TEXT_LEFT)
-                .draw();
-
-        auto &viewModeRadioGroup = m.prepare<RadioGroupWidget>({
-            leftSide_LeftBound_x + 4, settings_topBound_y + 180, m.getSize().width() / 2 - 88, 30
-        });
-        viewModeRadioGroup.labels = {"3D", "2D"};
-        viewModeRadioGroup.selectedIndex = videoPlayerWidget.drawFlat ? 1 : 0;
-        viewModeRadioGroup.drawAsCircles = true;
-        viewModeRadioGroup.draw();
-        if (viewModeRadioGroup.changed) {
-            if (viewModeRadioGroup.selectedIndex == 0) {
-                videoPlayerWidget.drawFlat = false;
-                drawReference = false;
-            } else if (viewModeRadioGroup.selectedIndex == 1) {
-                videoPlayerWidget.drawFlat = true;
-                drawReference = false;
-            } else {
-                videoPlayerWidget.drawFlat = false;
-                drawReference = true;
-            }
-        }
-
-        auto &overlayCheckbox = m.prepare<M1Checkbox>({
-                    leftSide_LeftBound_x,
-                    settings_topBound_y + 240,
-                    200, 18
-                })
-                .withLabel("OVERLAY (O)");
-        overlayCheckbox.dataToControl = &videoPlayerWidget.drawOverlay;
-        overlayCheckbox.checked = videoPlayerWidget.drawOverlay;
-        overlayCheckbox.enabled = true;
-        overlayCheckbox.drawAsCircle = false;
-        overlayCheckbox.draw();
-        if (overlayCheckbox.changed) {
-            videoPlayerWidget.drawOverlay = !videoPlayerWidget.drawOverlay;
-        }
-
-        auto &cropStereoscopicCheckbox = m.prepare<M1Checkbox>({
-                    leftSide_LeftBound_x,
-                    settings_topBound_y + 270,
-                    200, 18
-                })
-                .withLabel("CROP STEREOSCOPIC (D)");
-        cropStereoscopicCheckbox.dataToControl = &videoPlayerWidget.crop_Stereoscopic_TopBottom;
-        cropStereoscopicCheckbox.checked = videoPlayerWidget.crop_Stereoscopic_TopBottom;
-        cropStereoscopicCheckbox.enabled = (currentMedia.clipLoaded() && currentMedia.hasVideo()); // only if video file exists
-        cropStereoscopicCheckbox.drawAsCircle = false;
-        cropStereoscopicCheckbox.draw();
-        if (cropStereoscopicCheckbox.changed) {
-            videoPlayerWidget.crop_Stereoscopic_TopBottom = !videoPlayerWidget.crop_Stereoscopic_TopBottom;
-        }
-
-        auto &twoDRefCheckbox = m.prepare<M1Checkbox>({
-                    leftSide_LeftBound_x,
-                    settings_topBound_y + 300,
-                    200, 18
-                })
-                .withLabel("2D REFERENCE (G)");
-        twoDRefCheckbox.dataToControl = &drawReference;
-        twoDRefCheckbox.checked = drawReference;
-        twoDRefCheckbox.enabled = (currentMedia.clipLoaded() && currentMedia.hasVideo()); // only if video file exists
-        twoDRefCheckbox.drawAsCircle = false;
-        twoDRefCheckbox.draw();
-        if (twoDRefCheckbox.changed) {
-            drawReference = !drawReference;
-        }
-
-        /// RIGHT SIDE
-
-        // orientation client window
-        draw_orientation_client(m, m1OrientationClient);
-    }
-
-    /// Player label
-    if (!(secondsWithoutMouseMove > UI_HIDE_TIMEOUT_SECONDS) || showSettingsMenu) {
-        // skip drawing if mouse has not interacted in a while
-        m.setColor(ENABLED_PARAM);
-        m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
-        auto &playerLabel = m.prepare<
-            M1Label>(MurkaShape(m.getSize().width() - 100, m.getSize().height() - 30, 80, 20));
-        playerLabel.label = "PLAYER";
-        playerLabel.alignment = TEXT_CENTER;
-        playerLabel.enabled = false;
-        playerLabel.highlighted = false;
-        playerLabel.draw();
-
-        m.setColor(ENABLED_PARAM);
-        m.drawImage(imgLogo, 25, m.getSize().height() - 30, 161 / 4, 39 / 4);
     }
 
     // update the previous orientation for calculating offset

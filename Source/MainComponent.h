@@ -163,6 +163,8 @@ private:
     //==============================================================================
     MurImage imgLogo;
     MurImage imgVideo;
+    MurImage imgHideUI;
+    MurImage imgUnhideUI;
 
     Mach1::Orientation currentOrientation;
     Mach1::Orientation previousClientOrientation;
