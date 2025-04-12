@@ -23,12 +23,14 @@ private:
         uniform bool vflip;
         uniform bool useTexture;
         uniform bool cropStereoscopic;
+        uniform bool cropStereoscopicLeftRight;
 
         void main()
         {
             vec2 uv = vUv;
             
-            if(cropStereoscopic) uv.y =  uv.y * 0.5;
+            if(cropStereoscopic) uv.y = uv.y * 0.5;
+            if(cropStereoscopicLeftRight) uv.x = uv.x * 0.5;
 
             if (vflip) uv.y = 1 - uv.y;
             gl_FragColor = color * vCol * (useTexture ? texture(mainTexture, uv) : vec4(1.0, 1.0, 1.0, 1.0));
@@ -71,6 +73,7 @@ public:
     bool wasDrawnFlat = false;
     bool drawOverlay = false;
     bool crop_Stereoscopic_TopBottom = false;
+    bool crop_Stereoscopic_LeftRight = false;
 
     MurImage* imgVideo = nullptr;
     
@@ -163,6 +166,7 @@ public:
                 m.bindShader(&videoShader);
 
                 videoShader.setUniform1i("cropStereoscopic", crop_Stereoscopic_TopBottom);
+                videoShader.setUniform1i("cropStereoscopicLeftRight", crop_Stereoscopic_LeftRight);
 
                 m.bind(*imgVideo);
                 m.drawVbo(sphere, GL_TRIANGLE_STRIP, 0, sphere.getIndexes().size());
@@ -217,6 +221,8 @@ public:
             if (imgVideo && imgVideo->isAllocated()) {
                 if (crop_Stereoscopic_TopBottom) {
                     m.drawImage(*imgVideo, 0, 0, getSize().x, getSize().y * 2);
+                } else if (crop_Stereoscopic_LeftRight) {
+                    m.drawImage(*imgVideo, 0, 0, getSize().x * 2, getSize().y);
                 } else {
                     m.drawImage(*imgVideo, 0, 0, getSize().x, getSize().y);
                 }
@@ -254,6 +260,7 @@ public:
         videoPlayerSurface.wasDrawnFlat = wasDrawnFlat;
         videoPlayerSurface.drawOverlay = drawOverlay;
         videoPlayerSurface.crop_Stereoscopic_TopBottom = crop_Stereoscopic_TopBottom;
+        videoPlayerSurface.crop_Stereoscopic_LeftRight = crop_Stereoscopic_LeftRight;
         videoPlayerSurface.rotation = rotation;
         videoPlayerSurface.rotationOffset = rotationOffset;
         videoPlayerSurface.camera.setFov(fov);
@@ -270,6 +277,7 @@ public:
     bool wasDrawnFlat = false; // gate for first draw call of `drawFlat`
     bool drawOverlay = false;
     bool crop_Stereoscopic_TopBottom = false;
+    bool crop_Stereoscopic_LeftRight = false;
 
     int fov = 100;
 
