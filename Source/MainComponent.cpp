@@ -1163,7 +1163,20 @@ void MainComponent::draw()
     }
 
     if (m.isKeyPressed('d')) {
-        videoPlayerWidget.crop_Stereoscopic_TopBottom = !videoPlayerWidget.crop_Stereoscopic_TopBottom;
+        // Cycle through stereoscopic modes: OFF -> TB -> LR
+        if (!videoPlayerWidget.crop_Stereoscopic_TopBottom && !videoPlayerWidget.crop_Stereoscopic_LeftRight) {
+            // OFF -> TB
+            videoPlayerWidget.crop_Stereoscopic_TopBottom = true;
+            videoPlayerWidget.crop_Stereoscopic_LeftRight = false;
+        } else if (videoPlayerWidget.crop_Stereoscopic_TopBottom) {
+            // TB -> LR
+            videoPlayerWidget.crop_Stereoscopic_TopBottom = false;
+            videoPlayerWidget.crop_Stereoscopic_LeftRight = true;
+        } else {
+            // LR -> OFF
+            videoPlayerWidget.crop_Stereoscopic_TopBottom = false;
+            videoPlayerWidget.crop_Stereoscopic_LeftRight = false;
+        }
     }
 
     // toggles hiding the UI for better video review
@@ -1262,9 +1275,9 @@ void MainComponent::draw()
         m.getCurrentFont()->drawString("[z] - Equirectangular / 2D", 10, 190);
         m.getCurrentFont()->drawString("[g] - Overlay 2D Reference", 10, 210);
         m.getCurrentFont()->drawString("[o] - Overlay Reference", 10, 230);
-        m.getCurrentFont()->drawString("[d] - Crop stereoscopic", 10, 250);
-        m.getCurrentFont()->drawString("[h] - Hide UI", 10, 270);
-        m.getCurrentFont()->drawString("[Arrow Keys] - Orientation Resets", 10, 290);
+        m.getCurrentFont()->drawString("[d] - Cycle stereoscopic modes (Off/TB/LR)", 10, 250);
+        m.getCurrentFont()->drawString("[h] - Hide UI", 10, 290);
+        m.getCurrentFont()->drawString("[Arrow Keys] - Orientation Resets", 10, 310);
 
         auto ori_deg = currentOrientation.GetGlobalRotationAsEulerDegrees();
         m.getCurrentFont()->drawString("OverlayCoords:", 10, 350);
@@ -1554,7 +1567,8 @@ void MainComponent::draw()
                     drawReference = true;
                 }
             }
-            
+
+            // OVERLAY CHECKBOX
             auto &overlayCheckbox = m.prepare<M1Checkbox>({
                 leftSide_LeftBound_x,
                 settings_topBound_y + 240,
@@ -1569,25 +1583,11 @@ void MainComponent::draw()
             if (overlayCheckbox.changed) {
                 videoPlayerWidget.drawOverlay = !videoPlayerWidget.drawOverlay;
             }
-            
-            auto &cropStereoscopicCheckbox = m.prepare<M1Checkbox>({
-                leftSide_LeftBound_x,
-                settings_topBound_y + 270,
-                200, 18
-            })
-            .withLabel("CROP STEREOSCOPIC (D)");
-            cropStereoscopicCheckbox.dataToControl = &videoPlayerWidget.crop_Stereoscopic_TopBottom;
-            cropStereoscopicCheckbox.checked = videoPlayerWidget.crop_Stereoscopic_TopBottom;
-            cropStereoscopicCheckbox.enabled = (currentMedia.clipLoaded() && currentMedia.hasVideo()); // only if video file exists
-            cropStereoscopicCheckbox.drawAsCircle = false;
-            cropStereoscopicCheckbox.draw();
-            if (cropStereoscopicCheckbox.changed) {
-                videoPlayerWidget.crop_Stereoscopic_TopBottom = !videoPlayerWidget.crop_Stereoscopic_TopBottom;
-            }
-            
+
+            // 2D REF CHECKBOX
             auto &twoDRefCheckbox = m.prepare<M1Checkbox>({
                 leftSide_LeftBound_x,
-                settings_topBound_y + 300,
+                settings_topBound_y + 285,
                 200, 18
             })
             .withLabel("2D REFERENCE (G)");
@@ -1599,6 +1599,87 @@ void MainComponent::draw()
             if (twoDRefCheckbox.changed) {
                 drawReference = !drawReference;
             }
+            
+            // STEREOSCOPIC DROPDOWN
+            juceFontStash::Rectangle st_label_box = m.getCurrentFont()->getStringBoundingBox("CROP STEREOSCOPIC (D)", 0, 0);
+            float stereo_y_position = settings_topBound_y + 330;
+            
+            m.prepare<murka::Label>({
+                leftSide_LeftBound_x,
+                stereo_y_position,
+                150, st_label_box.height
+            })
+            .text("CROP STEREOSCOPIC (D)")
+            .withAlignment(TEXT_LEFT)
+            .draw();
+
+            std::vector<std::string> stereoscopicOptions = {"NONE", "TOP-BOTTOM", "LEFT-RIGHT"};
+            
+            int selectedStereoscopicOption = 0; // Default to NONE
+            if (videoPlayerWidget.crop_Stereoscopic_TopBottom) {
+                selectedStereoscopicOption = 1; // TOP-BOTTOM
+            } else if (videoPlayerWidget.crop_Stereoscopic_LeftRight) {
+                selectedStereoscopicOption = 2; // LEFT-RIGHT
+            }
+            
+            // Only show stereoscopic dropdown if video is loaded
+            if (currentMedia.clipLoaded() && currentMedia.hasVideo()) {
+                auto& stereoscopicButton = m.prepare<M1DropdownButton>({
+                    leftSide_LeftBound_x + 170, stereo_y_position - 4,
+                    100, 20
+                })
+                .withLabel(stereoscopicOptions[selectedStereoscopicOption])
+                .withFontSize(DEFAULT_FONT_SIZE)
+                .withOutline(true)
+                .withTriangle(false);
+                
+                stereoscopicButton.textAlignment = TEXT_LEFT;
+                stereoscopicButton.draw();
+                
+                // Create dropdown menu
+                auto& stereoscopicMenu = m.prepare<M1DropdownMenu>({
+                    leftSide_LeftBound_x + 170, stereo_y_position - 4 - stereoscopicOptions.size() * 20,
+                    100, stereoscopicOptions.size() * 20
+                })
+                .withOptions(stereoscopicOptions);
+                
+                if (stereoscopicButton.pressed) {
+                    stereoscopicMenu.open();
+                }
+                
+                stereoscopicMenu.optionHeight = 20;
+                stereoscopicMenu.textAlignment = TEXT_LEFT;
+                stereoscopicMenu.selectedOption = selectedStereoscopicOption;
+                
+                if (stereoscopicMenu.opened) {
+                    stereoscopicMenu.draw();
+                }
+                
+                if (stereoscopicMenu.changed) {
+                    if (stereoscopicMenu.selectedOption == 0) { // NONE
+                        videoPlayerWidget.crop_Stereoscopic_TopBottom = false;
+                        videoPlayerWidget.crop_Stereoscopic_LeftRight = false;
+                    } else if (stereoscopicMenu.selectedOption == 1) { // TOP-BOTTOM
+                        videoPlayerWidget.crop_Stereoscopic_TopBottom = true;
+                        videoPlayerWidget.crop_Stereoscopic_LeftRight = false;
+                    } else if (stereoscopicMenu.selectedOption == 2) { // LEFT-RIGHT
+                        videoPlayerWidget.crop_Stereoscopic_TopBottom = false;
+                        videoPlayerWidget.crop_Stereoscopic_LeftRight = true;
+                    }
+                }
+            } else {
+                // If no video, just draw a disabled label
+                m.setColor(DISABLED_PARAM);
+                m.prepare<murka::Label>({
+                    leftSide_LeftBound_x + 170, stereo_y_position - 0,
+                    100, 20
+                })
+                .text("NONE")
+                .withAlignment(TEXT_LEFT)
+                .draw();
+                m.setColor(ENABLED_PARAM);
+            }
+
             
             /// RIGHT SIDE
             
