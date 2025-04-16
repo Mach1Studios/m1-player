@@ -1567,7 +1567,8 @@ void MainComponent::draw()
                     drawReference = true;
                 }
             }
-            
+
+            // OVERLAY CHECKBOX
             auto &overlayCheckbox = m.prepare<M1Checkbox>({
                 leftSide_LeftBound_x,
                 settings_topBound_y + 240,
@@ -1582,10 +1583,26 @@ void MainComponent::draw()
             if (overlayCheckbox.changed) {
                 videoPlayerWidget.drawOverlay = !videoPlayerWidget.drawOverlay;
             }
+
+            // 2D REF CHECKBOX
+            auto &twoDRefCheckbox = m.prepare<M1Checkbox>({
+                leftSide_LeftBound_x,
+                settings_topBound_y + 285,
+                200, 18
+            })
+            .withLabel("2D REFERENCE (G)");
+            twoDRefCheckbox.dataToControl = &drawReference;
+            twoDRefCheckbox.checked = drawReference;
+            twoDRefCheckbox.enabled = (currentMedia.clipLoaded() && currentMedia.hasVideo()); // only if video file exists
+            twoDRefCheckbox.drawAsCircle = false;
+            twoDRefCheckbox.draw();
+            if (twoDRefCheckbox.changed) {
+                drawReference = !drawReference;
+            }
             
             // STEREOSCOPIC DROPDOWN
             juceFontStash::Rectangle st_label_box = m.getCurrentFont()->getStringBoundingBox("CROP STEREOSCOPIC (D)", 0, 0);
-            float stereo_y_position = settings_topBound_y + 285;
+            float stereo_y_position = settings_topBound_y + 330;
             
             m.prepare<murka::Label>({
                 leftSide_LeftBound_x,
@@ -1662,21 +1679,7 @@ void MainComponent::draw()
                 .draw();
                 m.setColor(ENABLED_PARAM);
             }
-            
-            auto &twoDRefCheckbox = m.prepare<M1Checkbox>({
-                leftSide_LeftBound_x,
-                settings_topBound_y + 330,
-                200, 18
-            })
-            .withLabel("2D REFERENCE (G)");
-            twoDRefCheckbox.dataToControl = &drawReference;
-            twoDRefCheckbox.checked = drawReference;
-            twoDRefCheckbox.enabled = (currentMedia.clipLoaded() && currentMedia.hasVideo()); // only if video file exists
-            twoDRefCheckbox.drawAsCircle = false;
-            twoDRefCheckbox.draw();
-            if (twoDRefCheckbox.changed) {
-                drawReference = !drawReference;
-            }
+
             
             /// RIGHT SIDE
             

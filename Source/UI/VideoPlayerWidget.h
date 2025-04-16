@@ -22,14 +22,14 @@ private:
         uniform vec4 color;
         uniform bool vflip;
         uniform bool useTexture;
-        uniform bool cropStereoscopic;
+        uniform bool cropStereoscopicTopBottom;
         uniform bool cropStereoscopicLeftRight;
 
         void main()
         {
             vec2 uv = vUv;
             
-            if(cropStereoscopic) uv.y = uv.y * 0.5;
+            if(cropStereoscopicTopBottom) uv.y = uv.y * 0.5;
             if(cropStereoscopicLeftRight) uv.x = uv.x * 0.5;
 
             if (vflip) uv.y = 1 - uv.y;
@@ -165,7 +165,7 @@ public:
             if (imgVideo && imgVideo->isAllocated()) {
                 m.bindShader(&videoShader);
 
-                videoShader.setUniform1i("cropStereoscopic", crop_Stereoscopic_TopBottom);
+                videoShader.setUniform1i("cropStereoscopicTopBottom", crop_Stereoscopic_TopBottom);
                 videoShader.setUniform1i("cropStereoscopicLeftRight", crop_Stereoscopic_LeftRight);
 
                 m.bind(*imgVideo);
