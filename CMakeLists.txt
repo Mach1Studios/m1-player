@@ -115,34 +115,20 @@ set(JucePlugin_Desc ${CMAKE_PROJECT_NAME})
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE M1Encode M1Decode M1Transcode)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE Modules/m1-sdk/libmach1spatial/api_common/include Modules/m1-sdk/libmach1spatial/api_decode/include Modules/m1-sdk/libmach1spatial/api_encode/include Modules/m1-sdk/libmach1spatial/api_transcode/include Modules/m1-sdk/libmach1spatial/deps)
 
-# link ffmpeg output libs for juce module flags to pick up on
-# TODO: fix this to not require hardcoded paths
+# FFmpeg linking is now handled automatically by the juce_ffmpeg module
+# Only need to add macOS-specific system frameworks that FFmpeg requires
 if(APPLE)
-    target_link_directories(${CMAKE_PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg" "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg/x86_64" "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg/arm64")
-    
-    # confim the libs, prepare to link
-    set(PLATFORM_SPECIFIC_LIBS)
-
+    # macOS system frameworks required by FFmpeg
     find_library(CORE_MEDIA_LIBRARY CoreMedia)
     find_library(VIDEOTOOLBOX_LIBRARY VideoToolbox)
     find_library(ZLIB_LIBRARY z)
     find_library(ICONV_LIBRARY iconv)
 
-    list(APPEND PLATFORM_SPECIFIC_LIBS
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
          ${CORE_MEDIA_LIBRARY}
          ${VIDEOTOOLBOX_LIBRARY}
          ${ZLIB_LIBRARY}
          ${ICONV_LIBRARY}
-    )
-
-    foreach(platform_lib ${PLATFORM_SPECIFIC_LIBS})
-        target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC ${platform_lib})
-    endforeach()
-
-else()
-    target_link_directories(${CMAKE_PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/Modules/juce_ffmpeg/_deps/ffmpeg-build/lib")
-    add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_BINARY_DIR}/Modules/juce_ffmpeg/_deps/ffmpeg-build/bin" "${CMAKE_CURRENT_BINARY_DIR}"
     )
 endif()
 
