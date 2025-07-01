@@ -64,8 +64,13 @@ target_compile_definitions(${CMAKE_PROJECT_NAME}
     JUCE_MODAL_LOOPS_PERMITTED=1
     JUCE_WEB_BROWSER=0
     JUCE_VST3_CAN_REPLACE_VST2=0
-    JUCE_DISPLAY_SPLASH_SCREEN=0
-    M1_STATIC)
+    JUCE_DISPLAY_SPLASH_SCREEN=0)
+
+# Windows-specific definitions to match Mach1 SDK build configuration
+if(WIN32 OR MSVC OR MINGW)
+    message(STATUS "Adding M1_STATIC definition for Windows build")
+    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE M1_STATIC)
+endif()
 
 # Set the C++ language standard requirenment for the "shared code" library target.
 # Setting this to PUBLIC ensures that all dependent targets will inherit the specified C++ standard.
