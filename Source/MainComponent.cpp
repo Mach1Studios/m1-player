@@ -40,10 +40,33 @@ MainComponent::MainComponent() : m_decode_strategy(&MainComponent::nullStrategy)
 
     initializeAppProperties();
     loadRecentFileList();
+
+    // Initialize Object Detection
+    DBG("Initializing Object Detection module");
+    objectDetector = std::make_unique<Mach1::ObjectDetector>();
+    if (objectDetector) {
+        objectDetector->setConfidenceThreshold(0.6f);
+        objectDetector->setProximityWeight(0.4f);
+        objectDetectionEnabled = false;
+        hasReferenceObject = false;
+        showObjectReticle = false;
+        DBG("Object Detection module initialized successfully - confidenceThreshold: 0.6, proximityWeight: 0.4");
+    } else {
+        DBG("Failed to create Object Detection module!");
+    }
 }
 
 MainComponent::~MainComponent() 
 {
+    // Clean up object detection
+    if (objectDetector)
+    {
+        DBG("Stopping object detection");
+        objectDetector->stopAsyncDetection();
+        objectDetector.reset();
+        DBG("Object detection stopped");
+    }
+    
     // Clean up orientation client
     m1OrientationClient.command_disconnect();
     m1OrientationClient.close();
@@ -653,11 +676,16 @@ void MainComponent::openFile(juce::File filepath) {
   	// Video Setup
     currentMedia.open(juce::URL(filepath));
     addToRecentFiles(filepath);
+    
+    // Reset callback setup flag for new video
+    callbackSetupComplete = false;
 
     // Audio Setup
     if (currentMedia.hasAudio()) {
         setDetectedInputChannelCount(currentMedia.getNumChannels());
     }
+    
+
     
     // restart timeline
     if (b_standalone_mode) {
@@ -834,7 +862,7 @@ void MainComponent::draw()
     }
 
 	// update video frame
-	if (currentMedia.clipLoaded() && currentMedia.hasVideo()) 
+ 	if (currentMedia.clipLoaded() && currentMedia.hasVideo()) 
     {
         auto clipLengthInSeconds = currentMedia.getLengthInSeconds();
         juce::Image& frame = currentMedia.getFrame();
@@ -847,6 +875,14 @@ void MainComponent::draw()
 			}
 			juce::Image::BitmapData srcData(frame, juce::Image::BitmapData::readOnly);
 			imgVideo.loadData(srcData.data, GL_BGRA);
+			
+			// Object Detection Processing - Submit frame to background thread
+			if (objectDetectionEnabled && objectDetector && hasReferenceObject) {
+				DBG("Submitting frame to object detection: " + juce::String(frame.getWidth()) + "x" + juce::String(frame.getHeight()));
+				
+				// Submit the frame to the threaded object detector
+				objectDetector->submitFrame(frame);
+			}
 		}
 	} else {
         // No video, clear imgVideo
@@ -854,6 +890,9 @@ void MainComponent::draw()
         {
             imgVideo.clear();
         }
+        
+        // Clear object detection when no video
+        showObjectReticle = false;
     }
 
 	m.clear(20);
@@ -933,6 +972,32 @@ void MainComponent::draw()
     // TODO: add some protection here?
 	videoPlayerWidget.pannerSettings = panners;
 	videoPlayerWidget.draw();
+	
+	// Set up object detection callback once (not every frame)
+	if (currentMedia.clipLoaded() && currentMedia.hasVideo() && !callbackSetupComplete) {
+		DBG("Setting up rectangle selection callback for object detection (one time setup)");
+		videoPlayerWidget.setRectangleSelectionCallback([this](juce::Rectangle<int> selection) {
+			DBG("Rectangle selection callback triggered from VideoPlayerWidget");
+			handleRectangleSelection(selection);
+		});
+		callbackSetupComplete = true;
+	}
+	
+	// Update object detection reticle display
+	if (currentMedia.clipLoaded() && currentMedia.hasVideo()) {
+		// Update object detection reticle if enabled
+		if (showObjectReticle) {
+			videoPlayerWidget.setObjectReticlePosition(objectReticlePosition.x, objectReticlePosition.y);
+		} else {
+			videoPlayerWidget.hideObjectReticle();
+		}
+		
+		// Handle selection clearing if requested
+		if (shouldClearSelection) {
+			videoPlayerWidget.clearSelection();
+			shouldClearSelection = false;
+		}
+	}
 	
 	// draw reference
     if (currentMedia.clipLoaded() && (currentMedia.hasVideo() || currentMedia.hasAudio())) {
@@ -1201,6 +1266,24 @@ void MainComponent::draw()
     // Quick mute for Roll orientation input from device
     if (m.isKeyPressed('l')) {
         m1OrientationClient.command_setTrackingRollEnabled(!m1OrientationClient.getTrackingRollEnabled());
+    }
+    
+    // Toggle object detection (key 'r' for "reference")
+    if (m.isKeyPressed('r')) {
+        DBG("'R' key pressed - objectDetector: " + juce::String(objectDetector ? "valid" : "null") + 
+            ", hasReferenceObject: " + juce::String(std::to_string(hasReferenceObject)) + 
+            ", objectDetectionEnabled: " + juce::String(std::to_string(objectDetectionEnabled)));
+            
+        if (objectDetector && hasReferenceObject && objectDetectionEnabled) {
+            objectDetectionEnabled = false;
+            showObjectReticle = false;
+            objectDetector->stopAsyncDetection();
+            DBG("Object detection disabled");
+        } else if (!hasReferenceObject) {
+            DBG("No reference object set for object detection. Use Shift+Option+drag to select a reference.");
+        } else if (hasReferenceObject && !objectDetectionEnabled) {
+            DBG("Object detection is already disabled. Use Shift+Option+drag to select a new reference object.");
+        }
     }
 
     // close settings menu if open
@@ -2235,4 +2318,97 @@ void MainComponent::loadRecentFileList()
     }
     
     DBG("Loaded " + juce::String(recentFiles.size()) + " recent files");
+}
+
+void MainComponent::handleRectangleSelection(juce::Rectangle<int> selection) {
+    DBG("Rectangle selection callback triggered from VideoPlayerWidget");
+    DBG("handleRectangleSelection called with selection: " + juce::String(selection.getX()) + ", " + juce::String(selection.getY()) + ", " + juce::String(selection.getWidth()) + ", " + juce::String(selection.getHeight()));
+    
+    if (!currentMedia.clipLoaded() || !currentMedia.hasVideo() || !objectDetector) {
+        DBG("Cannot handle rectangle selection - clipLoaded: " + juce::String(std::to_string(currentMedia.clipLoaded())) + ", hasVideo: " + juce::String(std::to_string(currentMedia.hasVideo())) + ", objectDetector: " + juce::String(objectDetector.get() ? "valid" : "null"));
+        return;
+    }
+    
+    // Get current frame
+    juce::Image currentFrame = currentMedia.getFrame();
+    
+    if (!currentFrame.isValid()) {
+        DBG("Cannot handle rectangle selection - no valid current frame");
+        return;
+    }
+    
+    DBG("Frame validity: " + juce::String(std::to_string(currentFrame.isValid())) + ", dimensions: " + juce::String(std::to_string(currentFrame.getWidth())) + "x" + juce::String(std::to_string(currentFrame.getHeight())));
+    
+    // Ensure selection is within frame bounds
+    juce::Rectangle<int> frameBounds(0, 0, currentFrame.getWidth(), currentFrame.getHeight());
+    juce::Rectangle<int> clampedSelection = selection.getIntersection(frameBounds);
+    
+    if (clampedSelection.isEmpty()) {
+        DBG("Selection is outside frame bounds, ignoring");
+        return;
+    }
+    
+    DBG("Selection after intersection with frame bounds: " + juce::String(clampedSelection.getX()) + ", " + juce::String(clampedSelection.getY()) + ", " + juce::String(clampedSelection.getWidth()) + ", " + juce::String(clampedSelection.getHeight()));
+    
+    // Create reference image from selection
+    juce::Image referenceImage = currentFrame.getClippedImage(clampedSelection);
+    
+    if (!referenceImage.isValid()) {
+        DBG("Failed to create reference image from selection");
+        return;
+    }
+    
+    DBG("Reference image created - dimensions: " + juce::String(referenceImage.getWidth()) + "x" + juce::String(referenceImage.getHeight()));
+    
+    // Set reference object
+    bool success = objectDetector->setReferenceObject(referenceImage);
+    
+    DBG("objectDetector->setReferenceObject result: " + juce::String(std::to_string(success)));
+    
+    if (success) {
+        // Set flag to clear the yellow selection rectangle in next draw call
+        shouldClearSelection = true;
+        
+        // Start asynchronous object detection
+        DBG("Starting asynchronous object detection");
+        bool asyncStarted = objectDetector->startAsyncDetection(
+            [this](juce::Point<float> center, int frameWidth, int frameHeight, double processingTime) {
+                updateObjectDetectionResult(center, frameWidth, frameHeight, processingTime);
+            },
+            5 // Process every 5th frame
+        );
+        
+        if (asyncStarted) {
+            DBG("Asynchronous object detection started successfully");
+            objectDetectionEnabled = true;
+            hasReferenceObject = true;
+            
+            DBG("Object detection reference object set and enabled from selection: " + juce::String(clampedSelection.getX()) + ", " + juce::String(clampedSelection.getY()) + ", " + juce::String(clampedSelection.getWidth()) + ", " + juce::String(clampedSelection.getHeight()));
+        } else {
+            DBG("Failed to start asynchronous object detection");
+        }
+    } else {
+        DBG("Failed to set reference object");
+    }
+    
+    DBG("Final state - hasReferenceObject: " + juce::String(std::to_string(hasReferenceObject)) + ", objectDetectionEnabled: " + juce::String(std::to_string(objectDetectionEnabled)));
+}
+
+void MainComponent::updateObjectDetectionResult(const juce::Point<float>& detectedCenter, int frameWidth, int frameHeight, double processingTimeMs) {
+    // This method is called on the message thread from the object detection thread
+    if (!detectedCenter.isOrigin()) {
+        lastDetectedObjectCenter = detectedCenter;
+        showObjectReticle = true;
+        
+        // Convert to normalized coordinates (0.0 to 1.0) for display
+        objectReticlePosition.x = detectedCenter.getX() / frameWidth;
+        objectReticlePosition.y = detectedCenter.getY() / frameHeight;
+        
+        DBG("Object detected at: " + juce::String(detectedCenter.getX()) + ", " + juce::String(detectedCenter.getY()) + 
+            " (normalized: " + juce::String(objectReticlePosition.x) + ", " + juce::String(objectReticlePosition.y) + ")" +
+            " - Processing time: " + juce::String(processingTimeMs, 2) + " ms");
+    } else {
+        showObjectReticle = false;
+        DBG("No object detected in current frame - Processing time: " + juce::String(processingTimeMs, 2) + " ms");
+    }
 }

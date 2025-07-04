@@ -27,6 +27,9 @@
 #include "m1_orientation_client/UI/M1OrientationWindowToggleButton.h"
 #include "m1_orientation_client/UI/M1OrientationClientWindow.h"
 
+// Object Detection Module
+#include "../Modules/m1_objectdetection/m1_objectdetection.h"
+
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -198,6 +201,26 @@ private:
     
     // Consolidate the media and transport into a single object class
     FFmpegVCMediaObject currentMedia;
+    
+    // Object Detection
+    std::unique_ptr<Mach1::ObjectDetector> objectDetector;
+    bool objectDetectionEnabled = false;
+    bool hasReferenceObject = false;
+    bool showObjectReticle = false;
+    MurkaPoint objectReticlePosition;
+    juce::Point<float> lastDetectedObjectCenter;
+    bool callbackSetupComplete = false;  // Track if callback has been set up
+    bool shouldClearSelection = false;  // Flag to clear selection rectangle in next draw call
+    
+    // Rectangle Selection for Object Detection
+    bool isSelectingRectangle = false;
+    juce::Rectangle<int> selectionRectangle;
+    juce::Point<int> selectionStartPoint;
+    juce::Point<int> selectionEndPoint;
+    
+
+    
+    void updateObjectDetectionResult(const juce::Point<float>& detectedCenter, int frameWidth, int frameHeight, double processingTimeMs);
 
     bool b_standalone_mode = false;
     bool b_wants_to_switch_to_standalone = false;
@@ -379,6 +402,7 @@ public:
 
     void openFile(juce::File filepath);
     void setStatus(bool success, std::string message);
+    void handleRectangleSelection(juce::Rectangle<int> selection);
 
     //==============================================================================
     void prepareToPlay(int samplesPerBlockExpected, double newSampleRate);

@@ -109,6 +109,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         juce::juce_osc 
         juce_murka 
         m1_orientation_client
+        m1_objectdetection
         m1_mathematics
         juce_ffmpeg
         )

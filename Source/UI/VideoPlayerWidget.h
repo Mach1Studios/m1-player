@@ -14,6 +14,19 @@ private:
     MurImage imgOverlay;
     MurShader videoShader;
     bool draggingNow = false;
+    
+    // Rectangle Selection for Object Detection
+    bool isSelectingRectangle = false;
+    bool hasValidSelection = false;
+    MurkaPoint selectionStartPoint;
+    MurkaPoint selectionEndPoint;
+    MurkaShape selectionRectangle;
+    
+    // Object Detection Reticle
+    bool showObjectReticle = false;
+    MurkaPoint objectReticlePosition;
+    
+    std::function<void(juce::Rectangle<int>)> onRectangleSelected;
 
     std::string fragmentShader = R"(
         varying vec2 vUv;
@@ -57,6 +70,43 @@ private:
             prevY = curY;
             theta += thetaStep;
         }
+    }
+    
+    void drawObjectReticle(Murka& m, MurkaPoint pos) {
+        float reticleSize = 20.0f;
+        
+        m.pushStyle();
+        m.setLineWidth(2);
+        m.setColor(0, 255, 0, 200); // Green color for object detection reticle
+        
+        // Draw crosshair
+        m.drawLine(pos.x - reticleSize, pos.y, pos.x + reticleSize, pos.y);
+        m.drawLine(pos.x, pos.y - reticleSize, pos.x, pos.y + reticleSize);
+        
+        // Draw circle around target
+        float circleRadius = reticleSize * 0.7f;
+        m.drawCircle(pos.x, pos.y, circleRadius);
+        
+        m.popStyle();
+    }
+    
+    void drawSelectionRectangle(Murka& m) {
+        if (!isSelectingRectangle && !hasValidSelection) return;
+        
+        m.pushStyle();
+        m.setLineWidth(2);
+        m.setColor(255, 255, 0, 180); // Yellow color for selection rectangle
+        
+        // Draw selection rectangle outline
+        m.drawRectangle(selectionRectangle.position.x, selectionRectangle.position.y,
+                       selectionRectangle.size.x, selectionRectangle.size.y);
+        
+        // Draw semi-transparent fill
+        m.setColor(255, 255, 0, 40);
+        m.drawRectangle(selectionRectangle.position.x, selectionRectangle.position.y,
+                       selectionRectangle.size.x, selectionRectangle.size.y);
+        
+        m.popStyle();
     }
 
 public:
@@ -139,23 +189,97 @@ public:
         isUpdatedRotation = (rotationCurrent != rot);
         rotationCurrent = rot;
         
+        // Handle rectangle selection for object detection (Shift + Option + Mouse)
+        bool shiftHeld = m.isKeyHeld(murka::MurkaKey::MURKA_KEY_SHIFT);
+        bool optionHeld = m.isKeyHeld(murka::MurkaKey::MURKA_KEY_ALT); // Alt is Option on Mac
+        bool selectionModifiersHeld = shiftHeld && optionHeld;
+        
+        // Debug modifier key states
+        static bool lastShiftState = false;
+        static bool lastOptionState = false;
+        static bool lastModifiersState = false;
+        
+        if (shiftHeld != lastShiftState || optionHeld != lastOptionState || selectionModifiersHeld != lastModifiersState) {
+            DBG("Modifier keys - Shift: " + juce::String(std::to_string(shiftHeld)) + ", Option: " + juce::String(std::to_string(optionHeld)) + ", Combined: " + juce::String(std::to_string(selectionModifiersHeld)));
+            lastShiftState = shiftHeld;
+            lastOptionState = optionHeld;
+            lastModifiersState = selectionModifiersHeld;
+        }
+        
+        if (selectionModifiersHeld && inside()) {
+            // Rectangle selection mode
+            if (mouseDownPressed(0) && !isSelectingRectangle) {
+                // Start rectangle selection
+                DBG("Starting rectangle selection at: " + juce::String(mousePosition().x) + ", " + juce::String(mousePosition().y));
+                isSelectingRectangle = true;
+                hasValidSelection = false;
+                selectionStartPoint = mousePosition();
+                selectionEndPoint = selectionStartPoint;
+                selectionRectangle = MurkaShape(selectionStartPoint.x, selectionStartPoint.y, 0, 0);
+            }
+            
+            if (isSelectingRectangle) {
+                if (mouseDown(0)) {
+                    // Update rectangle during drag
+                    selectionEndPoint = mousePosition();
+                    
+                    float x = std::min(selectionStartPoint.x, selectionEndPoint.x);
+                    float y = std::min(selectionStartPoint.y, selectionEndPoint.y);
+                    float w = std::abs(selectionEndPoint.x - selectionStartPoint.x);
+                    float h = std::abs(selectionEndPoint.y - selectionStartPoint.y);
+                    
+                    selectionRectangle = MurkaShape(x, y, w, h);
+                } else {
+                    // Finish rectangle selection
+                    DBG("Finishing rectangle selection - size: " + juce::String(selectionRectangle.size.x) + "x" + juce::String(selectionRectangle.size.y));
+                    isSelectingRectangle = false;
+                    
+                    // Only process if rectangle is large enough
+                    if (selectionRectangle.size.x > 10 && selectionRectangle.size.y > 10) {
+                        hasValidSelection = true;
+                        
+                        // Call callback to handle the selection
+                        if (onRectangleSelected) {
+                            juce::Rectangle<int> rect(
+                                static_cast<int>(selectionRectangle.position.x),
+                                static_cast<int>(selectionRectangle.position.y),
+                                static_cast<int>(selectionRectangle.size.x),
+                                static_cast<int>(selectionRectangle.size.y)
+                            );
+                            DBG("Calling rectangle selection callback with rect: " + juce::String(rect.getX()) + ", " + juce::String(rect.getY()) + ", " + juce::String(rect.getWidth()) + ", " + juce::String(rect.getHeight()));
+                            onRectangleSelected(rect);
+                        } else {
+                            DBG("No rectangle selection callback set!");
+                        }
+                    } else {
+                        hasValidSelection = false;
+                        DBG("Rectangle selection too small, ignoring");
+                    }
+                }
+            }
+        } else {
+            // Normal video interaction mode
+            if (drawFlat == false) {
+                wasDrawnFlat = false; // reset gate
+                camera.setPosition(MurkaPoint3D(0, 0, 0));
+                camera.lookAt(MurkaPoint3D(0, 0, -10));
+
+                if (inside() && mouseDownPressed(0) && !draggingNow && !isSelectingRectangle) {
+                    draggingNow = true;
+                }
+
+                if (draggingNow && !mouseDown(0)) {
+                    draggingNow = false;
+                }
+
+                if (draggingNow) {
+                    rotationOffsetMouse.x += 0.25 * mouseDelta().x;
+                    rotationOffsetMouse.y -= 0.25 * mouseDelta().y;
+                }
+            }
+        }
+        
         if (drawFlat == false) {
-            wasDrawnFlat = false; // reset gate
-            camera.setPosition(MurkaPoint3D(0, 0, 0));
-            camera.lookAt(MurkaPoint3D(0, 0, -10));
-
-            if (inside() && mouseDownPressed(0) && !draggingNow) {
-                draggingNow = true;
-            }
-
-            if (draggingNow && !mouseDown(0)) {
-                draggingNow = false;
-            }
-
-            if (draggingNow) {
-                rotationOffsetMouse.x += 0.25 * mouseDelta().x;
-                rotationOffsetMouse.y -= 0.25 * mouseDelta().y;
-            }
             // r.y, r.x, r.z
             camera.setRotation(MurkaPoint3D{ rotationCurrent.y, -rotationCurrent.x , rotationCurrent.z }); // YPR -> +P-Y+R 3d camera
 
@@ -246,8 +370,38 @@ public:
                     }
                 }
             }
+            
+            // Draw object detection reticle in flat mode
+            if (showObjectReticle) {
+                drawObjectReticle(m, objectReticlePosition);
+            }
+            
             wasDrawnFlat = true;
         }
+        
+        // Draw rectangle selection overlay (works in both 3D and flat modes)
+        drawSelectionRectangle(m);
+    }
+
+    // Object Detection Methods
+    void setObjectReticlePosition(float x, float y) {
+        objectReticlePosition.x = x * getSize().x;
+        objectReticlePosition.y = y * getSize().y;
+        showObjectReticle = true;
+    }
+    
+    void hideObjectReticle() {
+        showObjectReticle = false;
+    }
+    
+    void clearSelection() {
+        hasValidSelection = false;
+        isSelectingRectangle = false;
+        selectionRectangle = MurkaShape(0, 0, 0, 0);
+    }
+    
+    void setRectangleSelectionCallback(std::function<void(juce::Rectangle<int>)> callback) {
+        onRectangleSelected = callback;
     }
 };
 
@@ -265,12 +419,50 @@ public:
         videoPlayerSurface.rotationOffset = rotationOffset;
         videoPlayerSurface.camera.setFov(fov);
         videoPlayerSurface.pannerSettings = pannerSettings;
+        
+        // Forward object detection settings to surface
+        if (rectangleSelectionCallback) {
+            videoPlayerSurface.setRectangleSelectionCallback(rectangleSelectionCallback);
+        }
+        if (objectReticleVisible) {
+            videoPlayerSurface.setObjectReticlePosition(objectReticleX, objectReticleY);
+        } else {
+            videoPlayerSurface.hideObjectReticle();
+        }
+        
+        // Handle selection clearing request
+        if (shouldClearSelection) {
+            videoPlayerSurface.clearSelection();
+            shouldClearSelection = false;
+        }
+        
         videoPlayerSurface.draw();
 
         rotationCurrent = videoPlayerSurface.rotationCurrent;
         rotationOffsetMouse = videoPlayerSurface.rotationOffsetMouse;
 
         isUpdatedRotation = videoPlayerSurface.isUpdatedRotation;
+    }
+    
+    // Object Detection Methods
+    void setObjectReticlePosition(float x, float y) {
+        objectReticleX = x;
+        objectReticleY = y;
+        objectReticleVisible = true;
+    }
+    
+    void hideObjectReticle() {
+        objectReticleVisible = false;
+    }
+    
+    void setRectangleSelectionCallback(std::function<void(juce::Rectangle<int>)> callback) {
+        rectangleSelectionCallback = callback;
+    }
+    
+    void clearSelection() {
+        // This will be handled by the VideoPlayerSurface during the next draw call
+        // We set a flag to clear the selection
+        shouldClearSelection = true;
     }
 
     bool drawFlat = false;
@@ -293,4 +485,12 @@ public:
 
     bool isUpdatedRotation = false;
     float playheadPosition = 0.0;
+
+private:
+    // Object detection state
+    std::function<void(juce::Rectangle<int>)> rectangleSelectionCallback;
+    bool objectReticleVisible = false;
+    float objectReticleX = 0.0f;
+    float objectReticleY = 0.0f;
+    bool shouldClearSelection = false;
 };

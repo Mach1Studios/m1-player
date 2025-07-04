@@ -14,6 +14,6 @@
 [submodule "Modules/m1-sdk"]
 	path = Modules/m1-sdk
 	url = git@github.com:Mach1Studios/m1-sdk.git
-[submodule "Modules/m1-objectdetection"]
-	path = Modules/m1-objectdetection
-	url = https://github.com/Mach1Studios/m1-objectdetection
+[submodule "Modules/m1_objectdetection"]
+	path = Modules/m1_objectdetection
+	url = https://github.com/Mach1Studios/m1_objectdetection
