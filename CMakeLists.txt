@@ -1,4 +1,13 @@
 cmake_minimum_required(VERSION 3.15.0)
+
+# Force ARM64 architecture on Apple Silicon to match VLC installation
+# This must be set BEFORE project() to ensure it applies to all dependencies
+if(APPLE)
+    set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures for macOS" FORCE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS deployment target" FORCE)
+    message(STATUS "Building for ARM64 only to match VLC installation")
+endif()
+
 file(STRINGS VERSION CURRENT_VERSION)
 project(M1-Player VERSION ${CURRENT_VERSION})
 
@@ -53,6 +62,16 @@ juce_add_gui_app(${CMAKE_PROJECT_NAME}
                 PLUGIN_NAME ${CMAKE_PROJECT_NAME}
                 PRODUCT_NAME ${CMAKE_PROJECT_NAME}
                 IS_SYNTH FALSE)
+
+# Force ARM64 architecture for the JUCE target specifically
+if(APPLE)
+    set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
+        OSX_ARCHITECTURES "arm64"
+        XCODE_ATTRIBUTE_ARCHS "arm64"
+        XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH "NO"
+        XCODE_ATTRIBUTE_VALID_ARCHS "arm64"
+    )
+endif()
 
 # add required flags
 juce_generate_juce_header(${CMAKE_PROJECT_NAME})
@@ -110,7 +129,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         juce_murka 
         m1_orientation_client
         m1_mathematics
-        juce_ffmpeg
+        juce_libvlc
         )
 
 # definitions to replace the `JucePluginDefines.h`
@@ -121,35 +140,23 @@ set(JucePlugin_Desc ${CMAKE_PROJECT_NAME})
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE M1Encode M1Decode M1Transcode)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE Modules/m1-sdk/libmach1spatial/api_common/include Modules/m1-sdk/libmach1spatial/api_decode/include Modules/m1-sdk/libmach1spatial/api_encode/include Modules/m1-sdk/libmach1spatial/api_transcode/include Modules/m1-sdk/libmach1spatial/deps)
 
-# link ffmpeg output libs for juce module flags to pick up on
-# TODO: fix this to not require hardcoded paths
-if(APPLE)
-    target_link_directories(${CMAKE_PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg" "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg/x86_64" "${CMAKE_CURRENT_BINARY_DIR}/_deps/ffmpeg-build/ffmpeg/arm64")
+# libVLC linking - find and link libVLC for the juce_libvlc module
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/Modules/juce_libvlc/cmake")
+find_package(LibVLC REQUIRED)
+if(TARGET LibVLC::LibVLC)
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE LibVLC::LibVLC)
     
-    # confim the libs, prepare to link
-    set(PLATFORM_SPECIFIC_LIBS)
-
-    find_library(CORE_MEDIA_LIBRARY CoreMedia)
-    find_library(VIDEOTOOLBOX_LIBRARY VideoToolbox)
-    find_library(ZLIB_LIBRARY z)
-    find_library(ICONV_LIBRARY iconv)
-
-    list(APPEND PLATFORM_SPECIFIC_LIBS
-         ${CORE_MEDIA_LIBRARY}
-         ${VIDEOTOOLBOX_LIBRARY}
-         ${ZLIB_LIBRARY}
-         ${ICONV_LIBRARY}
+    # Also link libvlccore which is required on macOS
+    find_library(LibVLCCore_LIBRARY
+        NAMES vlccore libvlccore
+        PATHS /Applications/VLC.app/Contents/MacOS/lib
     )
-
-    foreach(platform_lib ${PLATFORM_SPECIFIC_LIBS})
-        target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC ${platform_lib})
-    endforeach()
-
-else()
-    target_link_directories(${CMAKE_PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/Modules/juce_ffmpeg/_deps/ffmpeg-build/lib")
-    add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_BINARY_DIR}/Modules/juce_ffmpeg/_deps/ffmpeg-build/bin" "${CMAKE_CURRENT_BINARY_DIR}"
-    )
+    if(LibVLCCore_LIBRARY)
+        message(STATUS "Found libvlccore: ${LibVLCCore_LIBRARY}")
+        target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${LibVLCCore_LIBRARY})
+    else()
+        message(WARNING "libvlccore not found - linking may fail")
+    endif()
 endif()
 
 if(APPLE)

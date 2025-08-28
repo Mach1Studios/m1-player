@@ -1,8 +1,7 @@
 juce_add_modules(
         juce_murka
-        m1_orientation_client)
-
-add_subdirectory(juce_ffmpeg) # used to fetch and compile dependencies
+        m1_orientation_client
+        juce_libvlc)
 
 # Mach1 Spatial SDK
 # Use these options to block dependencies we do not need

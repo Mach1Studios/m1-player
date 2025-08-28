@@ -8,9 +8,9 @@
 [submodule "JUCE"]
 	path = JUCE
 	url = https://github.com/juce-framework/JUCE.git
-[submodule "Modules/juce_ffmpeg"]
-	path = Modules/juce_ffmpeg
-	url = https://github.com/Mach1Studios/FFmpegVideoComponent-for-JUCE
 [submodule "Modules/m1-sdk"]
 	path = Modules/m1-sdk
 	url = https://github.com/Mach1Studios/m1-sdk.git
+[submodule "Modules/juce_libvlc"]
+	path = Modules/juce_libvlc
+	url = https://github.com/Mach1Studios/juce_libvlc
