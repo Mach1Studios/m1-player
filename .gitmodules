@@ -1,16 +1,16 @@
 [submodule "Modules/m1_orientation_client"]
 	path = Modules/m1_orientation_client
-	url = git@github.com:Mach1Studios/m1_orientation_client.git
+	url = https://github.com/Mach1Studios/m1_orientation_client.git
 [submodule "Modules/juce_murka"]
 	path = Modules/juce_murka
-	url = git@github.com:Kiberchaika/juce_murka.git
+	url = https://github.com/Kiberchaika/juce_murka.git
 	branch = 1_0
 [submodule "JUCE"]
 	path = JUCE
-	url = git@github.com:juce-framework/JUCE.git
+	url = https://github.com/juce-framework/JUCE.git
 [submodule "Modules/juce_ffmpeg"]
 	path = Modules/juce_ffmpeg
 	url = https://github.com/Mach1Studios/FFmpegVideoComponent-for-JUCE
 [submodule "Modules/m1-sdk"]
 	path = Modules/m1-sdk
-	url = git@github.com:Mach1Studios/m1-sdk.git
+	url = https://github.com/Mach1Studios/m1-sdk.git
