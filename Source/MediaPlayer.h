@@ -4,22 +4,31 @@
 #include <juce_libvlc/juce_libvlc.h>
 
 /**
- * VLC-based implementation that extends VLCMediaPlayer to replace FFmpegVCMediaObject.
+ * VLC-based implementation that extends VLCMediaPlayer.
  * 
- * This implementation provides three different logic paths:
- * 1. Audio-driven seeking: When video has audio, seeking is sample-accurate via audio stream
- * 2. Direct JUCE Image display: Video frames are rendered directly to JUCE Images
- * 3. libVLC video decoding: For video-only files, libVLC handles decoding and seeking
+ * This implementation provides two different logic paths:
+ * 1. JUCE Image display: For image files, display directly via JUCE Image
+ * 2. libVLC video decoding: For video files, use libVLC for decoding but always use audio sample time for seeking position (even if no audio)
  */
-class VLCSeekableMediaPlayer : public VLCMediaPlayer
+class MediaPlayer : public VLCMediaPlayer
 {
 public:
-    VLCSeekableMediaPlayer();
-    ~VLCSeekableMediaPlayer() override;
+    MediaPlayer();
+    ~MediaPlayer() override;
+    
+    // Override to configure VLC for headless video processing
+    void configureVLCForHeadlessVideo();
+    
+    // Handle image files directly
+    bool loadImageFile(const juce::File& imageFile);
+    
+    // Force video frame refresh
+    void refreshVideoFrame();
 
     //==============================================================================
     // Legacy FFmpegVCMediaObject compatibility methods
     void start() { play(); }
+    void pause() { VLCMediaPlayer::pause(); }
     void stop() { VLCMediaPlayer::stop(); }
     bool isOpen() const;
     bool clipLoaded() const { return isOpen(); }
@@ -33,12 +42,12 @@ public:
     int64_t getAudioSampleRate() const { return getSampleRate(); }
     int64_t getVideoFrameRate() const;
     juce::Image& getFrame();
-    double getLengthInSeconds() const { return getTotalDuration(); }
-    double getPositionInSeconds() const { return getCurrentTime(); }
-    void setPosition(double newPositionInSeconds) { seekToTime(newPositionInSeconds); }
+    double getLengthInSeconds() const;
+    double getPositionInSeconds() const;
+    void setPosition(double newPositionInSeconds);
     bool isPlaying() const { return VLCMediaPlayer::isPlaying(); }
-    bool hasVideo() const { return VLCMediaPlayer::hasVideo(); }
-    bool hasAudio() const { return VLCMediaPlayer::hasAudio(); }
+    bool hasVideo() const { return isImageFile || VLCMediaPlayer::hasVideo(); }
+    bool hasAudio() const { return !isImageFile && VLCMediaPlayer::hasAudio(); }
     void setPositionNormalized(double newPositionNormalized);
     void setPlaySpeed(double newSpeed);
     double getPlaySpeed() const;
@@ -48,6 +57,7 @@ public:
     bool open(juce::URL filepath);
     juce::Result load(const juce::File& file);
     void closeMedia() { close(); }
+    void close() override;
     int getSamplerateLegacy() const { return getSampleRate(); }
     void setOffsetSeconds(double seconds);
     void setAudioDeviceManager(juce::AudioDeviceManager* manager) { /* Store reference for future use */ audioDeviceManager = manager; }
@@ -76,10 +86,16 @@ private:
     // Audio device manager reference
     juce::AudioDeviceManager* audioDeviceManager = nullptr;
     
+    // Image file handling
+    bool isImageFile = false;
+    
+    // Video frame refresh counter
+    mutable std::atomic<int> frameRefreshCounter { 0 };
+    
     //==============================================================================
     // Internal methods
     void updateVideoFrame();
     void notifyPlaybackCallbacks();
     
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VLCSeekableMediaPlayer)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MediaPlayer)
 };

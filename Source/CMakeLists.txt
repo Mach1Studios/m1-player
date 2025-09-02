@@ -2,8 +2,8 @@ file(GLOB source_files  Config.h
                         Main.cpp
                         MainComponent.h
                         MainComponent.cpp
-                        VLCSeekableMediaPlayer.h
-                        VLCSeekableMediaPlayer.cpp
+                        MediaPlayer.h
+                        MediaPlayer.cpp
                         TypesForDataExchange.h
                         SphereMeshGenerator.h
                         PlayerOSC.h

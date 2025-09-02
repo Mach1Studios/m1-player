@@ -13,7 +13,7 @@
 #include "TypesForDataExchange.h"
 #include "PlayerOSC.h"
 
-#include "FFmpegVCMediaObject.h"
+#include "MediaPlayer.h"
 #include "UI/M1PlayerControls.h"
 
 #include "UI/M1Checkbox.h"
@@ -197,7 +197,7 @@ private:
     float mediaVolume = 1.0;
     
     // Consolidate the media and transport into a single object class
-    FFmpegVCMediaObject currentMedia;
+    MediaPlayer currentMedia;
 
     bool b_standalone_mode = false;
     bool b_wants_to_switch_to_standalone = false;

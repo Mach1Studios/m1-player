@@ -968,14 +968,15 @@ void MainComponent::draw()
                                 if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
                                     juce::MessageManager::callAsync([this]() {
                                         DBG("Starting playback on message thread");
-                                        currentMedia.stop();
+                                        currentMedia.pause();
                                     });
                                 } else {
                                     DBG("Starting playback (already on message thread)");
-                                    currentMedia.stop();
+                                    currentMedia.pause();
                                 }
                             }
                             else {
+                                // Not playing - start playback
                                 if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
                                     juce::MessageManager::callAsync([this]() {
                                         DBG("Starting playback on message thread");
@@ -995,11 +996,14 @@ void MainComponent::draw()
                             // closeButtonPress - force UI to hide by setting secondsWithoutMouseMove beyond timeout
                             secondsWithoutMouseMove = UI_HIDE_TIMEOUT_SECONDS + 1;
                             bHideUI = true;
-                        }),
+                        },
                         [&](double newPositionNormalised) {
                             // refreshing player position
-                            currentMedia.setPosition(newPositionNormalised * currentMedia.getLengthInSeconds());
-                        };
+                            DBG("Timeline seek requested - normalized position: " + juce::String(newPositionNormalised));
+                            double targetTime = newPositionNormalised * currentMedia.getLengthInSeconds();
+                            DBG("Timeline seek - target time: " + juce::String(targetTime) + "s");
+                            currentMedia.setPosition(targetTime);
+                        });
         playerControls.withVolumeData(currentMedia.getGain(),
                         [&](double newVolume){
             // refreshing the volume
@@ -1219,22 +1223,22 @@ void MainComponent::draw()
             if (currentMedia.isPlaying()) {
                 if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
                     juce::MessageManager::callAsync([this]() {
-                        DBG("Stopping playback on message thread");
-                        currentMedia.stop();
+                        DBG("Pausing playback on message thread (spacebar)");
+                        currentMedia.pause();
                     });
                 } else {
-                    DBG("Stopping playback (already on message thread)");
-                    currentMedia.stop();
+                    DBG("Pausing playback (spacebar, already on message thread)");
+                    currentMedia.pause();
                 }
             }
             else {
                 if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
                     juce::MessageManager::callAsync([this]() {
-                        DBG("Starting playback on message thread");
+                        DBG("Starting playback on message thread (spacebar)");
                         currentMedia.start();
                     });
                 } else {
-                    DBG("Starting playback (already on message thread)");
+                    DBG("Starting playback (spacebar, already on message thread)");
                     currentMedia.start();
                 }
             }
