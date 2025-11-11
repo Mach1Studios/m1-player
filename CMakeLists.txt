@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.15.0)
 
+# Set policy for Xcode new build system compatibility with ExternalProject
+if(POLICY CMP0114)
+    cmake_policy(SET CMP0114 NEW)
+endif()
+
 # Force ARM64 architecture on Apple Silicon to match VLC installation
 # This must be set BEFORE project() to ensure it applies to all dependencies
 if(APPLE)
@@ -146,16 +151,21 @@ find_package(LibVLC REQUIRED)
 if(TARGET LibVLC::LibVLC)
     target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE LibVLC::LibVLC)
     
-    # Also link libvlccore which is required on macOS
-    find_library(LibVLCCore_LIBRARY
-        NAMES vlccore libvlccore
-        PATHS /Applications/VLC.app/Contents/MacOS/lib
-    )
-    if(LibVLCCore_LIBRARY)
-        message(STATUS "Found libvlccore: ${LibVLCCore_LIBRARY}")
-        target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${LibVLCCore_LIBRARY})
-    else()
-        message(WARNING "libvlccore not found - linking may fail")
+    # Note: When building from source (LIBVLC_BUILD_FROM_SOURCE=ON), 
+    # the LibVLC::LibVLC target already includes both libvlc and libvlccore.
+    # Only look for system libvlccore when using system VLC.
+    if(NOT LIBVLC_BUILD_FROM_SOURCE)
+        # Also link libvlccore which is required on macOS with system VLC
+        find_library(LibVLCCore_LIBRARY
+            NAMES vlccore libvlccore
+            PATHS /Applications/VLC.app/Contents/MacOS/lib
+        )
+        if(LibVLCCore_LIBRARY)
+            message(STATUS "Found libvlccore: ${LibVLCCore_LIBRARY}")
+            target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${LibVLCCore_LIBRARY})
+        else()
+            message(WARNING "libvlccore not found - linking may fail")
+        endif()
     endif()
 endif()
 

@@ -1,3 +1,28 @@
+# LibVLC Configuration Options
+# Choose one of the following methods:
+#
+# Method 1: Build libVLC from source (static linking)
+set(LIBVLC_BUILD_FROM_SOURCE ON CACHE BOOL "Build libVLC from source")
+set(LIBVLC_STATIC ON CACHE BOOL "Link libVLC statically")
+#
+# Method 2: Use custom libVLC installation (dynamic linking):
+# set(LIBVLC_ROOT "/opt/vlc-custom" CACHE PATH "Root directory of custom libVLC installation")
+#
+# Method 3: Use custom libVLC with static linking:
+# set(LIBVLC_ROOT "/opt/vlc-static" CACHE PATH "Root directory of custom libVLC installation")
+# set(LIBVLC_STATIC ON CACHE BOOL "Link libVLC statically")
+#
+# Method 4: Use system-installed libVLC (default, dynamic linking):
+# set(LIBVLC_BUILD_FROM_SOURCE OFF CACHE BOOL "Build libVLC from source")
+# (No other configuration needed)
+#
+# Via CMake command line:
+#    cmake -DLIBVLC_BUILD_FROM_SOURCE=ON -DLIBVLC_STATIC=ON ..
+#    cmake -DLIBVLC_ROOT=/path/to/vlc -DLIBVLC_STATIC=ON ..
+
+# Add FindLibVLC.cmake to module path
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/juce_libvlc/cmake")
+
 juce_add_modules(
         juce_murka
         m1_orientation_client
