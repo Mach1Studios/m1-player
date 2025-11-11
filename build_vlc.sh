@@ -1,6 +1,7 @@
 #!/bin/bash
 # Build VLC static libraries for m1-player
 # This script should be run AFTER CMake configuration
+# VLC 3.0.22 uses autotools (configure/make)
 
 set -e  # Exit on error
 
@@ -39,35 +40,15 @@ fi
 
 # Check for required tools
 echo "Checking prerequisites..."
-command -v meson >/dev/null 2>&1 || {
-    echo "   Error: meson not found"
-    echo "   Install: pip3 install meson"
-    exit 1
-}
 
-command -v ninja >/dev/null 2>&1 || {
-    echo "   Error: ninja not found"
-    echo "   macOS: brew install ninja"
-    exit 1
-}
-
-command -v pkg-config >/dev/null 2>&1 || {
-    echo "   Error: pkg-config not found"
-    echo "   macOS: brew install pkg-config"
-    exit 1
-}
-
-# Check for modern bison (VLC 4.0 requires bison 3.0+)
-if [ -x "/opt/homebrew/opt/bison/bin/bison" ]; then
-    export PATH="/opt/homebrew/opt/bison/bin:$PATH"
-    BISON_VER=$(/opt/homebrew/opt/bison/bin/bison --version | head -1 | awk '{print $4}')
-    echo "Using Homebrew bison $BISON_VER"
-else
-    echo "Error: Modern bison not found"
-    echo "   macOS: brew install bison"
-    echo "   VLC 4.0 requires bison 3.0+ (system bison is too old)"
-    exit 1
-fi
+# VLC 3.x requires autotools
+for cmd in autoconf automake libtool pkg-config make; do
+    command -v $cmd >/dev/null 2>&1 || {
+        echo "   Error: $cmd not found"
+        echo "   macOS: brew install $cmd"
+        exit 1
+    }
+done
 
 # Check for FFmpeg (required by VLC)
 if ! pkg-config --exists libavformat libavcodec libswscale; then
@@ -96,41 +77,67 @@ if [ -f "$VLC_INSTALL/lib/libvlc.a" ] && [ -f "$VLC_INSTALL/lib/libvlccore.a" ];
     rm -rf "$VLC_BUILD" "$VLC_INSTALL"
 fi
 
-# Configure VLC with Meson
+# Bootstrap if configure doesn't exist
+if [ ! -f "$VLC_SOURCE/configure" ]; then
+    echo "========================================"
+    echo "Bootstrapping VLC"
+    echo "========================================"
+    echo ""
+    cd "$VLC_SOURCE"
+    
+    # Fix Homebrew autoreconf perl path issue
+    # Ensure we use the system perl instead of hardcoded perl5.30
+    export PERL=/usr/bin/perl
+    
+    ./bootstrap
+    cd "$SCRIPT_DIR"
+    echo ""
+fi
+
+# Configure VLC with autotools
 echo "========================================"
-echo "Configuring VLC with Meson"
+echo "Configuring VLC 3.0.22"
 echo "========================================"
 echo "Source: $VLC_SOURCE"
 echo "Build:  $VLC_BUILD"
 echo "Install: $VLC_INSTALL"
 echo ""
 
-meson setup "$VLC_BUILD" "$VLC_SOURCE" \
+# Create build directory
+mkdir -p "$VLC_BUILD"
+cd "$VLC_BUILD"
+
+# Configure VLC
+# These options match what we figured out for minimal playback-only build
+"$VLC_SOURCE/configure" \
     --prefix="$VLC_INSTALL" \
-    --libdir=lib \
-    --includedir=include \
-    --buildtype=release \
-    --default-library=static \
-    -Dvlc=false \
-    -Dtests=disabled \
-    -Dstream_outputs=false \
-    -Dvideolan_manager=false \
-    -Dqt=disabled \
-    -Dlua=disabled \
-    -Dskins2=disabled \
-    -Dscreen=disabled \
-    -Davcodec=enabled \
-    -Davformat=enabled \
-    -Dswscale=enabled
+    --enable-static \
+    --disable-shared \
+    --disable-vlc \
+    --disable-vlm \
+    --disable-sout \
+    --disable-lua \
+    --disable-qt \
+    --disable-skins2 \
+    --disable-screen \
+    --disable-nls \
+    --disable-update-check \
+    --disable-sparkle \
+    --disable-macosx \
+    --disable-subtitle \
+    --disable-css \
+    --enable-avcodec \
+    --enable-avformat \
+    --enable-swscale
 
 echo ""
 echo "========================================"
-echo "Building VLC (this will take 20-40 mins)"
+echo "Building VLC (this will take 15-30 mins)"
 echo "========================================"
 echo ""
 
-# Build VLC
-meson compile -C "$VLC_BUILD"
+# Build VLC using all available CPU cores
+make -j$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
 
 echo ""
 echo "========================================"
@@ -139,7 +146,9 @@ echo "========================================"
 echo ""
 
 # Install to local directory
-meson install -C "$VLC_BUILD"
+make install
+
+cd "$SCRIPT_DIR"
 
 echo ""
 echo "========================================"
@@ -154,7 +163,6 @@ echo "Headers installed to:"
 echo "  $VLC_INSTALL/include/vlc/"
 echo ""
 echo "Next steps:"
-echo "  1. Configure CMake: cmake -B build"
-echo "  2. Build m1-player: cmake --build build"
+echo "  1. Reconfigure CMake: make dev-player"
+echo "  2. Build m1-player: cmake --build $1"
 echo ""
-
