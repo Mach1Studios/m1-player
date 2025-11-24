@@ -8,6 +8,9 @@ endif()
 # Force ARM64 architecture on Apple Silicon to match VLC installation
 # This must be set BEFORE project() to ensure it applies to all dependencies
 if(APPLE)
+    # Note: To support Universal Binaries (x86_64 and arm64), VLC must be built for both architectures.
+    # Currently build_vlc.sh builds for the host architecture only.
+    # If you have universal VLC libs, you can change this to "arm64;x86_64"
     set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures for macOS" FORCE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS deployment target" FORCE)
     message(STATUS "Building for ARM64 only to match VLC installation")
@@ -165,6 +168,45 @@ if(TARGET LibVLC::LibVLC)
             target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${LibVLCCore_LIBRARY})
         else()
             message(WARNING "libvlccore not found - linking may fail")
+        endif()
+    endif()
+    
+    # Bundle VLC plugins into the app (replicates VLC.app structure)
+    # This matches how VLC.app packages plugins in Contents/MacOS/plugins/
+    if(LIBVLC_BUILD_FROM_SOURCE)
+        set(VLC_INSTALL_DIR "${CMAKE_BINARY_DIR}/vlc-install")
+        set(VLC_PLUGINS_SOURCE "${VLC_INSTALL_DIR}/lib/vlc/plugins")
+        
+        # Check if VLC plugins exist (will be .dylib after rebuild)
+        if(EXISTS "${VLC_PLUGINS_SOURCE}")
+            message(STATUS "VLC Plugin bundling:")
+            message(STATUS "  Source: ${VLC_PLUGINS_SOURCE}")
+            message(STATUS "  Destination: Contents/PlugIns/vlc/plugins/")
+            
+            # Create custom target to copy VLC plugins to app bundle
+            # This runs after the app is built
+            add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E echo "Bundling VLC plugins..."
+                COMMAND ${CMAKE_COMMAND} -E make_directory 
+                    "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/PlugIns/vlc"
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${VLC_PLUGINS_SOURCE}"
+                    "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/PlugIns/vlc/plugins"
+                # Clean up static libraries (.a) and libtool files (.la) from the bundle
+                # These cause codesign errors as they shouldn't be in the bundle
+                COMMAND find "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/PlugIns/vlc/plugins" -name "*.a" -delete
+                COMMAND find "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/PlugIns/vlc/plugins" -name "*.la" -delete
+                COMMAND ${CMAKE_COMMAND} -E echo "VLC plugins bundled successfully"
+                COMMENT "Copying VLC plugins to app bundle (matching VLC.app structure)"
+            )
+            
+            # Also set VLC_PLUGIN_PATH at build time for testing from build directory
+            set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
+                XCODE_SCHEME_ENVIRONMENT "VLC_PLUGIN_PATH=${VLC_PLUGINS_SOURCE}"
+            )
+        else()
+            message(STATUS "VLC plugins not found at ${VLC_PLUGINS_SOURCE}")
+            message(STATUS "  Plugins will be bundled after VLC rebuild completes")
         endif()
     endif()
 endif()

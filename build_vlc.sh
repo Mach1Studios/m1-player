@@ -38,6 +38,14 @@ if [ ! -d "$VLC_SOURCE" ]; then
     exit 1
 fi
 
+# Set environment for Homebrew on macOS (Apple Silicon)
+if [ "$(uname)" = "Darwin" ] && [ "$(uname -m)" = "arm64" ]; then
+    export PATH="/opt/homebrew/bin:$PATH"
+    export LDFLAGS="-L/opt/homebrew/lib -L/opt/homebrew/opt/gettext/lib $LDFLAGS"
+    export CPPFLAGS="-I/opt/homebrew/include -I/opt/homebrew/opt/gettext/include $CPPFLAGS"
+    export PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/gettext/lib/pkgconfig:$PKG_CONFIG_PATH"
+fi
+
 # Check for required tools
 echo "Checking prerequisites..."
 
@@ -94,6 +102,13 @@ if [ ! -f "$VLC_SOURCE/configure" ]; then
     echo ""
 fi
 
+# Set build flags for macOS compatibility and SDK version
+# This matches the CMake deployment target
+export CFLAGS="-mmacosx-version-min=11.0 $CFLAGS"
+export CXXFLAGS="-mmacosx-version-min=11.0 $CXXFLAGS"
+export OBJCFLAGS="-mmacosx-version-min=11.0 $OBJCFLAGS"
+export LDFLAGS="-mmacosx-version-min=11.0 $LDFLAGS"
+
 # Configure VLC with autotools
 echo "========================================"
 echo "Configuring VLC 3.0.22"
@@ -108,11 +123,16 @@ mkdir -p "$VLC_BUILD"
 cd "$VLC_BUILD"
 
 # Configure VLC
-# These options match what we figured out for minimal playback-only build
+# Build with static core libraries but shared plugins (hybrid approach)
+# This matches how VLC.app is deployed and keeps binary size reasonable
+# Set environment to prevent linking optional libraries
+export OPENCORE_AMRNB_LIBS=""
+export OPENCORE_AMRWB_LIBS=""
+
 "$VLC_SOURCE/configure" \
     --prefix="$VLC_INSTALL" \
     --enable-static \
-    --disable-shared \
+    --enable-shared \
     --disable-vlc \
     --disable-vlm \
     --disable-sout \
@@ -126,6 +146,7 @@ cd "$VLC_BUILD"
     --disable-macosx \
     --disable-subtitle \
     --disable-css \
+    --disable-gnutls \
     --enable-avcodec \
     --enable-avformat \
     --enable-swscale
