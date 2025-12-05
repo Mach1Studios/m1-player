@@ -179,6 +179,60 @@ fi
 LIB_COUNT=$(ls -1 "$LIBS_DIR"/*.dylib 2>/dev/null | wc -l | tr -d ' ')
 
 echo ""
+echo "Re-signing modified libraries..."
+
+# After modifying dylibs with install_name_tool, their code signatures become invalid
+# We need to re-sign them for the app to launch outside of Xcode
+# Use ad-hoc signing (no identity required, works for local testing)
+
+# Sign the bundled libraries
+LIB_SIGN_COUNT=0
+for lib in "$LIBS_DIR"/*.dylib; do
+    if [ -f "$lib" ]; then
+        codesign --force --sign - "$lib" 2>/dev/null && LIB_SIGN_COUNT=$((LIB_SIGN_COUNT + 1)) || echo "  Warning: Failed to sign $(basename "$lib")"
+    fi
+done
+echo "  Signed $LIB_SIGN_COUNT libraries in vlc/lib/"
+
+# Sign the VLC plugins
+PLUGIN_SIGN_COUNT=0
+for plugin in $(find "$VLC_PLUGINS_DIR" -name "*.dylib"); do
+    codesign --force --sign - "$plugin" 2>/dev/null && PLUGIN_SIGN_COUNT=$((PLUGIN_SIGN_COUNT + 1)) || echo "  Warning: Failed to sign $(basename "$plugin")"
+done
+echo "  Signed $PLUGIN_SIGN_COUNT plugins in vlc/plugins/"
+
+# Sign the main VLC libraries if they exist in Frameworks or MacOS
+FRAMEWORKS_DIR="$APP_BUNDLE/Contents/Frameworks"
+MACOS_DIR="$APP_BUNDLE/Contents/MacOS"
+
+VLC_CORE_SIGNED=0
+for vlclib in libvlc libvlccore; do
+    for dir in "$FRAMEWORKS_DIR" "$MACOS_DIR"; do
+        for ext in dylib 5.dylib 9.dylib; do
+            libpath="$dir/$vlclib.$ext"
+            if [ -f "$libpath" ]; then
+                codesign --force --sign - "$libpath" 2>/dev/null && VLC_CORE_SIGNED=$((VLC_CORE_SIGNED + 1)) && echo "  Signed $vlclib.$ext"
+            fi
+        done
+    done
+done
+if [ $VLC_CORE_SIGNED -gt 0 ]; then
+    echo "  Signed $VLC_CORE_SIGNED VLC core libraries"
+fi
+
+# Add @executable_path/../Frameworks to rpath if not already present
+# This allows the executable to find VLC libraries in the bundle
+EXECUTABLE="$APP_BUNDLE/Contents/MacOS/$(basename "$APP_BUNDLE" .app)"
+if [ -f "$EXECUTABLE" ]; then
+    # Check if the Frameworks rpath already exists
+    if ! otool -l "$EXECUTABLE" 2>/dev/null | grep -q "@executable_path/../Frameworks"; then
+        echo "  Adding Frameworks rpath to executable..."
+        install_name_tool -add_rpath "@executable_path/../Frameworks" "$EXECUTABLE" 2>/dev/null || true
+        codesign --force --sign - "$EXECUTABLE" 2>/dev/null || true
+    fi
+fi
+
+echo ""
 echo "Regenerating VLC plugins cache..."
 
 # Delete the old plugins.dat as it references old paths

@@ -171,11 +171,51 @@ if(TARGET LibVLC::LibVLC)
         endif()
     endif()
     
-    # Bundle VLC plugins into the app (replicates VLC.app structure)
-    # This matches how VLC.app packages plugins in Contents/MacOS/plugins/
+    # Bundle VLC libraries and plugins into the app
     if(LIBVLC_BUILD_FROM_SOURCE)
         set(VLC_INSTALL_DIR "${CMAKE_BINARY_DIR}/vlc-install")
         set(VLC_PLUGINS_SOURCE "${VLC_INSTALL_DIR}/lib/vlc/plugins")
+        set(VLC_LIB_DIR "${VLC_INSTALL_DIR}/lib")
+        
+        # Copy VLC core libraries to Frameworks directory
+        # These are needed at runtime and must be in the bundle for standalone execution
+        if(EXISTS "${VLC_LIB_DIR}/libvlc.dylib")
+            message(STATUS "VLC Core Library bundling:")
+            message(STATUS "  Source: ${VLC_LIB_DIR}")
+            message(STATUS "  Destination: Contents/Frameworks/")
+            
+            add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E echo "Bundling VLC core libraries..."
+                COMMAND ${CMAKE_COMMAND} -E make_directory 
+                    "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Frameworks"
+                # Copy libvlc
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${VLC_LIB_DIR}/libvlc.dylib"
+                    "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Frameworks/libvlc.dylib"
+                # Copy libvlccore
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${VLC_LIB_DIR}/libvlccore.dylib"
+                    "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Frameworks/libvlccore.dylib"
+                # Fix libvlc's reference to libvlccore to use @loader_path
+                COMMAND install_name_tool -change 
+                    "@rpath/libvlccore.dylib"
+                    "@loader_path/libvlccore.dylib"
+                    "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Frameworks/libvlc.dylib"
+                # Sign the VLC libraries
+                COMMAND codesign --force --sign - 
+                    "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Frameworks/libvlc.dylib"
+                COMMAND codesign --force --sign - 
+                    "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Frameworks/libvlccore.dylib"
+                COMMAND ${CMAKE_COMMAND} -E echo "VLC core libraries bundled"
+                COMMENT "Copying VLC core libraries to Frameworks"
+            )
+            
+            # Set rpath so the executable can find libvlc in Frameworks
+            set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
+                INSTALL_RPATH "@executable_path/../Frameworks"
+                BUILD_WITH_INSTALL_RPATH TRUE
+            )
+        endif()
         
         # Check if VLC plugins exist (will be .dylib after rebuild)
         if(EXISTS "${VLC_PLUGINS_SOURCE}")
