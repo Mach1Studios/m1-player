@@ -22,7 +22,8 @@ bool MediaPlayer::isOpen() const
     // For image files, we're always "open" if the image is valid
     if (isImageFile)
     {
-        bool result = currentVideoFrame.isValid();
+        std::lock_guard<std::mutex> lock(const_cast<std::mutex&>(imageFileMutex));
+        bool result = imageFileFrame.isValid();
         //DBG("MediaPlayer::isOpen - Image file, result: " + juce::String(result ? "true" : "false"));
         return result;
     }
@@ -88,24 +89,26 @@ int64_t MediaPlayer::getVideoFrameRate() const
 
 juce::Image& MediaPlayer::getFrame()
 {
-    std::lock_guard<std::mutex> lock(videoFrameMutex);
-    
     // If this is an image file, return the loaded image
-    if (isImageFile && currentVideoFrame.isValid())
+    if (isImageFile)
     {
-        return currentVideoFrame;
+        std::lock_guard<std::mutex> lock(imageFileMutex);
+        return imageFileFrame;
     }
     
-    // For video files, get the actual video frame from VLC
-    if (!isImageFile && VLCMediaPlayer::hasVideo())
+    // For video files, get the actual video frame from VLC base class
+    if (VLCMediaPlayer::hasVideo())
     {
         // Get the current video frame from VLC
+        // This accesses the base class's currentVideoFrame which is updated by VLC callbacks
         juce::Image vlcFrame = getCurrentVideoFrame();
         
         if (vlcFrame.isValid())
         {
-            // Use the actual video frame from VLC
-            currentVideoFrame = vlcFrame;
+            // Store a copy for returning by reference
+            std::lock_guard<std::mutex> lock(imageFileMutex);
+            imageFileFrame = vlcFrame;
+            return imageFileFrame;
         }
         else
         {
@@ -120,24 +123,28 @@ juce::Image& MediaPlayer::getFrame()
                 height = 1080;
             }
             
-            if (!currentVideoFrame.isValid() || 
-                currentVideoFrame.getWidth() != width || 
-                currentVideoFrame.getHeight() != height)
+            std::lock_guard<std::mutex> lock(imageFileMutex);
+            if (!imageFileFrame.isValid() || 
+                imageFileFrame.getWidth() != width || 
+                imageFileFrame.getHeight() != height)
             {
-                currentVideoFrame = juce::Image(juce::Image::ARGB, width, height, true);
+                imageFileFrame = juce::Image(juce::Image::ARGB, width, height, true);
                 
-                juce::Graphics g(currentVideoFrame);
+                juce::Graphics g(imageFileFrame);
                 g.fillAll(juce::Colours::black);
                 
                 g.setColour(juce::Colours::white);
                 g.setFont(juce::Font(16.0f));
-                g.drawText("Loading video...", currentVideoFrame.getBounds(), 
+                g.drawText("Loading video...", imageFileFrame.getBounds(), 
                           juce::Justification::centred, true);
             }
+            return imageFileFrame;
         }
     }
     
-    return currentVideoFrame;
+    // No valid frame available
+    std::lock_guard<std::mutex> lock(imageFileMutex);
+    return imageFileFrame;
 }
 
 double MediaPlayer::getLengthInSeconds() const
@@ -317,13 +324,13 @@ void MediaPlayer::close()
     // Reset image file state
     isImageFile = false;
     
-    // Clear the current video frame
+    // Clear the local image frame
     {
-        std::lock_guard<std::mutex> lock(videoFrameMutex);
-        currentVideoFrame = juce::Image();
+        std::lock_guard<std::mutex> lock(imageFileMutex);
+        imageFileFrame = juce::Image();
     }
     
-    // Call base class close
+    // Call base class close (this also clears the VLC video frame)
     VLCMediaPlayer::close();
 }
 
@@ -352,8 +359,8 @@ void MediaPlayer::refreshVideoFrame()
     // Force recreation of video frame for dynamic updates
     if (!isImageFile && VLCMediaPlayer::hasVideo())
     {
-        std::lock_guard<std::mutex> lock(videoFrameMutex);
-        currentVideoFrame = juce::Image(); // Clear current frame to force recreation
+        std::lock_guard<std::mutex> lock(imageFileMutex);
+        imageFileFrame = juce::Image(); // Clear cached frame to force refresh from VLC
     }
 }
 
@@ -365,12 +372,12 @@ void MediaPlayer::updateVideoFrame()
 
 bool MediaPlayer::loadImageFile(const juce::File& imageFile)
 {
-    std::lock_guard<std::mutex> lock(videoFrameMutex);
+    std::lock_guard<std::mutex> lock(imageFileMutex);
     
     // Load image directly using JUCE
-    currentVideoFrame = juce::ImageFileFormat::loadFrom(imageFile);
+    imageFileFrame = juce::ImageFileFormat::loadFrom(imageFile);
     
-    if (currentVideoFrame.isValid())
+    if (imageFileFrame.isValid())
     {
         isImageFile = true;
         DBG("Successfully loaded image file: " + imageFile.getFullPathName());

@@ -173,6 +173,32 @@ cd "$SCRIPT_DIR"
 
 echo ""
 echo "========================================"
+echo "Generating VLC Plugin Cache"
+echo "========================================"
+echo ""
+
+# Generate plugins.dat cache file
+# VLC requires this cache to properly load plugins at runtime
+VLC_CACHE_GEN="$VLC_INSTALL/lib/vlc/vlc-cache-gen"
+VLC_PLUGINS_DIR="$VLC_INSTALL/lib/vlc/plugins"
+
+if [ -x "$VLC_CACHE_GEN" ] && [ -d "$VLC_PLUGINS_DIR" ]; then
+    echo "Running vlc-cache-gen..."
+    # Need to set library path so vlc-cache-gen can find libvlc
+    DYLD_LIBRARY_PATH="$VLC_INSTALL/lib:$DYLD_LIBRARY_PATH" "$VLC_CACHE_GEN" "$VLC_PLUGINS_DIR"
+    
+    if [ -f "$VLC_PLUGINS_DIR/plugins.dat" ]; then
+        echo "  Created: $VLC_PLUGINS_DIR/plugins.dat ($(du -h "$VLC_PLUGINS_DIR/plugins.dat" | cut -f1))"
+    else
+        echo "  Warning: plugins.dat was not created"
+    fi
+else
+    echo "  Warning: vlc-cache-gen not found or plugins directory missing"
+    echo "  VLC plugins may not load correctly"
+fi
+
+echo ""
+echo "========================================"
 echo "VLC Build Complete!"
 echo "========================================"
 echo ""
@@ -182,6 +208,13 @@ echo "  $VLC_INSTALL/lib/libvlccore.a ($(du -h "$VLC_INSTALL/lib/libvlccore.a" |
 echo ""
 echo "Headers installed to:"
 echo "  $VLC_INSTALL/include/vlc/"
+echo ""
+echo "Plugin cache:"
+if [ -f "$VLC_PLUGINS_DIR/plugins.dat" ]; then
+    echo "  $VLC_PLUGINS_DIR/plugins.dat"
+else
+    echo "  Warning: plugins.dat not found!"
+fi
 echo ""
 echo "Next steps:"
 echo "  1. Reconfigure CMake: make dev-player"

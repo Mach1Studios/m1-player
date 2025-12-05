@@ -76,9 +76,13 @@ private:
     std::atomic<double> offsetSeconds { 0.0 };
     std::atomic<double> videoFrameRate { 30.0 };
     
-    // Current video frame as JUCE Image for direct access
-    juce::Image currentVideoFrame;
-    std::mutex videoFrameMutex;
+    // Note: Video frame and mutex are inherited from VLCMediaPlayer base class.
+    // Do NOT declare them here as it would shadow the base class members
+    // and break video frame updates from VLC callbacks.
+    
+    // Local frame storage for image files only (not videos)
+    juce::Image imageFileFrame;
+    std::mutex imageFileMutex;
     
     // Audio processing
     juce::AudioBuffer<float> tempAudioBuffer;

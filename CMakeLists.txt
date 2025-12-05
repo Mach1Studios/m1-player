@@ -185,22 +185,51 @@ if(TARGET LibVLC::LibVLC)
             
             # Create custom target to copy VLC plugins to app bundle
             # This runs after the app is built
+            # NOTE: We use Contents/Resources/ instead of Contents/PlugIns/ because:
+            # 1. plugins.dat is a data file, not code, and codesign fails on it in PlugIns/
+            # 2. VLC plugins are dynamically loaded by libVLC, not macOS plugin system
             add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E echo "Bundling VLC plugins..."
                 COMMAND ${CMAKE_COMMAND} -E make_directory 
-                    "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/PlugIns/vlc"
+                    "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Resources/vlc"
                 COMMAND ${CMAKE_COMMAND} -E copy_directory
                     "${VLC_PLUGINS_SOURCE}"
-                    "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/PlugIns/vlc/plugins"
+                    "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Resources/vlc/plugins"
                 # Clean up static libraries (.a) and libtool files (.la) from the bundle
-                # These cause codesign errors as they shouldn't be in the bundle
-                COMMAND find "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/PlugIns/vlc/plugins" -name "*.a" -delete
-                COMMAND find "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/PlugIns/vlc/plugins" -name "*.la" -delete
-                COMMAND ${CMAKE_COMMAND} -E echo "VLC plugins bundled successfully"
-                COMMENT "Copying VLC plugins to app bundle (matching VLC.app structure)"
+                # These shouldn't be in the bundle
+                COMMAND find "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Resources/vlc/plugins" -name "*.a" -delete
+                COMMAND find "$<TARGET_BUNDLE_CONTENT_DIR:${CMAKE_PROJECT_NAME}>/Resources/vlc/plugins" -name "*.la" -delete
+                # Bundle VLC dependencies (FFmpeg, etc.) from Homebrew and fix their rpaths
+                # This is required because VLC plugins link against Homebrew dylibs at absolute paths
+                # which are blocked by macOS sandbox. We copy them into the bundle and rewrite paths.
+                COMMAND ${CMAKE_COMMAND} -E echo "Bundling VLC dependencies..."
+                COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/bundle_vlc_deps.sh" "$<TARGET_BUNDLE_DIR:${CMAKE_PROJECT_NAME}>"
+                COMMAND ${CMAKE_COMMAND} -E echo "VLC plugins and dependencies bundled successfully"
+                COMMENT "Copying VLC plugins to app bundle Resources and bundling dependencies"
             )
             
+            # Generate plugins.dat cache if it doesn't exist
+            # VLC requires this cache file to load plugins at runtime
+            set(VLC_PLUGINS_CACHE "${VLC_PLUGINS_SOURCE}/plugins.dat")
+            if(NOT EXISTS "${VLC_PLUGINS_CACHE}")
+                set(VLC_CACHE_GEN "${VLC_INSTALL_DIR}/lib/vlc/vlc-cache-gen")
+                if(EXISTS "${VLC_CACHE_GEN}")
+                    message(STATUS "Generating VLC plugins cache...")
+                    execute_process(
+                        COMMAND ${CMAKE_COMMAND} -E env "DYLD_LIBRARY_PATH=${VLC_INSTALL_DIR}/lib" "${VLC_CACHE_GEN}" "${VLC_PLUGINS_SOURCE}"
+                        RESULT_VARIABLE cache_result
+                    )
+                    if(cache_result EQUAL 0)
+                        message(STATUS "VLC plugins cache generated successfully")
+                    else()
+                        message(WARNING "Failed to generate VLC plugins cache")
+                    endif()
+                endif()
+            endif()
+            
             # Also set VLC_PLUGIN_PATH at build time for testing from build directory
+            # Note: When running from Xcode, use the source location; when running the app bundle,
+            # VLCMediaPlayer.cpp will detect and use Contents/Resources/vlc/plugins
             set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
                 XCODE_SCHEME_ENVIRONMENT "VLC_PLUGIN_PATH=${VLC_PLUGINS_SOURCE}"
             )
