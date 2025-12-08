@@ -185,9 +185,11 @@ if(TARGET LibVLC::LibVLC)
         set(VLC_PLUGINS_SOURCE "${VLC_INSTALL_DIR}/lib/vlc/plugins")
         set(VLC_LIB_DIR "${VLC_INSTALL_DIR}/lib")
         
-        # Copy VLC core libraries to Frameworks directory
-        # These are needed at runtime and must be in the bundle for standalone execution
-        if(EXISTS "${VLC_LIB_DIR}/libvlc.dylib")
+        # macOS-specific bundling (uses bundle generator expressions)
+        if(APPLE)
+            # Copy VLC core libraries to Frameworks directory
+            # These are needed at runtime and must be in the bundle for standalone execution
+            if(EXISTS "${VLC_LIB_DIR}/libvlc.dylib")
             message(STATUS "VLC Core Library bundling:")
             message(STATUS "  Source: ${VLC_LIB_DIR}")
             message(STATUS "  Destination: Contents/Frameworks/")
@@ -223,10 +225,10 @@ if(TARGET LibVLC::LibVLC)
                 INSTALL_RPATH "@executable_path/../Frameworks"
                 BUILD_WITH_INSTALL_RPATH TRUE
             )
-        endif()
-        
-        # Check if VLC plugins exist (will be .dylib after rebuild)
-        if(EXISTS "${VLC_PLUGINS_SOURCE}")
+            endif()
+            
+            # Check if VLC plugins exist (will be .dylib after rebuild)
+            if(EXISTS "${VLC_PLUGINS_SOURCE}")
             message(STATUS "VLC Plugin bundling:")
             message(STATUS "  Source: ${VLC_PLUGINS_SOURCE}")
             message(STATUS "  Destination: Contents/PlugIns/vlc/plugins/")
@@ -285,8 +287,9 @@ if(TARGET LibVLC::LibVLC)
             message(STATUS "VLC plugins not found at ${VLC_PLUGINS_SOURCE}")
             message(STATUS "  Plugins will be bundled after VLC rebuild completes")
         endif()
-    endif()
-endif()
+        endif()  # End of APPLE check
+    endif()  # End of LIBVLC_BUILD_FROM_SOURCE check
+endif()  # End of juce_libvlc check
 
 if(APPLE)
     ### setup info.plist and entitlements for macos
@@ -304,7 +307,48 @@ if(APPLE)
         )
 elseif(MSVC OR WIN32 OR MINGW)
     message(STATUS "Adding windows OS flag for httplib")
-    add_compile_definitions(WIN32_LEAN_AND_MEAN)    
+    add_compile_definitions(WIN32_LEAN_AND_MEAN)
+    
+    # Bundle VLC DLLs and plugins into the app output directory
+    if(LIBVLC_BUILD_FROM_SOURCE)
+        set(VLC_INSTALL_DIR "${CMAKE_BINARY_DIR}/vlc-install")
+        set(VLC_BIN_SOURCE "${VLC_INSTALL_DIR}/bin")
+        set(VLC_PLUGINS_SOURCE "${VLC_INSTALL_DIR}/lib/vlc/plugins")
+        
+        if(EXISTS "${VLC_BIN_SOURCE}/libvlc.dll")
+            message(STATUS "VLC Windows bundling:")
+            message(STATUS "  DLLs: ${VLC_BIN_SOURCE}")
+            message(STATUS "  Plugins: ${VLC_PLUGINS_SOURCE}")
+            
+            # Copy VLC DLLs to output directory
+            add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E echo "Copying VLC DLLs..."
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+                    "${VLC_BIN_SOURCE}/libvlc.dll" 
+                    "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/"
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+                    "${VLC_BIN_SOURCE}/libvlccore.dll" 
+                    "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/"
+                COMMENT "Copying VLC DLLs to app output directory"
+            )
+            
+            # Copy VLC plugins to output directory
+            if(EXISTS "${VLC_PLUGINS_SOURCE}")
+                add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E echo "Copying VLC plugins..."
+                    COMMAND ${CMAKE_COMMAND} -E make_directory 
+                        "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/plugins"
+                    COMMAND ${CMAKE_COMMAND} -E copy_directory
+                        "${VLC_PLUGINS_SOURCE}"
+                        "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/plugins"
+                    COMMENT "Copying VLC plugins to app output directory"
+                )
+            endif()
+        else()
+            message(STATUS "VLC DLLs not found at ${VLC_BIN_SOURCE}")
+            message(STATUS "  Run 'make build-vlc' and then reconfigure CMake")
+        endif()
+    endif()
 endif()
 
 ### IDE Generator post-config ###
