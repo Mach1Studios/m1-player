@@ -35,9 +35,18 @@ mkdir -p "$LIBS_DIR"
 
 echo "Scanning VLC plugins for Homebrew dependencies..."
 
+# Detect Homebrew prefix based on architecture
+if [ "$(uname -m)" = "arm64" ]; then
+    HOMEBREW_PREFIX="/opt/homebrew"
+else
+    HOMEBREW_PREFIX="/usr/local"
+fi
+echo "Using Homebrew prefix: $HOMEBREW_PREFIX"
+echo ""
+
 # Find all unique Homebrew library dependencies
 HOMEBREW_DEPS=$(find "$VLC_PLUGINS_DIR" -name "*.dylib" -exec otool -L {} \; 2>/dev/null | \
-    grep -E "^\s+/opt/homebrew" | \
+    grep -E "^\s+$HOMEBREW_PREFIX" | \
     awk '{print $1}' | \
     sort -u)
 
@@ -62,7 +71,7 @@ get_deps() {
     
     # Get Homebrew dependencies of this library
     otool -L "$lib" 2>/dev/null | \
-        grep -E "^\s+/opt/homebrew" | \
+        grep -E "^\s+$HOMEBREW_PREFIX" | \
         awk '{print $1}'
 }
 
@@ -132,14 +141,14 @@ for lib in "$LIBS_DIR"/*.dylib; do
         install_name_tool -id "@loader_path/$libname" "$lib" 2>/dev/null || true
         
         # Get all Homebrew references in this library and fix them
-        HOMEBREW_REFS=$(otool -L "$lib" 2>/dev/null | grep -E "^\s+/opt/homebrew" | awk '{print $1}')
+        HOMEBREW_REFS=$(otool -L "$lib" 2>/dev/null | grep -E "^\s+$HOMEBREW_PREFIX" | awk '{print $1}')
         for dep in $HOMEBREW_REFS; do
             depname=$(basename "$dep")
             install_name_tool -change "$dep" "@loader_path/$depname" "$lib" 2>/dev/null || true
         done
         
         # Also fix any references using Cellar path format
-        CELLAR_REFS=$(otool -L "$lib" 2>/dev/null | grep -E "^\s+/opt/homebrew/Cellar" | awk '{print $1}')
+        CELLAR_REFS=$(otool -L "$lib" 2>/dev/null | grep -E "^\s+$HOMEBREW_PREFIX/Cellar" | awk '{print $1}')
         for dep in $CELLAR_REFS; do
             depname=$(basename "$dep")
             install_name_tool -change "$dep" "@loader_path/$depname" "$lib" 2>/dev/null || true
@@ -166,7 +175,7 @@ echo "Verifying fixes..."
 
 # Verify that no Homebrew references remain in plugins
 REMAINING=$(find "$VLC_PLUGINS_DIR" -name "*.dylib" -exec otool -L {} \; 2>/dev/null | \
-    grep -E "^\s+/opt/homebrew" | head -5)
+    grep -E "^\s+$HOMEBREW_PREFIX" | head -5)
 
 if [ -n "$REMAINING" ]; then
     echo "Warning: Some Homebrew references still remain:"

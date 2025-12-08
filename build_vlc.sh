@@ -38,12 +38,21 @@ if [ ! -d "$VLC_SOURCE" ]; then
     exit 1
 fi
 
-# Set environment for Homebrew on macOS (Apple Silicon)
-if [ "$(uname)" = "Darwin" ] && [ "$(uname -m)" = "arm64" ]; then
-    export PATH="/opt/homebrew/bin:$PATH"
-    export LDFLAGS="-L/opt/homebrew/lib -L/opt/homebrew/opt/gettext/lib $LDFLAGS"
-    export CPPFLAGS="-I/opt/homebrew/include -I/opt/homebrew/opt/gettext/include $CPPFLAGS"
-    export PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/gettext/lib/pkgconfig:$PKG_CONFIG_PATH"
+# Set environment for Homebrew on macOS
+if [ "$(uname)" = "Darwin" ]; then
+    if [ "$(uname -m)" = "arm64" ]; then
+        # Apple Silicon - Homebrew at /opt/homebrew
+        export PATH="/opt/homebrew/bin:$PATH"
+        export LDFLAGS="-L/opt/homebrew/lib -L/opt/homebrew/opt/gettext/lib $LDFLAGS"
+        export CPPFLAGS="-I/opt/homebrew/include -I/opt/homebrew/opt/gettext/include $CPPFLAGS"
+        export PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/gettext/lib/pkgconfig:$PKG_CONFIG_PATH"
+    else
+        # Intel - Homebrew at /usr/local
+        export PATH="/usr/local/bin:$PATH"
+        export LDFLAGS="-L/usr/local/lib -L/usr/local/opt/gettext/lib $LDFLAGS"
+        export CPPFLAGS="-I/usr/local/include -I/usr/local/opt/gettext/include $CPPFLAGS"
+        export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/gettext/lib/pkgconfig:$PKG_CONFIG_PATH"
+    fi
 fi
 
 # Check for required tools
@@ -104,10 +113,15 @@ fi
 
 # Set build flags for macOS compatibility and SDK version
 # This matches the CMake deployment target
-export CFLAGS="-mmacosx-version-min=11.0 $CFLAGS"
-export CXXFLAGS="-mmacosx-version-min=11.0 $CXXFLAGS"
-export OBJCFLAGS="-mmacosx-version-min=11.0 $OBJCFLAGS"
-export LDFLAGS="-mmacosx-version-min=11.0 $LDFLAGS"
+if [ "$(uname -m)" = "arm64" ]; then
+    MACOS_MIN_VERSION="11.0"
+else
+    MACOS_MIN_VERSION="10.14"
+fi
+export CFLAGS="-mmacosx-version-min=$MACOS_MIN_VERSION $CFLAGS"
+export CXXFLAGS="-mmacosx-version-min=$MACOS_MIN_VERSION $CXXFLAGS"
+export OBJCFLAGS="-mmacosx-version-min=$MACOS_MIN_VERSION $OBJCFLAGS"
+export LDFLAGS="-mmacosx-version-min=$MACOS_MIN_VERSION $LDFLAGS"
 
 # Configure VLC with autotools
 echo "========================================"

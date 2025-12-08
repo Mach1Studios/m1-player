@@ -5,15 +5,22 @@ if(POLICY CMP0114)
     cmake_policy(SET CMP0114 NEW)
 endif()
 
-# Force ARM64 architecture on Apple Silicon to match VLC installation
+# Set architecture to match the host system for VLC compatibility
 # This must be set BEFORE project() to ensure it applies to all dependencies
 if(APPLE)
     # Note: To support Universal Binaries (x86_64 and arm64), VLC must be built for both architectures.
     # Currently build_vlc.sh builds for the host architecture only.
-    # If you have universal VLC libs, you can change this to "arm64;x86_64"
-    set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures for macOS" FORCE)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS deployment target" FORCE)
-    message(STATUS "Building for ARM64 only to match VLC installation")
+    # Detect host architecture and build for it
+    execute_process(COMMAND uname -m OUTPUT_VARIABLE HOST_ARCH OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(HOST_ARCH STREQUAL "x86_64")
+        set(CMAKE_OSX_ARCHITECTURES "x86_64" CACHE STRING "Build architectures for macOS" FORCE)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "Minimum macOS deployment target" FORCE)
+        message(STATUS "Building for x86_64 (Intel) to match host architecture")
+    else()
+        set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures for macOS" FORCE)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS deployment target" FORCE)
+        message(STATUS "Building for ARM64 (Apple Silicon) to match host architecture")
+    endif()
 endif()
 
 file(STRINGS VERSION CURRENT_VERSION)
@@ -71,13 +78,14 @@ juce_add_gui_app(${CMAKE_PROJECT_NAME}
                 PRODUCT_NAME ${CMAKE_PROJECT_NAME}
                 IS_SYNTH FALSE)
 
-# Force ARM64 architecture for the JUCE target specifically
+# Set architecture for the JUCE target to match host system
 if(APPLE)
+    execute_process(COMMAND uname -m OUTPUT_VARIABLE HOST_ARCH OUTPUT_STRIP_TRAILING_WHITESPACE)
     set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
-        OSX_ARCHITECTURES "arm64"
-        XCODE_ATTRIBUTE_ARCHS "arm64"
+        OSX_ARCHITECTURES "${HOST_ARCH}"
+        XCODE_ATTRIBUTE_ARCHS "${HOST_ARCH}"
         XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH "NO"
-        XCODE_ATTRIBUTE_VALID_ARCHS "arm64"
+        XCODE_ATTRIBUTE_VALID_ARCHS "${HOST_ARCH}"
     )
 endif()
 
