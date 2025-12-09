@@ -37,11 +37,10 @@ include(FetchContent)
 # Xcode: Disable automatic build scheme generation globally.
 #        Instead, we explicitely specify which targets require schemes.
 set(CMAKE_XCODE_GENERATE_SCHEME OFF)
-# Enable to build universal binaries on macOS, increasing build time
-# This only affects local builds, GitHub actions always builds Universals
-set(CMAKE_OSX_ARCHITECTURES arm64 x86_64)
-set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "Minimum macOS suppored" FORCE)
-set(CMAKE_XCODE_ATTRIBUTE_MACOSX_DEPLOYMENT_TARGET[arch=arm64] "11.0" CACHE STRING "arm 64 minimum deployment target" FORCE)
+# NOTE: m1-player builds for host architecture only due to VLC dependency
+# Universal binaries are NOT supported - VLC and its Homebrew dependencies
+# must be built separately for each architecture.
+# For distribution, build on ARM64 Mac for Apple Silicon, Intel Mac for x86_64.
 # IDEs:  Enable grouping of source files into folders in IDEs.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # IDEs:  Create a folder in the IDE with the JUCE Module code.

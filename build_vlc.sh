@@ -27,8 +27,28 @@ if [ ! -d "$CMAKE_BUILD_DIR" ]; then
 fi
 
 echo "========================================"
-echo "Building VLC Static Libraries"
+echo "Building VLC Libraries"
 echo "========================================"
+echo ""
+
+# Detect architecture - support cross-compilation via Rosetta 2
+HOST_ARCH="$(uname -m)"
+ROSETTA_MODE=false
+
+# Check if running under Rosetta (x86_64 process on ARM64 hardware)
+if [ "$HOST_ARCH" = "x86_64" ] && [ "$(uname)" = "Darwin" ]; then
+    if sysctl -n sysctl.proc_translated 2>/dev/null | grep -q 1; then
+        ROSETTA_MODE=true
+        echo "Running under Rosetta 2 (cross-compiling for Intel)"
+    fi
+fi
+
+echo "Target architecture: $HOST_ARCH"
+if [ "$ROSETTA_MODE" = true ]; then
+    echo "  Cross-compilation mode: ARM64 Mac -> x86_64 binary"
+fi
+echo "NOTE: VLC will be built for $HOST_ARCH only."
+echo "      For distribution, build on each target architecture separately."
 echo ""
 
 # Check if VLC source exists
@@ -40,19 +60,36 @@ fi
 
 # Set environment for Homebrew on macOS
 if [ "$(uname)" = "Darwin" ]; then
-    if [ "$(uname -m)" = "arm64" ]; then
+    if [ "$HOST_ARCH" = "arm64" ]; then
         # Apple Silicon - Homebrew at /opt/homebrew
-        export PATH="/opt/homebrew/bin:$PATH"
-        export LDFLAGS="-L/opt/homebrew/lib -L/opt/homebrew/opt/gettext/lib $LDFLAGS"
-        export CPPFLAGS="-I/opt/homebrew/include -I/opt/homebrew/opt/gettext/include $CPPFLAGS"
-        export PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/gettext/lib/pkgconfig:$PKG_CONFIG_PATH"
+        HOMEBREW_PREFIX="/opt/homebrew"
     else
-        # Intel - Homebrew at /usr/local
-        export PATH="/usr/local/bin:$PATH"
-        export LDFLAGS="-L/usr/local/lib -L/usr/local/opt/gettext/lib $LDFLAGS"
-        export CPPFLAGS="-I/usr/local/include -I/usr/local/opt/gettext/include $CPPFLAGS"
-        export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/gettext/lib/pkgconfig:$PKG_CONFIG_PATH"
+        # Intel (or Rosetta) - Homebrew at /usr/local
+        HOMEBREW_PREFIX="/usr/local"
     fi
+    
+    # Verify Homebrew exists for target architecture
+    if [ ! -d "$HOMEBREW_PREFIX/bin" ]; then
+        echo ""
+        echo "ERROR: Homebrew not found at $HOMEBREW_PREFIX"
+        if [ "$ROSETTA_MODE" = true ]; then
+            echo ""
+            echo "To build for Intel on Apple Silicon, install x86_64 Homebrew first:"
+            echo "  arch -x86_64 /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+            echo ""
+            echo "Then install required dependencies:"
+            echo "  arch -x86_64 /usr/local/bin/brew install autoconf automake libtool pkg-config"
+            echo "  arch -x86_64 /usr/local/bin/brew install ffmpeg@6 libass flac mpg123 libvpx x264 x265"
+            echo "  arch -x86_64 /usr/local/bin/brew install dav1d aom opus libvorbis theora speex libogg libpng jpeg-turbo"
+        fi
+        exit 1
+    fi
+    
+    echo "Using Homebrew at: $HOMEBREW_PREFIX"
+    export PATH="$HOMEBREW_PREFIX/bin:$PATH"
+    export LDFLAGS="-L$HOMEBREW_PREFIX/lib -L$HOMEBREW_PREFIX/opt/gettext/lib $LDFLAGS"
+    export CPPFLAGS="-I$HOMEBREW_PREFIX/include -I$HOMEBREW_PREFIX/opt/gettext/include $CPPFLAGS"
+    export PKG_CONFIG_PATH="$HOMEBREW_PREFIX/lib/pkgconfig:$HOMEBREW_PREFIX/opt/gettext/lib/pkgconfig:$PKG_CONFIG_PATH"
 fi
 
 # Check for required tools

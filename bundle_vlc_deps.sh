@@ -2,6 +2,19 @@
 # Bundle VLC dependencies into the app bundle
 # This script copies all Homebrew dylibs that VLC plugins depend on
 # and fixes their install names to use @loader_path
+#
+# ARCHITECTURE NOTE:
+# This script bundles libraries from the HOST system's Homebrew.
+# - ARM64 Mac: /opt/homebrew (Apple Silicon libraries)
+# - Intel Mac: /usr/local (x86_64 libraries)
+#
+# For distribution, you must build on each target architecture separately:
+# - Build on Apple Silicon Mac for ARM64 distribution
+# - Build on Intel Mac for x86_64 distribution
+#
+# Universal binaries are NOT supported because:
+# 1. VLC must be built separately for each architecture
+# 2. Homebrew libraries are architecture-specific
 
 set -e
 
