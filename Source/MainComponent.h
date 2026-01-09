@@ -14,6 +14,7 @@
 #include "PlayerOSC.h"
 
 #include "MediaPlayer.h"
+#include "ObjectTracker.h"
 #include "UI/M1PlayerControls.h"
 
 #include "UI/M1Checkbox.h"
@@ -198,6 +199,12 @@ private:
     
     // Consolidate the media and transport into a single object class
     MediaPlayer currentMedia;
+    
+    // Object tracking for auto-panning
+    std::unique_ptr<ObjectTracker> objectTracker;
+    bool objectSelectionModeEnabled = false;
+    void handleObjectSelection(const juce::Rectangle<int>& selection);
+    void updateObjectTracking();
 
     bool b_standalone_mode = false;
     bool b_wants_to_switch_to_standalone = false;
