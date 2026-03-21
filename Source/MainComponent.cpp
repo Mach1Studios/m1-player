@@ -149,6 +149,7 @@ void MainComponent::initialise() {
             }
 
             int input_mode = 0;
+            int output_mode = 0;
             float azi = 0.0;
             float ele = 0.0;
             float div = 0.0;
@@ -156,40 +157,55 @@ void MainComponent::initialise() {
             float st_azi = 0.0, st_spr = 0.0;
             int panner_mode = 0;
             bool auto_orbit = true;
+            bool hasOutputMode = false;
+            bool stereoDataAvailable = false;
             bool found = false;
             if (msg.size() >= 10) {
+                hasOutputMode = msg.size() >= 12 && msg[5].isInt32();
+                const int azimuthIndex = hasOutputMode ? 6 : 5;
+                const int elevationIndex = hasOutputMode ? 7 : 6;
+                const int divergeIndex = hasOutputMode ? 8 : 7;
+                const int gainIndex = hasOutputMode ? 9 : 8;
+                const int pannerModeIndex = hasOutputMode ? 10 : 9;
+                const int autoOrbitIndex = hasOutputMode ? 12 : 10;
+                const int stereoAzimuthIndex = hasOutputMode ? 13 : 11;
+                const int stereoSpreadIndex = hasOutputMode ? 14 : 12;
+
                 if (msg[4].isInt32()) {
                     input_mode = msg[4].getInt32();
                 }
-                if (msg[5].isFloat32()) {
-                    azi = msg[5].getFloat32();
+                if (hasOutputMode) {
+                    output_mode = msg[5].getInt32();
                 }
-                if (msg[6].isFloat32()) {
-                    ele = msg[6].getFloat32();
+                if (msg[azimuthIndex].isFloat32()) {
+                    azi = msg[azimuthIndex].getFloat32();
                 }
-                if (msg[7].isFloat32()) {
-                    div = msg[7].getFloat32();
+                if (msg[elevationIndex].isFloat32()) {
+                    ele = msg[elevationIndex].getFloat32();
                 }
-                if (msg[8].isFloat32()) {
-                    gain = msg[8].getFloat32();
+                if (msg[divergeIndex].isFloat32()) {
+                    div = msg[divergeIndex].getFloat32();
                 }
-                if (msg[9].isInt32()) {
-                    panner_mode = msg[9].getInt32();
+                if (msg[gainIndex].isFloat32()) {
+                    gain = msg[gainIndex].getFloat32();
                 }
-            }
-            if (msg.size() >= 13) {
-                if (msg[10].isInt32()) {
-                    auto_orbit = msg[10].getInt32();
+                if (msg[pannerModeIndex].isInt32()) {
+                    panner_mode = msg[pannerModeIndex].getInt32();
                 }
-                if (msg[11].isFloat32()) {
-                    st_azi = msg[11].getFloat32();
+
+                stereoDataAvailable = msg.size() > stereoSpreadIndex;
+                if (stereoDataAvailable && msg[autoOrbitIndex].isInt32()) {
+                    auto_orbit = msg[autoOrbitIndex].getInt32();
                 }
-                if (msg[12].isFloat32()) {
-                    st_spr = msg[12].getFloat32();
+                if (stereoDataAvailable && msg[stereoAzimuthIndex].isFloat32()) {
+                    st_azi = msg[stereoAzimuthIndex].getFloat32();
+                }
+                if (stereoDataAvailable && msg[stereoSpreadIndex].isFloat32()) {
+                    st_spr = msg[stereoSpreadIndex].getFloat32();
                 }
             }
 
-            if (msg.size() >= 1) {
+            if (msg.size() >= 2 && msg[1].isInt32()) {
                 state = msg[1].getInt32();
 
                 // update to panner
@@ -225,6 +241,8 @@ void MainComponent::initialise() {
                                 }
 
                                 panner.m1Encode.setInputMode((Mach1EncodeInputMode) input_mode);
+                                if (hasOutputMode)
+                                    panner.m1Encode.setOutputMode((Mach1EncodeOutputMode) output_mode);
                                 panner.m1Encode.setAzimuthDegrees(azi);
                                 panner.m1Encode.setElevationDegrees(ele);
                                 panner.m1Encode.setDiverge(div);
@@ -235,7 +253,7 @@ void MainComponent::initialise() {
                                 panner.diverge = div; // TODO: remove these?
                                 panner.gain = gain; // TODO: remove these?
 
-                                if (input_mode == 1 && msg.size() >= 13) {
+                                if (input_mode == 1 && stereoDataAvailable) {
                                     panner.m1Encode.setAutoOrbit(auto_orbit);
                                     panner.m1Encode.setOrbitRotationDegrees(st_azi);
                                     panner.m1Encode.setStereoSpread(st_spr / 100.0f); // normalize
@@ -273,6 +291,8 @@ void MainComponent::initialise() {
                     }
 
                     panner.m1Encode.setInputMode((Mach1EncodeInputMode) input_mode);
+                    if (hasOutputMode)
+                        panner.m1Encode.setOutputMode((Mach1EncodeOutputMode) output_mode);
                     panner.m1Encode.setAzimuthDegrees(azi);
                     panner.m1Encode.setElevationDegrees(ele);
                     panner.m1Encode.setDiverge(div);
@@ -283,7 +303,7 @@ void MainComponent::initialise() {
                     panner.diverge = div; // TODO: remove these?
                     panner.gain = gain; // TODO: remove these?
 
-                    if (input_mode == 1 && msg.size() >= 13) {
+                    if (input_mode == 1 && stereoDataAvailable) {
                         panner.m1Encode.setAutoOrbit(auto_orbit);
                         panner.m1Encode.setOrbitRotationDegrees(st_azi);
                         panner.m1Encode.setStereoSpread(st_spr / 100.0f); // normalize
