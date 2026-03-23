@@ -139,16 +139,20 @@ patch_objc_libtool_tags() {
 
         /usr/bin/python3 - "$makefile" <<'PY'
 from pathlib import Path
+import re
 import sys
 
 path = Path(sys.argv[1])
 text = path.read_text()
-updated = text.replace(
-    "$(LIBTOOLFLAGS) --mode=compile $(OBJC)",
-    "$(LIBTOOLFLAGS) --tag=CC --mode=compile $(OBJC)",
-).replace(
-    "$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \\\n\t--mode=link $(OBJCLD)",
-    "$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \\\n\t--tag=CC --mode=link $(OBJCLD)",
+updated = re.sub(
+    r'(?<!--tag=CC )--mode=compile \$\(OBJC\)',
+    '--tag=CC --mode=compile $(OBJC)',
+    text,
+)
+updated = re.sub(
+    r'(?<!--tag=CC )--mode=link \$\((OBJCLD|OBJC)\)',
+    lambda match: f'--tag=CC --mode=link $({match.group(1)})',
+    updated,
 )
 
 if updated != text:
