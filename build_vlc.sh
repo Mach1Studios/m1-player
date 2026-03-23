@@ -131,6 +131,33 @@ if [ -f "$VLC_INSTALL/lib/libvlc.a" ] && [ -f "$VLC_INSTALL/lib/libvlccore.a" ];
     rm -rf "$VLC_BUILD" "$VLC_INSTALL"
 fi
 
+patch_objc_libtool_tags() {
+    local makefile
+
+    for makefile in "$VLC_BUILD/modules/Makefile" "$VLC_BUILD/bin/Makefile" "$VLC_BUILD/test/Makefile"; do
+        [ -f "$makefile" ] || continue
+
+        /usr/bin/python3 - "$makefile" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+updated = text.replace(
+    "$(LIBTOOLFLAGS) --mode=compile $(OBJC)",
+    "$(LIBTOOLFLAGS) --tag=CC --mode=compile $(OBJC)",
+).replace(
+    "$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \\\n\t--mode=link $(OBJCLD)",
+    "$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \\\n\t--tag=CC --mode=link $(OBJCLD)",
+)
+
+if updated != text:
+    path.write_text(updated)
+    print(f"Patched Objective-C libtool tags in {path}")
+PY
+    done
+}
+
 # Bootstrap if configure doesn't exist
 if [ ! -f "$VLC_SOURCE/configure" ]; then
     echo "========================================"
@@ -201,6 +228,10 @@ export OPENCORE_AMRWB_LIBS=""
     --enable-avcodec \
     --enable-avformat \
     --enable-swscale
+
+if [ "$(uname)" = "Darwin" ]; then
+    patch_objc_libtool_tags
+fi
 
 echo ""
 echo "========================================"
