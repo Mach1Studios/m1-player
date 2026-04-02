@@ -6,6 +6,7 @@
 #include "m1_orientation_client/UI/M1Label.h"
 #include "../MeshGenerator.h"
 #include "../TypesForDataExchange.h"
+#include "MarqueeSelection.h"
 
 class VideoPlayerSurface : public View<VideoPlayerSurface> {
 private:
@@ -271,6 +272,83 @@ public:
         rotationOffsetMouse = videoPlayerSurface.rotationOffsetMouse;
 
         isUpdatedRotation = videoPlayerSurface.isUpdatedRotation;
+        
+        // Draw object tracking selection overlay (only in 2D/flat mode for now)
+        if (objectSelectionEnabled || objectTrackingActive)
+        {
+            auto& marquee = m.prepare<MarqueeSelection>({ 0, 0, getSize().x, getSize().y });
+            marquee.selectionEnabled = objectSelectionEnabled && drawFlat;
+            marquee.selectionColor = juce::Colour(0xFF00D4FF);
+            marquee.trackingColor = juce::Colour(0xFF00FF88);
+            
+            // Update tracking visualization
+            if (objectTrackingActive && trackingResult.objectFound)
+            {
+                // Clear the selection rectangle when tracking is active and object found
+                marquee.hasSelection = false;
+                marquee.selectionRect = juce::Rectangle<float>();
+                
+                // Convert normalized tracking position to view coordinates
+                float viewW = getSize().x;
+                float viewH = getSize().y;
+                
+                juce::Rectangle<float> trackRect(
+                    trackingResult.bounds.getX() / static_cast<float>(videoFrameWidth) * viewW,
+                    trackingResult.bounds.getY() / static_cast<float>(videoFrameHeight) * viewH,
+                    trackingResult.bounds.getWidth() / static_cast<float>(videoFrameWidth) * viewW,
+                    trackingResult.bounds.getHeight() / static_cast<float>(videoFrameHeight) * viewH
+                );
+                
+                marquee.setTrackingResult(trackRect, trackingResult.confidence, false);
+            }
+            else if (objectTrackingActive && !trackingResult.objectFound && trackingResult.processingTimeMs > 0)
+            {
+                // Clear the selection when tracking (even if searching/lost)
+                marquee.hasSelection = false;
+                marquee.selectionRect = juce::Rectangle<float>();
+                
+                // Show "lost" state if we were tracking but lost the object
+                marquee.setTrackingResult(lastKnownTrackingRect, 0.0f, true);
+            }
+            else if (objectTrackingActive)
+            {
+                // Still searching - hide selection but don't show tracking rect yet
+                marquee.hasSelection = false;
+                marquee.selectionRect = juce::Rectangle<float>();
+            }
+            else
+            {
+                marquee.clearTrackingResult();
+            }
+            
+            // Handle selection callbacks
+            marquee.onSelectionComplete = [this](juce::Rectangle<float> normalizedSelection) {
+                if (onObjectSelected)
+                {
+                    // Convert from view coordinates to video frame coordinates
+                    juce::Rectangle<int> frameSelection(
+                        static_cast<int>(normalizedSelection.getX() * videoFrameWidth),
+                        static_cast<int>(normalizedSelection.getY() * videoFrameHeight),
+                        static_cast<int>(normalizedSelection.getWidth() * videoFrameWidth),
+                        static_cast<int>(normalizedSelection.getHeight() * videoFrameHeight)
+                    );
+                    onObjectSelected(frameSelection);
+                }
+            };
+            
+            marquee.onSelectionCancelled = [this]() {
+                if (onSelectionCancelled)
+                    onSelectionCancelled();
+            };
+            
+            marquee.draw();
+            
+            // Store if user made a new selection
+            if (marquee.hasSelection)
+            {
+                currentSelection = marquee.getNormalizedSelection();
+            }
+        }
     }
 
     bool drawFlat = false;
@@ -293,4 +371,65 @@ public:
 
     bool isUpdatedRotation = false;
     float playheadPosition = 0.0;
+    
+    //==============================================================================
+    // Object Tracking Support
+    
+    /** Enable/disable object selection mode (marquee drawing) */
+    bool objectSelectionEnabled = false;
+    
+    /** Whether object tracking is currently active */
+    bool objectTrackingActive = false;
+    
+    /** Current tracking result for visualization */
+    struct TrackingResultView {
+        bool objectFound = false;
+        juce::Point<float> centerPosition;
+        juce::Rectangle<float> bounds;
+        float confidence = 0.0f;
+        double processingTimeMs = 0.0;
+    } trackingResult;
+    
+    /** Video frame dimensions (needed for coordinate conversion) */
+    int videoFrameWidth = 0;
+    int videoFrameHeight = 0;
+    
+    /** Current normalized selection rectangle */
+    juce::Rectangle<float> currentSelection;
+    
+    /** Callback when user completes a selection (provides rect in video frame coordinates) */
+    std::function<void(juce::Rectangle<int>)> onObjectSelected;
+    
+    /** Callback when selection is cancelled */
+    std::function<void()> onSelectionCancelled;
+    
+    /** Sets the tracking result for visualization */
+    void setTrackingResult(bool found, juce::Point<float> center, 
+                          juce::Rectangle<float> bounds, float confidence, double timeMs)
+    {
+        trackingResult.objectFound = found;
+        trackingResult.centerPosition = center;
+        trackingResult.bounds = bounds;
+        trackingResult.confidence = confidence;
+        trackingResult.processingTimeMs = timeMs;
+        
+        if (found)
+        {
+            lastKnownTrackingRect = juce::Rectangle<float>(
+                bounds.getX() / static_cast<float>(videoFrameWidth) * getSize().x,
+                bounds.getY() / static_cast<float>(videoFrameHeight) * getSize().y,
+                bounds.getWidth() / static_cast<float>(videoFrameWidth) * getSize().x,
+                bounds.getHeight() / static_cast<float>(videoFrameHeight) * getSize().y
+            );
+        }
+    }
+    
+    /** Clears the tracking result */
+    void clearTrackingResult()
+    {
+        trackingResult = TrackingResultView();
+    }
+
+private:
+    juce::Rectangle<float> lastKnownTrackingRect;
 };

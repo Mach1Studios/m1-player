@@ -145,6 +145,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         m1_orientation_client
         m1_mathematics
         juce_libvlc
+        m1_objectdetection
         )
 
 # definitions to replace the `JucePluginDefines.h`

@@ -26,7 +26,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/juce_libvlc/cmake")
 juce_add_modules(
         juce_murka
         m1_orientation_client
-        juce_libvlc)
+        juce_libvlc
+        m1_objectdetection)
 
 # Mach1 Spatial SDK
 # Use these options to block dependencies we do not need

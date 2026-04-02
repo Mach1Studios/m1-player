@@ -30,6 +30,19 @@ MainComponent::MainComponent() : m_decode_strategy(&MainComponent::nullStrategy)
 
     // Setup OSC
     playerOSC = std::make_unique<PlayerOSC>();
+    
+    // Setup Object Tracker
+    objectTracker = std::make_unique<ObjectTracker>();
+    objectTracker->onTrackingUpdate = [this](const ObjectTracker::TrackingResult& result) {
+        // This callback is called on the message thread when tracking updates
+        DBG("[ObjectTracker] Object found at: " + 
+            juce::String(result.normalizedPosition.x, 3) + ", " +
+            juce::String(result.normalizedPosition.y, 3) +
+            " (confidence: " + juce::String(result.confidence, 2) + ")");
+    };
+    objectTracker->onTrackingLost = [this]() {
+        DBG("[ObjectTracker] Tracking lost");
+    };
 
     // print build time for debug
     juce::String date(__DATE__);
@@ -853,6 +866,9 @@ void MainComponent::draw()
         syncWithDAWPlayhead();
     }
 
+    // Update object tracking with current video frame
+    updateObjectTracking();
+    
 	// update video frame
 	if (currentMedia.clipLoaded() && currentMedia.hasVideo()) 
     {
@@ -881,6 +897,43 @@ void MainComponent::draw()
 	m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
 
 	auto& videoPlayerWidget = m.prepare<VideoPlayerWidget>({ 0, 0, m.getWindowWidth(), m.getWindowHeight() });
+    
+    // Configure object tracking for the video player widget
+    videoPlayerWidget.objectSelectionEnabled = objectSelectionModeEnabled;
+    videoPlayerWidget.objectTrackingActive = objectTracker && objectTracker->isTracking();
+    
+    // Set video frame dimensions for coordinate conversion
+    if (currentMedia.clipLoaded() && currentMedia.hasVideo())
+    {
+        juce::Image& frame = currentMedia.getFrame();
+        if (frame.isValid())
+        {
+            videoPlayerWidget.videoFrameWidth = frame.getWidth();
+            videoPlayerWidget.videoFrameHeight = frame.getHeight();
+        }
+    }
+    
+    // Update tracking result visualization
+    if (objectTracker && objectTracker->isTracking())
+    {
+        auto result = objectTracker->getLatestResult();
+        videoPlayerWidget.setTrackingResult(
+            result.objectFound,
+            result.centerPosition,
+            result.bounds,
+            result.confidence,
+            result.processingTimeMs
+        );
+    }
+    
+    // Handle object selection callback
+    videoPlayerWidget.onObjectSelected = [this](juce::Rectangle<int> selection) {
+        handleObjectSelection(selection);
+    };
+    
+    videoPlayerWidget.onSelectionCancelled = [this]() {
+        objectSelectionModeEnabled = false;
+    };
 
     auto vid_rot = Mach1::Float3{ videoPlayerWidget.rotationCurrent.x, videoPlayerWidget.rotationCurrent.y, videoPlayerWidget.rotationCurrent.z }.EulerRadians();
     currentOrientation.SetRotation(vid_rot);
@@ -1185,6 +1238,21 @@ void MainComponent::draw()
     if (m.isKeyPressed('o')) {
         videoPlayerWidget.drawOverlay = !videoPlayerWidget.drawOverlay;
     }
+    
+    // Toggle object tracking selection mode
+    if (m.isKeyPressed('t')) {
+        if (currentMedia.clipLoaded() && currentMedia.hasVideo() && videoPlayerWidget.drawFlat) {
+            if (objectTracker && objectTracker->isTracking()) {
+                // Stop tracking if already tracking
+                objectTracker->stopTracking();
+                objectTracker->clearReference();
+                objectSelectionModeEnabled = false;
+            } else {
+                // Toggle selection mode
+                objectSelectionModeEnabled = !objectSelectionModeEnabled;
+            }
+        }
+    }
 
     if (m.isKeyPressed('d')) {
         // Cycle through stereoscopic modes: OFF -> TB -> LR
@@ -1300,14 +1368,15 @@ void MainComponent::draw()
         m.getCurrentFont()->drawString("[g] - Overlay 2D Reference", 10, 210);
         m.getCurrentFont()->drawString("[o] - Overlay Reference", 10, 230);
         m.getCurrentFont()->drawString("[d] - Cycle stereoscopic modes (Off/TB/LR)", 10, 250);
-        m.getCurrentFont()->drawString("[h] - Hide UI", 10, 290);
-        m.getCurrentFont()->drawString("[Arrow Keys] - Orientation Resets", 10, 310);
+        m.getCurrentFont()->drawString("[t] - Object tracking selection (2D mode)", 10, 270);
+        m.getCurrentFont()->drawString("[h] - Hide UI", 10, 310);
+        m.getCurrentFont()->drawString("[Arrow Keys] - Orientation Resets", 10, 330);
 
         auto ori_deg = currentOrientation.GetGlobalRotationAsEulerDegrees();
-        m.getCurrentFont()->drawString("OverlayCoords:", 10, 350);
-        m.getCurrentFont()->drawString("Y: " + std::to_string(ori_deg.GetYaw()), 10, 370);
-        m.getCurrentFont()->drawString("P: " + std::to_string(ori_deg.GetPitch()), 10, 390);
-        m.getCurrentFont()->drawString("R: " + std::to_string(ori_deg.GetRoll()), 10, 410);
+        m.getCurrentFont()->drawString("OverlayCoords:", 10, 370);
+        m.getCurrentFont()->drawString("Y: " + std::to_string(ori_deg.GetYaw()), 10, 390);
+        m.getCurrentFont()->drawString("P: " + std::to_string(ori_deg.GetPitch()), 10, 410);
+        m.getCurrentFont()->drawString("R: " + std::to_string(ori_deg.GetRoll()), 10, 430);
     }
 
     std::function<void()> deleteTheSettingsButton = [&]() {
@@ -1702,6 +1771,189 @@ void MainComponent::draw()
                 .withAlignment(TEXT_LEFT)
                 .draw();
                 m.setColor(ENABLED_PARAM);
+            }
+            
+            // OBJECT TRACKING SECTION
+            float objectTracking_y_position = stereo_y_position + 60;
+            
+            juceFontStash::Rectangle ot_label_box = m.getCurrentFont()->getStringBoundingBox("OBJECT TRACKING", 0, 0);
+            m.setColor(ENABLED_PARAM);
+            m.prepare<murka::Label>({
+                leftSide_LeftBound_x,
+                objectTracking_y_position,
+                ot_label_box.width + 20, ot_label_box.height
+            })
+            .text("OBJECT TRACKING")
+            .withAlignment(TEXT_LEFT)
+            .draw();
+            
+            // Object tracking controls - only available in 2D mode with video
+            bool trackingAvailable = currentMedia.clipLoaded() && currentMedia.hasVideo() && videoPlayerWidget.drawFlat;
+            
+            if (trackingAvailable)
+            {
+                // Select Object Button
+                float button_y = objectTracking_y_position + 25;
+                bool isTracking = objectTracker && objectTracker->isTracking();
+                bool hasReference = objectTracker && objectTracker->hasReference();
+                
+                // "SELECT OBJECT FOR TRACKING" / "CANCEL SELECTION" / "STOP TRACKING" button
+                std::string trackButtonLabel = objectSelectionModeEnabled ? "CANCEL SELECTION" :
+                                              (isTracking ? "STOP TRACKING" : "SELECT OBJECT FOR TRACKING");
+                
+                // Set border color based on state
+                MurkaColor borderColor;
+                if (objectSelectionModeEnabled) {
+                    borderColor = MurkaColor(255, 136, 68); // Orange
+                } else if (isTracking) {
+                    borderColor = MurkaColor(68, 255, 136); // Green
+                } else {
+                    borderColor = MurkaColor(ENABLED_PARAM); // Light gray
+                }
+                
+                m.prepare<M1Label>({
+                    leftSide_LeftBound_x, button_y,
+                    210, 24
+                })
+                .withText(trackButtonLabel)
+                .withTextAlignment(TEXT_CENTER)
+                .withVerticalTextOffset(4)
+                .withStrokeBorder(borderColor)
+                .withBackgroundFill(MurkaColor(BACKGROUND_COMPONENT), MurkaColor(BACKGROUND_GREY))
+                .withOnClickFlash()
+                .withOnClickCallback([&]() {
+                    if (objectSelectionModeEnabled)
+                    {
+                        // Cancel selection mode
+                        objectSelectionModeEnabled = false;
+                    }
+                    else if (isTracking)
+                    {
+                        // Stop tracking
+                        objectTracker->stopTracking();
+                        objectTracker->clearReference();
+                    }
+                    else
+                    {
+                        // Close settings menu and enter selection mode
+                        showSettingsMenu = false;
+                        objectSelectionModeEnabled = true;
+                        // Make sure we're in 2D mode for selection
+                        videoPlayerWidget.drawFlat = true;
+                    }
+                })
+                .draw();
+                
+                // Show tracking status indicator below the button
+                if (isTracking)
+                {
+                    auto trackResult = objectTracker->getLatestResult();
+                    std::string statusText = trackResult.objectFound ? 
+                        "Tracking: " + juce::String(trackResult.processingTimeMs, 1).toStdString() + "ms" :
+                        "Searching...";
+                    
+                    m.setColor(trackResult.objectFound ? 0x88FF88FF : 0xFFFF88FF);
+                    m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE - 3);
+                    m.prepare<murka::Label>({
+                        leftSide_LeftBound_x, button_y + 28,
+                        200, 18
+                    })
+                    .text(statusText)
+                    .withAlignment(TEXT_LEFT)
+                    .draw();
+                    m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
+                }
+                else if (objectSelectionModeEnabled)
+                {
+                    m.setColor(0xFFFF8844);
+                    m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE - 3);
+                    m.prepare<murka::Label>({
+                        leftSide_LeftBound_x, button_y + 28,
+                        200, 18
+                    })
+                    .text("Draw a box around object")
+                    .withAlignment(TEXT_LEFT)
+                    .draw();
+                    m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
+                }
+                
+                m.setColor(ENABLED_PARAM);
+            }
+            else
+            {
+                float button_y = objectTracking_y_position + 25;
+                
+                // Check what's preventing tracking
+                bool hasVideo = currentMedia.clipLoaded() && currentMedia.hasVideo();
+                bool isIn2DMode = videoPlayerWidget.drawFlat;
+                
+                if (!currentMedia.clipLoaded())
+                {
+                    // No video loaded - show disabled message
+                    m.setColor(DISABLED_PARAM);
+                    m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE - 2);
+                    m.prepare<murka::Label>({
+                        leftSide_LeftBound_x, button_y,
+                        200, 18
+                    })
+                    .text("Load a video first")
+                    .withAlignment(TEXT_LEFT)
+                    .draw();
+                    m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
+                    m.setColor(ENABLED_PARAM);
+                }
+                else if (!hasVideo)
+                {
+                    // Audio-only file - show disabled message
+                    m.setColor(DISABLED_PARAM);
+                    m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE - 2);
+                    m.prepare<murka::Label>({
+                        leftSide_LeftBound_x, button_y,
+                        200, 18
+                    })
+                    .text("Audio-only file")
+                    .withAlignment(TEXT_LEFT)
+                    .draw();
+                    m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
+                    m.setColor(ENABLED_PARAM);
+                }
+                else
+                {
+                    // Video loaded but in 3D mode - show clickable button
+                    m.prepare<M1Label>({
+                        leftSide_LeftBound_x, button_y,
+                        210, 24
+                    })
+                    .withText("SELECT OBJECT FOR TRACKING")
+                    .withTextAlignment(TEXT_CENTER)
+                    .withVerticalTextOffset(4)
+                    .withStrokeBorder(MurkaColor(ENABLED_PARAM))
+                    .withBackgroundFill(MurkaColor(BACKGROUND_COMPONENT), MurkaColor(BACKGROUND_GREY))
+                    .withOnClickFlash()
+                    .withOnClickCallback([&]() {
+                        // Close settings menu
+                        showSettingsMenu = false;
+                        // Switch to 2D mode
+                        videoPlayerWidget.drawFlat = true;
+                        drawReference = false;
+                        // Enable object selection mode
+                        objectSelectionModeEnabled = true;
+                    })
+                    .draw();
+                    
+                    // Show hint text
+                    m.setColor(DISABLED_PARAM);
+                    m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE - 3);
+                    m.prepare<murka::Label>({
+                        leftSide_LeftBound_x, button_y + 28,
+                        210, 14
+                    })
+                    .text("(Will switch to 2D view)")
+                    .withAlignment(TEXT_LEFT)
+                    .draw();
+                    m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
+                    m.setColor(ENABLED_PARAM);
+                }
             }
 
             
@@ -2259,4 +2511,61 @@ void MainComponent::loadRecentFileList()
     }
     
     DBG("Loaded " + juce::String(recentFiles.size()) + " recent files");
+}
+
+//==============================================================================
+// Object Tracking Methods
+
+void MainComponent::handleObjectSelection(const juce::Rectangle<int>& selection)
+{
+    if (!currentMedia.clipLoaded() || !currentMedia.hasVideo())
+    {
+        DBG("[ObjectTracker] Cannot set reference - no video loaded");
+        return;
+    }
+    
+    // Get the current video frame
+    juce::Image& frame = currentMedia.getFrame();
+    if (!frame.isValid())
+    {
+        DBG("[ObjectTracker] Cannot set reference - invalid frame");
+        return;
+    }
+    
+    // Set the reference object from the selection
+    if (objectTracker->setReferenceFromSelection(frame, selection))
+    {
+        DBG("[ObjectTracker] Reference object set successfully");
+        
+        // Start tracking automatically
+        if (objectTracker->startTracking(3)) // Process every 3rd frame
+        {
+            objectSelectionModeEnabled = false; // Exit selection mode
+            DBG("[ObjectTracker] Tracking started");
+        }
+    }
+    else
+    {
+        // Show error
+        showErrorPopup = true;
+        errorMessage = "OBJECT TRACKING ERROR";
+        errorMessageInfo = "Failed to set reference object. Try selecting a larger area.";
+        errorStartTime = std::chrono::steady_clock::now();
+    }
+}
+
+void MainComponent::updateObjectTracking()
+{
+    if (!objectTracker || !objectTracker->isTracking())
+        return;
+    
+    if (!currentMedia.clipLoaded() || !currentMedia.hasVideo())
+        return;
+    
+    // Get the current video frame and submit it for tracking
+    juce::Image& frame = currentMedia.getFrame();
+    if (frame.isValid())
+    {
+        objectTracker->submitFrame(frame);
+    }
 }
