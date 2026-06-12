@@ -117,6 +117,7 @@ public:
 
     void internalDraw(Murka& m) {
         if (!inited) {
+            imgOverlay.setOpenGLContext(m.getOpenGLContext());
             imgOverlay.loadFromRawData(BinaryData::overlay_png, BinaryData::overlay_pngSize);
 
             sphere = MeshGenerator().generateSphereMesh(1, 1, 100);
@@ -174,7 +175,7 @@ public:
                 m.unbindShader();
             }
 
-            if (drawOverlay) {
+            if (drawOverlay && imgOverlay.isAllocated()) {
                 m.bind(imgOverlay);
                 m.drawVbo(sphere, GL_TRIANGLE_STRIP, 0, sphere.getIndexes().size());
                 m.unbind(imgOverlay);

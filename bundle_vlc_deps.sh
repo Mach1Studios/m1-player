@@ -269,6 +269,8 @@ if [ -f "/Applications/VLC.app/Contents/MacOS/plugins/vlc-cache-gen" ]; then
     VLC_CACHE_GEN="/Applications/VLC.app/Contents/MacOS/plugins/vlc-cache-gen"
 elif [ -f "$APP_BUNDLE/../vlc-install/lib/vlc/vlc-cache-gen" ]; then
     VLC_CACHE_GEN="$APP_BUNDLE/../vlc-install/lib/vlc/vlc-cache-gen"
+elif [ -f "$APP_BUNDLE/../../../vlc-install/lib/vlc/vlc-cache-gen" ]; then
+    VLC_CACHE_GEN="$APP_BUNDLE/../../../vlc-install/lib/vlc/vlc-cache-gen"
 fi
 
 if [ -n "$VLC_CACHE_GEN" ] && [ -x "$VLC_CACHE_GEN" ]; then

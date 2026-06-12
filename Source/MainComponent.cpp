@@ -126,6 +126,10 @@ void MainComponent::initialise() {
     m1OrientationClient.setStatusCallback(std::bind(&MainComponent::setStatus, this, std::placeholders::_1,
                                                     std::placeholders::_2));
 
+    imgVideo.setOpenGLContext(m.getOpenGLContext());
+    imgLogo.setOpenGLContext(m.getOpenGLContext());
+    imgHideUI.setOpenGLContext(m.getOpenGLContext());
+    imgUnhideUI.setOpenGLContext(m.getOpenGLContext());
     imgLogo.loadFromRawData(BinaryData::mach1logo_png, BinaryData::mach1logo_pngSize);
     imgHideUI.loadFromRawData(BinaryData::hide_ui_png, BinaryData::hide_ui_pngSize);
     imgUnhideUI.loadFromRawData(BinaryData::unhide_ui_png, BinaryData::unhide_ui_pngSize);
@@ -519,6 +523,10 @@ void MainComponent::intermediaryBufferTranscodeStrategy(const AudioSourceChannel
     }
 }
 
+void MainComponent::noTranscodeStrategy(const AudioSourceChannelInfo&, const AudioSourceChannelInfo&)
+{
+}
+
 void MainComponent::nullStrategy(const AudioSourceChannelInfo &bufferToFill, const AudioSourceChannelInfo &info)
 {
     // Display error to user
@@ -876,7 +884,10 @@ void MainComponent::draw()
         }
     }
 
-	m.clear(20);
+    // Keep the GL layer opaque; newer macOS compositing can show an alpha-zero clear as white.
+	m.clear(20, 255);
+    m.setColor(20, 20, 20, 255);
+    m.drawRectangle(0, 0, m.getWindowWidth(), m.getWindowHeight());
 	m.setColor(255);
 	m.setFontFromRawData(PLUGIN_FONT, BINARYDATA_FONT, BINARYDATA_FONT_SIZE, DEFAULT_FONT_SIZE);
 
@@ -944,10 +955,9 @@ void MainComponent::draw()
 		videoPlayerWidget.playheadPosition = (float)playheadPosition;
 	}
 	
-	// draw overlay if video empty
-	if (!currentMedia.clipLoaded()) {
-		videoPlayerWidget.drawOverlay = true;
-	}
+    if (!currentMedia.clipLoaded()) {
+        videoPlayerWidget.drawOverlay = true;
+    }
 
 	// draw panners
     // TODO: add some protection here?
@@ -1877,8 +1887,8 @@ void MainComponent::reconfigureAudioDecode() {
 
 // TODO: Detect any Mach1Spatial comment metadata
 void MainComponent::reconfigureAudioTranscode() {
-    // Default to null strategy
-    m_transcode_strategy = &MainComponent::nullStrategy;
+    // Stereo/mono files do not need format conversion before decode.
+    m_transcode_strategy = &MainComponent::noTranscodeStrategy;
 
     if (detectedNumInputChannels <= 2) {
         return;
